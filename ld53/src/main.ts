@@ -213,46 +213,6 @@ function step() {
 // start main loop
 step();
 
-
-async function loadAsciiTexture(ascii: string, colors: (string | Color)[]): Promise<TextureAsset> {
-
-    let rows = ascii.trim().split("\n").map(x => x.trim())
-    console.log(rows)
-    let height = rows.length
-    let width = rows[0].length
-
-    // create render target
-    // @ts-ignore
-    let renderTarget = await Shaku.assets.createRenderTarget(null, width, height, 4);
-
-    // use render target
-    Shaku.gfx!.setRenderTarget(renderTarget, false);
-
-    for (let j = 0; j < height; j++) {
-        for (let i = 0; i < width; i++) {
-            let val = rows[j][i];
-            if (val === '.' || val === ' ') continue;
-            let n = parseInt(val);
-
-            let col = colors[n];
-            if (typeof col === 'string') {
-                col = Shaku.utils.Color.fromHex(col);
-            }
-            Shaku.gfx!.fillRect(
-                new Shaku.utils.Rectangle(i, height - j - 1, 1, 1),
-                col,
-                BlendModes.Opaque, 0
-            );
-        }
-    }
-
-    // reset render target
-    // @ts-ignore
-    Shaku.gfx!.setRenderTarget(null, false);
-
-    return renderTarget;
-}
-
 function choose<T>(list: T[]): T {
     if (list.length === 0) {
         throw new Error("Empty list");

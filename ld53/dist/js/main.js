@@ -42,6 +42,466 @@ var require_manager = __commonJS({
   }
 });
 
+// ../Shaku/lib/logger.js
+var require_logger = __commonJS({
+  "../Shaku/lib/logger.js"(exports, module) {
+    "use strict";
+    var _drivers = console;
+    var _application = "Shaku";
+    var Logger = class {
+      constructor(name) {
+        this._nameHeader = "[" + _application + "][" + name + "]";
+        this._throwErrors = false;
+      }
+      trace(msg) {
+        _drivers.trace(this._nameHeader, msg);
+      }
+      debug(msg) {
+        _drivers.debug(this._nameHeader, msg);
+      }
+      info(msg) {
+        _drivers.info(this._nameHeader, msg);
+      }
+      warn(msg) {
+        _drivers.warn(this._nameHeader, msg);
+        if (this._throwErrors) {
+          throw new Error(msg);
+        }
+      }
+      error(msg) {
+        _drivers.error(this._nameHeader, msg);
+        if (this._throwErrors) {
+          throw new Error(msg);
+        }
+      }
+      throwErrorOnWarnings(enable) {
+        this._throwErrors = Boolean(enable);
+      }
+    };
+    var NullDrivers = class {
+      constructor() {
+      }
+      trace(msg) {
+      }
+      debug(msg) {
+      }
+      info(msg) {
+      }
+      warn(msg) {
+      }
+      error(msg) {
+      }
+    };
+    module.exports = {
+      getLogger: function(name) {
+        return new Logger(name);
+      },
+      silent: function() {
+        _drivers = new NullDrivers();
+      },
+      setDrivers: function(drivers) {
+        _drivers = drivers;
+      },
+      setApplicationName: function(name) {
+        _application = name;
+        return this;
+      }
+    };
+  }
+});
+
+// ../Shaku/lib/assets/asset.js
+var require_asset = __commonJS({
+  "../Shaku/lib/assets/asset.js"(exports, module) {
+    "use strict";
+    var Asset = class {
+      constructor(url) {
+        this._url = url;
+        this._waitingCallbacks = [];
+      }
+      onReady(callback) {
+        if (this.valid || this._waitingCallbacks === null) {
+          callback(this);
+          return;
+        }
+        this._waitingCallbacks.push(callback);
+      }
+      waitForReady() {
+        return new Promise((resolve, reject2) => {
+          this.onReady(resolve);
+        });
+      }
+      _notifyReady() {
+        if (this._waitingCallbacks) {
+          for (let i = 0; i < this._waitingCallbacks.length; ++i) {
+            this._waitingCallbacks[i](this);
+          }
+          this._waitingCallbacks = null;
+        }
+      }
+      get url() {
+        return this._url;
+      }
+      get valid() {
+        throw new Error("Not Implemented!");
+      }
+      load(params) {
+        throw new Error("Not Implemented!");
+      }
+      create(source, params) {
+        throw new Error("Not Supported for this asset type.");
+      }
+      destroy() {
+        throw new Error("Not Implemented!");
+      }
+    };
+    module.exports = Asset;
+  }
+});
+
+// ../Shaku/lib/assets/sound_asset.js
+var require_sound_asset = __commonJS({
+  "../Shaku/lib/assets/sound_asset.js"(exports, module) {
+    "use strict";
+    var Asset = require_asset();
+    var SoundAsset = class extends Asset {
+      constructor(url) {
+        super(url);
+        this._valid = false;
+      }
+      load() {
+        return new Promise((resolve, reject2) => {
+          var request = new XMLHttpRequest();
+          request.open("GET", this.url, true);
+          request.responseType = "arraybuffer";
+          request.onload = () => {
+            this._valid = true;
+            this._notifyReady();
+            resolve();
+          };
+          request.onerror = (e) => {
+            reject2(e);
+          };
+          request.send();
+        });
+      }
+      get valid() {
+        return this._valid;
+      }
+      destroy() {
+        this._valid = false;
+      }
+    };
+    module.exports = SoundAsset;
+  }
+});
+
+// ../Shaku/lib/sfx/sound_instance.js
+var require_sound_instance = __commonJS({
+  "../Shaku/lib/sfx/sound_instance.js"(exports, module) {
+    "use strict";
+    var _logger = require_logger().getLogger("sfx");
+    var SoundInstance = class {
+      constructor(sfxManager, url) {
+        if (!url) {
+          _logger.error("Sound type can't be null or invalid!");
+          throw new Error("Invalid sound type to play in SoundInstance!");
+        }
+        this._sfx = sfxManager;
+        this._audio = new Audio(url);
+        this._volume = 1;
+        this._sfx._soundsNotDisposed.add(this);
+      }
+      disposeWhenDone() {
+        this._audio.onended = () => {
+          this.dispose();
+        };
+      }
+      dispose() {
+        if (this._audio) {
+          this._audio.pause();
+          this._audio.src = "";
+          this._audio.srcObject = null;
+          this._audio.remove();
+          this._sfx._soundsNotDisposed.delete(this);
+        }
+        this._audio = null;
+      }
+      play() {
+        if (this.playing) {
+          return;
+        }
+        let promise = this._audio.play();
+        this._sfx._playingSounds.add(this);
+        return promise;
+      }
+      get playbackRate() {
+        return this._audio.playbackRate;
+      }
+      set playbackRate(val) {
+        if (val < 0.1) {
+          _logger.error("playbackRate value set is too low, value was capped to 0.1.");
+        }
+        if (val > 10) {
+          _logger.error("playbackRate value set is too high, value was capped to 10.");
+        }
+        this._audio.playbackRate = val;
+      }
+      get preservesPitch() {
+        return Boolean(this._audio.preservesPitch || this._audio.mozPreservesPitch);
+      }
+      set preservesPitch(val) {
+        return this._audio.preservesPitch = this._audio.mozPreservesPitch = Boolean(val);
+      }
+      pause() {
+        this._audio.pause();
+      }
+      replay() {
+        this.stop();
+        return this.play();
+      }
+      stop() {
+        try {
+          this.pause();
+          this.currentTime = 0;
+          return true;
+        } catch (e) {
+          return false;
+        }
+      }
+      get loop() {
+        return this._audio.loop;
+      }
+      set loop(value) {
+        this._audio.loop = value;
+        return this._audio.loop;
+      }
+      get volume() {
+        return this._volume;
+      }
+      set volume(value) {
+        this._volume = value;
+        var volume = value * SoundInstance._masterVolume;
+        if (volume < 0) {
+          volume = 0;
+        }
+        if (volume > 1) {
+          volume = 1;
+        }
+        this._audio.volume = volume;
+        return this._volume;
+      }
+      get currentTime() {
+        return this._audio.currentTime;
+      }
+      set currentTime(value) {
+        return this._audio.currentTime = value;
+      }
+      get duration() {
+        return this._audio.duration;
+      }
+      get paused() {
+        return this._audio.paused;
+      }
+      get playing() {
+        return !this.paused && !this.finished;
+      }
+      get finished() {
+        return this._audio.ended;
+      }
+    };
+    SoundInstance._masterVolume = 1;
+    module.exports = SoundInstance;
+  }
+});
+
+// ../Shaku/lib/sfx/sound_mixer.js
+var require_sound_mixer = __commonJS({
+  "../Shaku/lib/sfx/sound_mixer.js"(exports, module) {
+    "use strict";
+    var SoundInstance = require_sound_instance();
+    var SoundMixer = class {
+      constructor(sound1, sound2, allowOverlapping) {
+        this._sound1 = sound1;
+        this._sound2 = sound2;
+        this.fromSoundVolume = this._sound1 ? this._sound1.volume : 0;
+        this.toSoundVolume = this._sound2 ? this._sound2.volume : 0;
+        this.allowOverlapping = allowOverlapping;
+        this.update(0);
+      }
+      stop() {
+        if (this._sound1) {
+          this._sound1.stop();
+        }
+        if (this._sound2) {
+          this._sound2.stop();
+        }
+      }
+      get fromSound() {
+        return this._sound1;
+      }
+      get toSound() {
+        return this._sound2;
+      }
+      get progress() {
+        return this._progress;
+      }
+      updateDelta(delta) {
+        this.update(this._progress + delta);
+      }
+      update(progress) {
+        if (progress <= 0) {
+          if (this._sound1) {
+            this._sound1.volume = this.fromSoundVolume;
+          }
+          if (this._sound2) {
+            this._sound2.volume = 0;
+            this._sound2.stop();
+          }
+          this._progress = 0;
+        }
+        if (progress >= 1) {
+          if (this._sound2) {
+            this._sound2.volume = this.toSoundVolume;
+          }
+          if (this._sound1) {
+            this._sound1.volume = 0;
+            this._sound1.stop();
+          }
+          this._progress = 1;
+        } else {
+          this._progress = progress;
+          if (this._sound1) {
+            this._sound1.play();
+          }
+          if (this._sound2) {
+            this._sound2.play();
+          }
+          if (this.allowOverlapping) {
+            if (this._sound1) {
+              this._sound1.volume = this.fromSoundVolume * (1 - progress);
+            }
+            if (this._sound2) {
+              this._sound2.volume = this.toSoundVolume * progress;
+            }
+          } else {
+            progress *= 2;
+            if (this._sound1) {
+              this._sound1.volume = Math.max(this.fromSoundVolume * (1 - progress), 0);
+            }
+            if (this._sound2) {
+              this._sound2.volume = Math.max(this.toSoundVolume * (progress - 1), 0);
+            }
+          }
+        }
+      }
+    };
+    module.exports = SoundMixer;
+  }
+});
+
+// ../Shaku/lib/sfx/sfx.js
+var require_sfx = __commonJS({
+  "../Shaku/lib/sfx/sfx.js"(exports, module) {
+    "use strict";
+    var SoundAsset = require_sound_asset();
+    var IManager = require_manager();
+    var _logger = require_logger().getLogger("sfx");
+    var SoundInstance = require_sound_instance();
+    var SoundMixer = require_sound_mixer();
+    var Sfx = class extends IManager {
+      constructor() {
+        super();
+        this._playingSounds = null;
+        this._soundsNotDisposed = null;
+      }
+      setup() {
+        return new Promise((resolve, reject2) => {
+          _logger.info("Setup sfx manager..");
+          if (this._soundsNotDisposed) {
+            this.cleanup();
+          }
+          this._playingSounds = /* @__PURE__ */ new Set();
+          this._soundsNotDisposed = /* @__PURE__ */ new Set();
+          resolve();
+        });
+      }
+      startFrame() {
+        let playingSounds = Array.from(this._playingSounds);
+        for (let sound of playingSounds) {
+          if (!sound.isPlaying) {
+            this._playingSounds.delete(sound);
+          }
+        }
+      }
+      endFrame() {
+      }
+      destroy() {
+        this.stopAll();
+        this.cleanup();
+      }
+      get SoundMixer() {
+        return SoundMixer;
+      }
+      play(soundAsset2, volume, playbackRate, preservesPitch) {
+        let sound = this.createSound(soundAsset2);
+        sound.volume = volume !== void 0 ? volume : 1;
+        if (playbackRate !== void 0) {
+          sound.playbackRate = playbackRate;
+        }
+        if (preservesPitch !== void 0) {
+          sound.preservesPitch = preservesPitch;
+        }
+        let ret = sound.play();
+        sound.disposeWhenDone();
+        return ret;
+      }
+      stopAll() {
+        let playingSounds = Array.from(this._playingSounds);
+        for (let sound of playingSounds) {
+          sound.stop();
+        }
+        this._playingSounds = /* @__PURE__ */ new Set();
+      }
+      cleanup() {
+        let notDisposedSounds = Array.from(this._soundsNotDisposed);
+        for (let sound of notDisposedSounds) {
+          if (!sound.isPlaying) {
+            sound.dispose();
+          }
+        }
+        this._soundsNotDisposed = /* @__PURE__ */ new Set();
+      }
+      get playingSoundsCount() {
+        return this._playingSounds.size;
+      }
+      createSound(sound) {
+        if (!(sound instanceof SoundAsset)) {
+          throw new Error("Sound type must be an instance of SoundAsset!");
+        }
+        var ret = new SoundInstance(this, sound.url);
+        return ret;
+      }
+      get masterVolume() {
+        return SoundInstance._masterVolume;
+      }
+      set masterVolume(value) {
+        SoundInstance._masterVolume = value;
+        return value;
+      }
+    };
+    module.exports = new Sfx();
+  }
+});
+
+// ../Shaku/lib/sfx/index.js
+var require_sfx2 = __commonJS({
+  "../Shaku/lib/sfx/index.js"(exports, module) {
+    "use strict";
+    module.exports = require_sfx();
+  }
+});
+
 // ../Shaku/lib/utils/math_helper.js
 var require_math_helper = __commonJS({
   "../Shaku/lib/utils/math_helper.js"(exports, module) {
@@ -470,7 +930,7 @@ var require_color = __commonJS({
 var require_blend_modes = __commonJS({
   "../Shaku/lib/gfx/blend_modes.js"(exports, module) {
     "use strict";
-    var BlendModes2 = {
+    var BlendModes = {
       AlphaBlend: "alpha",
       Opaque: "opaque",
       Additive: "additive",
@@ -483,12 +943,12 @@ var require_blend_modes = __commonJS({
       DestIn: "dest-in",
       DestOut: "dest-out"
     };
-    Object.defineProperty(BlendModes2, "_values", {
-      value: new Set(Object.values(BlendModes2)),
+    Object.defineProperty(BlendModes, "_values", {
+      value: new Set(Object.values(BlendModes)),
       writable: false
     });
-    Object.freeze(BlendModes2);
-    module.exports = { BlendModes: BlendModes2 };
+    Object.freeze(BlendModes);
+    module.exports = { BlendModes };
   }
 });
 
@@ -1137,55 +1597,6 @@ var require_rectangle = __commonJS({
   }
 });
 
-// ../Shaku/lib/assets/asset.js
-var require_asset = __commonJS({
-  "../Shaku/lib/assets/asset.js"(exports, module) {
-    "use strict";
-    var Asset = class {
-      constructor(url) {
-        this._url = url;
-        this._waitingCallbacks = [];
-      }
-      onReady(callback) {
-        if (this.valid || this._waitingCallbacks === null) {
-          callback(this);
-          return;
-        }
-        this._waitingCallbacks.push(callback);
-      }
-      waitForReady() {
-        return new Promise((resolve, reject2) => {
-          this.onReady(resolve);
-        });
-      }
-      _notifyReady() {
-        if (this._waitingCallbacks) {
-          for (let i = 0; i < this._waitingCallbacks.length; ++i) {
-            this._waitingCallbacks[i](this);
-          }
-          this._waitingCallbacks = null;
-        }
-      }
-      get url() {
-        return this._url;
-      }
-      get valid() {
-        throw new Error("Not Implemented!");
-      }
-      load(params) {
-        throw new Error("Not Implemented!");
-      }
-      create(source, params) {
-        throw new Error("Not Supported for this asset type.");
-      }
-      destroy() {
-        throw new Error("Not Implemented!");
-      }
-    };
-    module.exports = Asset;
-  }
-});
-
 // ../Shaku/lib/gfx/texture_filter_modes.js
 var require_texture_filter_modes = __commonJS({
   "../Shaku/lib/gfx/texture_filter_modes.js"(exports, module) {
@@ -1222,74 +1633,6 @@ var require_texture_wrap_modes = __commonJS({
     });
     Object.freeze(TextureWrapModes);
     module.exports = { TextureWrapModes };
-  }
-});
-
-// ../Shaku/lib/logger.js
-var require_logger = __commonJS({
-  "../Shaku/lib/logger.js"(exports, module) {
-    "use strict";
-    var _drivers = console;
-    var _application = "Shaku";
-    var Logger = class {
-      constructor(name) {
-        this._nameHeader = "[" + _application + "][" + name + "]";
-        this._throwErrors = false;
-      }
-      trace(msg) {
-        _drivers.trace(this._nameHeader, msg);
-      }
-      debug(msg) {
-        _drivers.debug(this._nameHeader, msg);
-      }
-      info(msg) {
-        _drivers.info(this._nameHeader, msg);
-      }
-      warn(msg) {
-        _drivers.warn(this._nameHeader, msg);
-        if (this._throwErrors) {
-          throw new Error(msg);
-        }
-      }
-      error(msg) {
-        _drivers.error(this._nameHeader, msg);
-        if (this._throwErrors) {
-          throw new Error(msg);
-        }
-      }
-      throwErrorOnWarnings(enable) {
-        this._throwErrors = Boolean(enable);
-      }
-    };
-    var NullDrivers = class {
-      constructor() {
-      }
-      trace(msg) {
-      }
-      debug(msg) {
-      }
-      info(msg) {
-      }
-      warn(msg) {
-      }
-      error(msg) {
-      }
-    };
-    module.exports = {
-      getLogger: function(name) {
-        return new Logger(name);
-      },
-      silent: function() {
-        _drivers = new NullDrivers();
-      },
-      setDrivers: function(drivers) {
-        _drivers = drivers;
-      },
-      setApplicationName: function(name) {
-        _application = name;
-        return this;
-      }
-    };
   }
 });
 
@@ -4202,7 +4545,7 @@ var require_sprite = __commonJS({
     var Rectangle2 = require_rectangle();
     var Vector22 = require_vector2();
     var Vector3 = require_vector3();
-    var { BlendMode, BlendModes: BlendModes2 } = require_blend_modes();
+    var { BlendMode, BlendModes } = require_blend_modes();
     var Sprite = class {
       constructor(texture, sourceRect) {
         this.texture = texture;
@@ -4215,7 +4558,7 @@ var require_sprite = __commonJS({
           this.size = new Vector22(100, 100);
         }
         this.sourceRect = sourceRect || null;
-        this.blendMode = BlendModes2.AlphaBlend;
+        this.blendMode = BlendModes.AlphaBlend;
         this.rotation = 0;
         this.origin = new Vector22(0.5, 0.5);
         this.skew = new Vector22(0, 0);
@@ -4692,7 +5035,7 @@ var require_sprite_batch = __commonJS({
     var { Rectangle: Rectangle2, Color: Color3 } = require_utils();
     var Vector22 = require_vector2();
     var Vertex = require_vertex();
-    var { BlendModes: BlendModes2 } = require_blend_modes();
+    var { BlendModes } = require_blend_modes();
     var Matrix = require_matrix();
     var Mesh = require_mesh();
     var _logger = require_logger().getLogger("gfx");
@@ -4724,7 +5067,7 @@ var require_sprite_batch = __commonJS({
           this._gfx.useEffect(effect);
         }
         this._effect = this._gfx._activeEffect;
-        this._currBlend = BlendModes2.AlphaBlend;
+        this._currBlend = BlendModes.AlphaBlend;
         this._currTexture = null;
         this._currBatchCount = 0;
         this._transform = transform;
@@ -5035,7 +5378,7 @@ var require_gfx = __commonJS({
     "use strict";
     var IManager = require_manager();
     var Color3 = require_color();
-    var { BlendMode, BlendModes: BlendModes2 } = require_blend_modes();
+    var { BlendMode, BlendModes } = require_blend_modes();
     var Rectangle2 = require_rectangle();
     var { Effect, BasicEffect, MsdfFontEffect } = require_effects();
     var TextureAsset = require_texture_asset();
@@ -5485,7 +5828,7 @@ var require_gfx = __commonJS({
           return;
         }
         this.__startDrawingSprites(this._activeEffect, null);
-        this._setBlendMode(blendMode || BlendModes2.AlphaBlend);
+        this._setBlendMode(blendMode || BlendModes.AlphaBlend);
         this.spritesBatch.setTexture(texture);
         this.spritesBatch.pushVertices(vertices);
       }
@@ -5496,7 +5839,7 @@ var require_gfx = __commonJS({
           new Vector22(destRect.width, destRect.height),
           null,
           color,
-          blend || BlendModes2.Opaque,
+          blend || BlendModes.Opaque,
           rotation,
           null,
           null
@@ -5511,7 +5854,7 @@ var require_gfx = __commonJS({
           let sprite = new Sprite(this.whiteTexture);
           sprite.color = colors[i] || colors;
           sprite.rotation = rotation.length ? rotation[i] : rotation;
-          sprite.blendMode = blend || BlendModes2.Opaque;
+          sprite.blendMode = blend || BlendModes.Opaque;
           let destRect = destRects[i];
           sprite.size.set(destRect.width, destRect.height);
           sprite.position.set(destRect.x + destRect.width / 2, destRect.y + destRect.width / 2);
@@ -5684,7 +6027,7 @@ var require_gfx = __commonJS({
       _fillShapesBuffer(points, colors, blendMode, onReady, isStrip, groupsSize) {
         this.presentBufferedData();
         colors = colors || _whiteColor;
-        blendMode = blendMode || BlendModes2.Opaque;
+        blendMode = blendMode || BlendModes.Opaque;
         if (colors.length !== void 0 && colors.length !== points.length) {
           _logger.error("When drawing shapes with colors array, the colors array and points array must have the same length!");
           return;
@@ -5764,7 +6107,7 @@ var require_gfx = __commonJS({
         }
       }
       get BlendModes() {
-        return BlendModes2;
+        return BlendModes;
       }
       get TextureWrapModes() {
         return TextureWrapModes;
@@ -5812,42 +6155,42 @@ var require_gfx = __commonJS({
         if (this._lastBlendMode !== blendMode) {
           var gl = this._gl;
           switch (blendMode) {
-            case BlendModes2.AlphaBlend:
+            case BlendModes.AlphaBlend:
               gl.enable(gl.BLEND);
               gl.blendEquation(gl.FUNC_ADD);
               gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
               break;
-            case BlendModes2.Opaque:
+            case BlendModes.Opaque:
               gl.disable(gl.BLEND);
               break;
-            case BlendModes2.Additive:
+            case BlendModes.Additive:
               gl.enable(gl.BLEND);
               gl.blendEquation(gl.FUNC_ADD);
               gl.blendFunc(gl.ONE, gl.ONE);
               break;
-            case BlendModes2.Multiply:
+            case BlendModes.Multiply:
               gl.enable(gl.BLEND);
               gl.blendEquation(gl.FUNC_ADD);
               gl.blendFuncSeparate(gl.DST_COLOR, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
               break;
-            case BlendModes2.Screen:
+            case BlendModes.Screen:
               gl.enable(gl.BLEND);
               gl.blendEquation(gl.FUNC_ADD);
               gl.blendFuncSeparate(gl.ONE, gl.ONE_MINUS_SRC_COLOR, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
               break;
-            case BlendModes2.Subtract:
+            case BlendModes.Subtract:
               gl.enable(gl.BLEND);
               gl.blendEquation(gl.FUNC_ADD);
               gl.blendFuncSeparate(gl.ONE, gl.ONE, gl.ONE, gl.ONE);
               gl.blendEquationSeparate(gl.FUNC_REVERSE_SUBTRACT, gl.FUNC_ADD);
               break;
-            case BlendModes2.Invert:
+            case BlendModes.Invert:
               gl.enable(gl.BLEND);
               gl.blendEquation(gl.FUNC_ADD);
               gl.blendFunc(gl.ONE_MINUS_DST_COLOR, gl.ZERO);
               gl.blendFuncSeparate(gl.ONE_MINUS_DST_COLOR, gl.ZERO, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
               break;
-            case BlendModes2.Overlay:
+            case BlendModes.Overlay:
               gl.enable(gl.BLEND);
               if (gl.MAX) {
                 gl.blendEquation(gl.MAX);
@@ -5857,17 +6200,17 @@ var require_gfx = __commonJS({
                 gl.blendFunc(gl.ONE, gl.ONE);
               }
               break;
-            case BlendModes2.Darken:
+            case BlendModes.Darken:
               gl.enable(gl.BLEND);
               gl.blendEquation(gl.MIN);
               gl.blendFuncSeparate(gl.DST_COLOR, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
               break;
-            case BlendModes2.DestIn:
+            case BlendModes.DestIn:
               gl.enable(gl.BLEND);
               gl.blendEquation(gl.FUNC_ADD);
               gl.blendFunc(gl.ZERO, gl.SRC_ALPHA);
               break;
-            case BlendModes2.DestOut:
+            case BlendModes.DestOut:
               gl.enable(gl.BLEND);
               gl.blendEquation(gl.FUNC_ADD);
               gl.blendFunc(gl.ZERO, gl.ONE_MINUS_SRC_ALPHA);
@@ -5918,349 +6261,6 @@ var require_gfx2 = __commonJS({
   "../Shaku/lib/gfx/index.js"(exports, module) {
     "use strict";
     module.exports = require_gfx();
-  }
-});
-
-// ../Shaku/lib/assets/sound_asset.js
-var require_sound_asset = __commonJS({
-  "../Shaku/lib/assets/sound_asset.js"(exports, module) {
-    "use strict";
-    var Asset = require_asset();
-    var SoundAsset = class extends Asset {
-      constructor(url) {
-        super(url);
-        this._valid = false;
-      }
-      load() {
-        return new Promise((resolve, reject2) => {
-          var request = new XMLHttpRequest();
-          request.open("GET", this.url, true);
-          request.responseType = "arraybuffer";
-          request.onload = () => {
-            this._valid = true;
-            this._notifyReady();
-            resolve();
-          };
-          request.onerror = (e) => {
-            reject2(e);
-          };
-          request.send();
-        });
-      }
-      get valid() {
-        return this._valid;
-      }
-      destroy() {
-        this._valid = false;
-      }
-    };
-    module.exports = SoundAsset;
-  }
-});
-
-// ../Shaku/lib/sfx/sound_instance.js
-var require_sound_instance = __commonJS({
-  "../Shaku/lib/sfx/sound_instance.js"(exports, module) {
-    "use strict";
-    var _logger = require_logger().getLogger("sfx");
-    var SoundInstance = class {
-      constructor(sfxManager, url) {
-        if (!url) {
-          _logger.error("Sound type can't be null or invalid!");
-          throw new Error("Invalid sound type to play in SoundInstance!");
-        }
-        this._sfx = sfxManager;
-        this._audio = new Audio(url);
-        this._volume = 1;
-        this._sfx._soundsNotDisposed.add(this);
-      }
-      disposeWhenDone() {
-        this._audio.onended = () => {
-          this.dispose();
-        };
-      }
-      dispose() {
-        if (this._audio) {
-          this._audio.pause();
-          this._audio.src = "";
-          this._audio.srcObject = null;
-          this._audio.remove();
-          this._sfx._soundsNotDisposed.delete(this);
-        }
-        this._audio = null;
-      }
-      play() {
-        if (this.playing) {
-          return;
-        }
-        let promise = this._audio.play();
-        this._sfx._playingSounds.add(this);
-        return promise;
-      }
-      get playbackRate() {
-        return this._audio.playbackRate;
-      }
-      set playbackRate(val) {
-        if (val < 0.1) {
-          _logger.error("playbackRate value set is too low, value was capped to 0.1.");
-        }
-        if (val > 10) {
-          _logger.error("playbackRate value set is too high, value was capped to 10.");
-        }
-        this._audio.playbackRate = val;
-      }
-      get preservesPitch() {
-        return Boolean(this._audio.preservesPitch || this._audio.mozPreservesPitch);
-      }
-      set preservesPitch(val) {
-        return this._audio.preservesPitch = this._audio.mozPreservesPitch = Boolean(val);
-      }
-      pause() {
-        this._audio.pause();
-      }
-      replay() {
-        this.stop();
-        return this.play();
-      }
-      stop() {
-        try {
-          this.pause();
-          this.currentTime = 0;
-          return true;
-        } catch (e) {
-          return false;
-        }
-      }
-      get loop() {
-        return this._audio.loop;
-      }
-      set loop(value) {
-        this._audio.loop = value;
-        return this._audio.loop;
-      }
-      get volume() {
-        return this._volume;
-      }
-      set volume(value) {
-        this._volume = value;
-        var volume = value * SoundInstance._masterVolume;
-        if (volume < 0) {
-          volume = 0;
-        }
-        if (volume > 1) {
-          volume = 1;
-        }
-        this._audio.volume = volume;
-        return this._volume;
-      }
-      get currentTime() {
-        return this._audio.currentTime;
-      }
-      set currentTime(value) {
-        return this._audio.currentTime = value;
-      }
-      get duration() {
-        return this._audio.duration;
-      }
-      get paused() {
-        return this._audio.paused;
-      }
-      get playing() {
-        return !this.paused && !this.finished;
-      }
-      get finished() {
-        return this._audio.ended;
-      }
-    };
-    SoundInstance._masterVolume = 1;
-    module.exports = SoundInstance;
-  }
-});
-
-// ../Shaku/lib/sfx/sound_mixer.js
-var require_sound_mixer = __commonJS({
-  "../Shaku/lib/sfx/sound_mixer.js"(exports, module) {
-    "use strict";
-    var SoundInstance = require_sound_instance();
-    var SoundMixer = class {
-      constructor(sound1, sound2, allowOverlapping) {
-        this._sound1 = sound1;
-        this._sound2 = sound2;
-        this.fromSoundVolume = this._sound1 ? this._sound1.volume : 0;
-        this.toSoundVolume = this._sound2 ? this._sound2.volume : 0;
-        this.allowOverlapping = allowOverlapping;
-        this.update(0);
-      }
-      stop() {
-        if (this._sound1) {
-          this._sound1.stop();
-        }
-        if (this._sound2) {
-          this._sound2.stop();
-        }
-      }
-      get fromSound() {
-        return this._sound1;
-      }
-      get toSound() {
-        return this._sound2;
-      }
-      get progress() {
-        return this._progress;
-      }
-      updateDelta(delta) {
-        this.update(this._progress + delta);
-      }
-      update(progress) {
-        if (progress <= 0) {
-          if (this._sound1) {
-            this._sound1.volume = this.fromSoundVolume;
-          }
-          if (this._sound2) {
-            this._sound2.volume = 0;
-            this._sound2.stop();
-          }
-          this._progress = 0;
-        }
-        if (progress >= 1) {
-          if (this._sound2) {
-            this._sound2.volume = this.toSoundVolume;
-          }
-          if (this._sound1) {
-            this._sound1.volume = 0;
-            this._sound1.stop();
-          }
-          this._progress = 1;
-        } else {
-          this._progress = progress;
-          if (this._sound1) {
-            this._sound1.play();
-          }
-          if (this._sound2) {
-            this._sound2.play();
-          }
-          if (this.allowOverlapping) {
-            if (this._sound1) {
-              this._sound1.volume = this.fromSoundVolume * (1 - progress);
-            }
-            if (this._sound2) {
-              this._sound2.volume = this.toSoundVolume * progress;
-            }
-          } else {
-            progress *= 2;
-            if (this._sound1) {
-              this._sound1.volume = Math.max(this.fromSoundVolume * (1 - progress), 0);
-            }
-            if (this._sound2) {
-              this._sound2.volume = Math.max(this.toSoundVolume * (progress - 1), 0);
-            }
-          }
-        }
-      }
-    };
-    module.exports = SoundMixer;
-  }
-});
-
-// ../Shaku/lib/sfx/sfx.js
-var require_sfx = __commonJS({
-  "../Shaku/lib/sfx/sfx.js"(exports, module) {
-    "use strict";
-    var SoundAsset = require_sound_asset();
-    var IManager = require_manager();
-    var _logger = require_logger().getLogger("sfx");
-    var SoundInstance = require_sound_instance();
-    var SoundMixer = require_sound_mixer();
-    var Sfx = class extends IManager {
-      constructor() {
-        super();
-        this._playingSounds = null;
-        this._soundsNotDisposed = null;
-      }
-      setup() {
-        return new Promise((resolve, reject2) => {
-          _logger.info("Setup sfx manager..");
-          if (this._soundsNotDisposed) {
-            this.cleanup();
-          }
-          this._playingSounds = /* @__PURE__ */ new Set();
-          this._soundsNotDisposed = /* @__PURE__ */ new Set();
-          resolve();
-        });
-      }
-      startFrame() {
-        let playingSounds = Array.from(this._playingSounds);
-        for (let sound of playingSounds) {
-          if (!sound.isPlaying) {
-            this._playingSounds.delete(sound);
-          }
-        }
-      }
-      endFrame() {
-      }
-      destroy() {
-        this.stopAll();
-        this.cleanup();
-      }
-      get SoundMixer() {
-        return SoundMixer;
-      }
-      play(soundAsset2, volume, playbackRate, preservesPitch) {
-        let sound = this.createSound(soundAsset2);
-        sound.volume = volume !== void 0 ? volume : 1;
-        if (playbackRate !== void 0) {
-          sound.playbackRate = playbackRate;
-        }
-        if (preservesPitch !== void 0) {
-          sound.preservesPitch = preservesPitch;
-        }
-        let ret = sound.play();
-        sound.disposeWhenDone();
-        return ret;
-      }
-      stopAll() {
-        let playingSounds = Array.from(this._playingSounds);
-        for (let sound of playingSounds) {
-          sound.stop();
-        }
-        this._playingSounds = /* @__PURE__ */ new Set();
-      }
-      cleanup() {
-        let notDisposedSounds = Array.from(this._soundsNotDisposed);
-        for (let sound of notDisposedSounds) {
-          if (!sound.isPlaying) {
-            sound.dispose();
-          }
-        }
-        this._soundsNotDisposed = /* @__PURE__ */ new Set();
-      }
-      get playingSoundsCount() {
-        return this._playingSounds.size;
-      }
-      createSound(sound) {
-        if (!(sound instanceof SoundAsset)) {
-          throw new Error("Sound type must be an instance of SoundAsset!");
-        }
-        var ret = new SoundInstance(this, sound.url);
-        return ret;
-      }
-      get masterVolume() {
-        return SoundInstance._masterVolume;
-      }
-      set masterVolume(value) {
-        SoundInstance._masterVolume = value;
-        return value;
-      }
-    };
-    module.exports = new Sfx();
-  }
-});
-
-// ../Shaku/lib/sfx/index.js
-var require_sfx2 = __commonJS({
-  "../Shaku/lib/sfx/index.js"(exports, module) {
-    "use strict";
-    module.exports = require_sfx();
   }
 });
 
@@ -8563,7 +8563,6 @@ var require_shaku = __commonJS({
 });
 
 // src/main.ts
-var import_gfx = __toESM(require_gfx2());
 var import_shaku = __toESM(require_shaku());
 
 // node_modules/dat.gui/build/dat.gui.module.js
