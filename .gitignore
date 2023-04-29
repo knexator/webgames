@@ -1,0 +1,26 @@
+node_modules
+.vscode
+
+# these games are already uploaded elsewhere
+another_clone
+antigrid
+ld49
+rush_hour_antigrid
+sweet_buns
+thinky_shmup
+harvest
+
+# abandoned
+keyframes
+purgatory
+roots
+shaku_buns
+
+# maybe some day?
+online_game
+solitaire
+aaa_shaku_zig
+parcel_test
+
+# Shaku is another git repository, don't include it
+Shaku

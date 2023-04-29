@@ -1,0 +1,1 @@
+msdf-bmfont -f json --smart-size -s 26 ./src/Arial.ttf -o ./dist/fonts/Arial
