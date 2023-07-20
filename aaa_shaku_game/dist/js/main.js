@@ -20,9 +20,9 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   mod
 ));
 
-// ../../../Shaku/lib/manager.js
+// ../Shaku/lib/manager.js
 var require_manager = __commonJS({
-  "../../../Shaku/lib/manager.js"(exports, module) {
+  "../Shaku/lib/manager.js"(exports, module) {
     "use strict";
     var IManager = class {
       setup() {
@@ -42,9 +42,9 @@ var require_manager = __commonJS({
   }
 });
 
-// ../../../Shaku/lib/utils/math_helper.js
+// ../Shaku/lib/utils/math_helper.js
 var require_math_helper = __commonJS({
-  "../../../Shaku/lib/utils/math_helper.js"(exports, module) {
+  "../Shaku/lib/utils/math_helper.js"(exports, module) {
     "use strict";
     var _toRadsFactor = Math.PI / 180;
     var _toDegreesFactor = 180 / Math.PI;
@@ -103,11 +103,10 @@ var require_math_helper = __commonJS({
         return Math.round(num * 1e8) / 1e8;
       }
       static wrapDegrees(degrees) {
-        degrees = degrees % 360;
-        if (degrees < 0) {
-          degrees += 360;
-        }
-        return degrees;
+        return MathHelper.mod(degrees, 360);
+      }
+      static mod(value, m) {
+        return (value % m + m) % m;
       }
     };
     MathHelper.PI2 = Math.PI * 2;
@@ -115,9 +114,9 @@ var require_math_helper = __commonJS({
   }
 });
 
-// ../../../Shaku/lib/utils/color.js
+// ../Shaku/lib/utils/color.js
 var require_color = __commonJS({
-  "../../../Shaku/lib/utils/color.js"(exports, module) {
+  "../Shaku/lib/utils/color.js"(exports, module) {
     "use strict";
     var MathHelper = require_math_helper();
     var Color2 = class {
@@ -467,9 +466,9 @@ var require_color = __commonJS({
   }
 });
 
-// ../../../Shaku/lib/gfx/blend_modes.js
+// ../Shaku/lib/gfx/blend_modes.js
 var require_blend_modes = __commonJS({
-  "../../../Shaku/lib/gfx/blend_modes.js"(exports, module) {
+  "../Shaku/lib/gfx/blend_modes.js"(exports, module) {
     "use strict";
     var BlendModes2 = {
       AlphaBlend: "alpha",
@@ -493,18 +492,18 @@ var require_blend_modes = __commonJS({
   }
 });
 
-// ../../../Shaku/lib/utils/vector2.js
+// ../Shaku/lib/utils/vector2.js
 var require_vector2 = __commonJS({
-  "../../../Shaku/lib/utils/vector2.js"(exports, module) {
+  "../Shaku/lib/utils/vector2.js"(exports, module) {
     "use strict";
     var MathHelper = require_math_helper();
-    var Vector2 = class {
+    var Vector22 = class {
       constructor(x = 0, y = 0) {
         this.x = x;
         this.y = y;
       }
       clone() {
-        return new Vector2(this.x, this.y);
+        return new Vector22(this.x, this.y);
       }
       set(x, y) {
         this.x = x;
@@ -518,49 +517,49 @@ var require_vector2 = __commonJS({
       }
       add(other) {
         if (typeof other === "number") {
-          return new Vector2(this.x + other, this.y + (arguments[1] === void 0 ? other : arguments[1]));
+          return new Vector22(this.x + other, this.y + (arguments[1] === void 0 ? other : arguments[1]));
         }
-        return new Vector2(this.x + other.x, this.y + other.y);
+        return new Vector22(this.x + other.x, this.y + other.y);
       }
       sub(other) {
         if (typeof other === "number") {
-          return new Vector2(this.x - other, this.y - (arguments[1] === void 0 ? other : arguments[1]));
+          return new Vector22(this.x - other, this.y - (arguments[1] === void 0 ? other : arguments[1]));
         }
-        return new Vector2(this.x - other.x, this.y - other.y);
+        return new Vector22(this.x - other.x, this.y - other.y);
       }
       div(other) {
         if (typeof other === "number") {
-          return new Vector2(this.x / other, this.y / (arguments[1] === void 0 ? other : arguments[1]));
+          return new Vector22(this.x / other, this.y / (arguments[1] === void 0 ? other : arguments[1]));
         }
-        return new Vector2(this.x / other.x, this.y / other.y);
+        return new Vector22(this.x / other.x, this.y / other.y);
       }
       mul(other) {
         if (typeof other === "number") {
-          return new Vector2(this.x * other, this.y * (arguments[1] === void 0 ? other : arguments[1]));
+          return new Vector22(this.x * other, this.y * (arguments[1] === void 0 ? other : arguments[1]));
         }
-        return new Vector2(this.x * other.x, this.y * other.y);
+        return new Vector22(this.x * other.x, this.y * other.y);
       }
       round() {
-        return new Vector2(Math.round(this.x), Math.round(this.y));
+        return new Vector22(Math.round(this.x), Math.round(this.y));
       }
       floor() {
-        return new Vector2(Math.floor(this.x), Math.floor(this.y));
+        return new Vector22(Math.floor(this.x), Math.floor(this.y));
       }
       ceil() {
-        return new Vector2(Math.ceil(this.x), Math.ceil(this.y));
+        return new Vector22(Math.ceil(this.x), Math.ceil(this.y));
       }
       normalized() {
         if (this.x == 0 && this.y == 0) {
-          return Vector2.zero;
+          return Vector22.zero;
         }
         let mag = this.length;
-        return new Vector2(this.x / mag, this.y / mag);
+        return new Vector22(this.x / mag, this.y / mag);
       }
       rotatedRadians(radians) {
-        return Vector2.fromRadians(this.getRadians() + radians).mulSelf(this.length);
+        return Vector22.fromRadians(this.getRadians() + radians).mulSelf(this.length);
       }
       rotatedDegrees(degrees) {
-        return Vector2.fromDegree(this.getDegrees() + degrees).mulSelf(this.length);
+        return Vector22.fromDegree(this.getDegrees() + degrees).mulSelf(this.length);
       }
       addSelf(other) {
         if (typeof other === "number") {
@@ -637,68 +636,66 @@ var require_vector2 = __commonJS({
         return Math.sqrt(this.x * this.x + this.y * this.y);
       }
       scaled(fac) {
-        return new Vector2(this.x * fac, this.y * fac);
+        return new Vector22(this.x * fac, this.y * fac);
       }
       static get zero() {
-        return new Vector2();
+        return new Vector22();
       }
       static get one() {
-        return new Vector2(1, 1);
+        return new Vector22(1, 1);
       }
       static get half() {
-        return new Vector2(0.5, 0.5);
+        return new Vector22(0.5, 0.5);
       }
       static get left() {
-        return new Vector2(-1, 0);
+        return new Vector22(-1, 0);
       }
       static get right() {
-        return new Vector2(1, 0);
+        return new Vector22(1, 0);
       }
       static get up() {
-        return new Vector2(0, -1);
+        return new Vector22(0, -1);
       }
       static get down() {
-        return new Vector2(0, 1);
+        return new Vector22(0, 1);
       }
       static get random() {
-        return Vector2.fromDegree(Math.random() * 360);
+        return Vector22.fromDegree(Math.random() * 360);
       }
       degreesTo(other) {
-        return Vector2.degreesBetween(this, other);
+        return Vector22.degreesBetween(this, other);
       }
       radiansTo(other) {
-        return Vector2.radiansBetween(this, other);
+        return Vector22.radiansBetween(this, other);
       }
       degreesToFull(other) {
-        return Vector2.degreesBetweenFull(this, other);
+        return Vector22.degreesBetweenFull(this, other);
       }
       radiansToFull(other) {
-        return Vector2.radiansBetweenFull(this, other);
+        return Vector22.radiansBetweenFull(this, other);
       }
       distanceTo(other) {
-        return Vector2.distance(this, other);
+        return Vector22.distance(this, other);
       }
       static fromDegree(degrees) {
         let rads = degrees * (Math.PI / 180);
-        return new Vector2(Math.cos(rads), Math.sin(rads));
+        return new Vector22(Math.cos(rads), Math.sin(rads));
       }
       static fromRadians(radians) {
-        return new Vector2(Math.cos(radians), Math.sin(radians));
+        return new Vector22(Math.cos(radians), Math.sin(radians));
       }
       static lerp(p1, p2, a) {
         let lerpScalar = MathHelper.lerp;
-        return new Vector2(lerpScalar(p1.x, p2.x, a), lerpScalar(p1.y, p2.y, a));
+        return new Vector22(lerpScalar(p1.x, p2.x, a), lerpScalar(p1.y, p2.y, a));
       }
       static degreesBetween(P1, P2) {
-        let deltaY = P2.y - P1.y, deltaX = P2.x - P1.x;
-        return Math.atan2(deltaY, deltaX) * (180 / Math.PI);
+        return MathHelper.toDegrees(Vector22.radiansBetween(P1, P2));
       }
       static radiansBetween(P1, P2) {
-        return MathHelper.toRadians(Vector2.degreesBetween(P1, P2));
+        return Math.atan2(Vector22.cross(P1, P2), Vector22.dot(P1, P2));
       }
       static degreesBetweenFull(P1, P2) {
-        let temp = P2.sub(P1);
-        return temp.getDegrees();
+        return MathHelper.toDegrees(Vector22.radiansBetweenFull(P1, P2));
       }
       getDegrees() {
         var angle = Math.atan2(this.y, this.x);
@@ -710,7 +707,12 @@ var require_vector2 = __commonJS({
         return angle;
       }
       static radiansBetweenFull(P1, P2) {
-        return MathHelper.toRadians(Vector2.degreesBetweenFull(P1, P2));
+        return MathHelper.mod(Vector22.radiansBetween(P1, P2), Math.PI * 2);
+      }
+      static distanceSq(p1, p2) {
+        let a = p1.x - p2.x;
+        let b = p1.y - p2.y;
+        return a * a + b * b;
       }
       static distance(p1, p2) {
         let a = p1.x - p2.x;
@@ -728,16 +730,16 @@ var require_vector2 = __commonJS({
       }
       static parse(str) {
         let parts = str.split(",");
-        return new Vector2(parseFloat(parts[0].trim()), parseFloat(parts[1].trim()));
+        return new Vector22(parseFloat(parts[0].trim()), parseFloat(parts[1].trim()));
       }
       toArray() {
         return [this.x, this.y];
       }
       static fromArray(arr) {
-        return new Vector2(arr[0], arr[1]);
+        return new Vector22(arr[0], arr[1]);
       }
       static fromDict(data) {
-        return new Vector2(data.x || 0, data.y || 0);
+        return new Vector22(data.x || 0, data.y || 0);
       }
       toDict(minimized) {
         if (minimized) {
@@ -753,16 +755,30 @@ var require_vector2 = __commonJS({
         return { x: this.x, y: this.y };
       }
     };
-    module.exports = Vector2;
+    Vector22.zeroReadonly = new Vector22(0, 0);
+    Object.freeze(Vector22.zeroReadonly);
+    Vector22.oneReadonly = new Vector22(1, 1);
+    Object.freeze(Vector22.oneReadonly);
+    Vector22.halfReadonly = new Vector22(0.5, 0.5);
+    Object.freeze(Vector22.halfReadonly);
+    Vector22.leftReadonly = new Vector22(-1, 0);
+    Object.freeze(Vector22.leftReadonly);
+    Vector22.rightReadonly = new Vector22(1, 0);
+    Object.freeze(Vector22.rightReadonly);
+    Vector22.upReadonly = new Vector22(0, -1);
+    Object.freeze(Vector22.upReadonly);
+    Vector22.downReadonly = new Vector22(0, 1);
+    Object.freeze(Vector22.downReadonly);
+    module.exports = Vector22;
   }
 });
 
-// ../../../Shaku/lib/utils/circle.js
+// ../Shaku/lib/utils/circle.js
 var require_circle = __commonJS({
-  "../../../Shaku/lib/utils/circle.js"(exports, module) {
+  "../Shaku/lib/utils/circle.js"(exports, module) {
     "use strict";
     var MathHelper = require_math_helper();
-    var Vector2 = require_vector2();
+    var Vector22 = require_vector2();
     var Circle = class {
       constructor(center, radius) {
         this.center = center.clone();
@@ -778,7 +794,7 @@ var require_circle = __commonJS({
         return other === this || other && other.constructor === this.constructor && this.center.equals(other.center) && this.radius == other.radius;
       }
       static fromDict(data) {
-        return new Circle(Vector2.fromDict(data.center || {}), data.radius || 0);
+        return new Circle(Vector22.fromDict(data.center || {}), data.radius || 0);
       }
       toDict(minimized) {
         if (minimized) {
@@ -795,18 +811,18 @@ var require_circle = __commonJS({
       }
       static lerp(p1, p2, a) {
         let lerpScalar = MathHelper.lerp;
-        return new Circle(Vector2.lerp(p1.center, p2.center, a), lerpScalar(p1.radius, p2.radius, a));
+        return new Circle(Vector22.lerp(p1.center, p2.center, a), lerpScalar(p1.radius, p2.radius, a));
       }
     };
     module.exports = Circle;
   }
 });
 
-// ../../../Shaku/lib/utils/line.js
+// ../Shaku/lib/utils/line.js
 var require_line = __commonJS({
-  "../../../Shaku/lib/utils/line.js"(exports, module) {
+  "../Shaku/lib/utils/line.js"(exports, module) {
     "use strict";
-    var Vector2 = require_vector2();
+    var Vector22 = require_vector2();
     var Line2 = class {
       constructor(from, to) {
         this.from = from.clone();
@@ -816,7 +832,7 @@ var require_line = __commonJS({
         return new Line2(this.from, this.to);
       }
       static fromDict(data) {
-        return new Line2(Vector2.fromDict(data.from || {}), Vector2.fromDict(data.to || {}));
+        return new Line2(Vector22.fromDict(data.from || {}), Vector22.fromDict(data.to || {}));
       }
       toDict(minimized) {
         if (minimized) {
@@ -834,7 +850,7 @@ var require_line = __commonJS({
       containsVector(p, threshold) {
         let A = this.from;
         let B = this.to;
-        let distance = Vector2.distance;
+        let distance = Vector22.distance;
         if (threshold === void 0) {
           threshold = 0.5;
         }
@@ -891,21 +907,21 @@ var require_line = __commonJS({
         return this === other || other && other.constructor === this.constructor && this.from.equals(other.from) && this.to.equals(other.to);
       }
       static lerp(l1, l2, a) {
-        return new Line2(Vector2.lerp(l1.from, l2.from, a), Vector2.lerp(l1.to, l2.to, a));
+        return new Line2(Vector22.lerp(l1.from, l2.from, a), Vector22.lerp(l1.to, l2.to, a));
       }
     };
     module.exports = Line2;
   }
 });
 
-// ../../../Shaku/lib/utils/rectangle.js
+// ../Shaku/lib/utils/rectangle.js
 var require_rectangle = __commonJS({
-  "../../../Shaku/lib/utils/rectangle.js"(exports, module) {
+  "../Shaku/lib/utils/rectangle.js"(exports, module) {
     "use strict";
     var Circle = require_circle();
     var Line2 = require_line();
     var MathHelper = require_math_helper();
-    var Vector2 = require_vector2();
+    var Vector22 = require_vector2();
     var Rectangle = class {
       constructor(x, y, width, height) {
         this.x = x || 0;
@@ -928,13 +944,13 @@ var require_rectangle = __commonJS({
         return this;
       }
       getPosition() {
-        return new Vector2(this.x, this.y);
+        return new Vector22(this.x, this.y);
       }
       getSize() {
-        return new Vector2(this.width, this.height);
+        return new Vector22(this.width, this.height);
       }
       getCenter() {
-        return new Vector2(Math.round(this.x + this.width / 2), Math.round(this.y + this.height / 2));
+        return new Vector22(Math.round(this.x + this.width / 2), Math.round(this.y + this.height / 2));
       }
       get left() {
         return this.x;
@@ -952,16 +968,16 @@ var require_rectangle = __commonJS({
         return new Rectangle(this.x, this.y, this.width, this.height);
       }
       getTopLeft() {
-        return new Vector2(this.x, this.y);
+        return new Vector22(this.x, this.y);
       }
       getTopRight() {
-        return new Vector2(this.x + this.width, this.y);
+        return new Vector22(this.x + this.width, this.y);
       }
       getBottomLeft() {
-        return new Vector2(this.x, this.y + this.height);
+        return new Vector22(this.x, this.y + this.height);
       }
       getBottomRight() {
-        return new Vector2(this.x + this.width, this.y + this.height);
+        return new Vector22(this.x + this.width, this.y + this.height);
       }
       string() {
         return this.x + "," + this.y + "," + this.width + "," + this.height;
@@ -1047,7 +1063,7 @@ var require_rectangle = __commonJS({
       }
       resize(amount) {
         if (typeof amount === "number") {
-          amount = new Vector2(amount, amount);
+          amount = new Vector22(amount, amount);
         }
         return new Rectangle(this.x - amount.x / 2, this.y - amount.y / 2, this.width + amount.x, this.height + amount.y);
       }
@@ -1121,9 +1137,9 @@ var require_rectangle = __commonJS({
   }
 });
 
-// ../../../Shaku/lib/assets/asset.js
+// ../Shaku/lib/assets/asset.js
 var require_asset = __commonJS({
-  "../../../Shaku/lib/assets/asset.js"(exports, module) {
+  "../Shaku/lib/assets/asset.js"(exports, module) {
     "use strict";
     var Asset = class {
       constructor(url) {
@@ -1170,9 +1186,9 @@ var require_asset = __commonJS({
   }
 });
 
-// ../../../Shaku/lib/gfx/texture_filter_modes.js
+// ../Shaku/lib/gfx/texture_filter_modes.js
 var require_texture_filter_modes = __commonJS({
-  "../../../Shaku/lib/gfx/texture_filter_modes.js"(exports, module) {
+  "../Shaku/lib/gfx/texture_filter_modes.js"(exports, module) {
     "use strict";
     var TextureFilterModes = {
       Nearest: "NEAREST",
@@ -1191,9 +1207,9 @@ var require_texture_filter_modes = __commonJS({
   }
 });
 
-// ../../../Shaku/lib/gfx/texture_wrap_modes.js
+// ../Shaku/lib/gfx/texture_wrap_modes.js
 var require_texture_wrap_modes = __commonJS({
-  "../../../Shaku/lib/gfx/texture_wrap_modes.js"(exports, module) {
+  "../Shaku/lib/gfx/texture_wrap_modes.js"(exports, module) {
     "use strict";
     var TextureWrapModes = {
       Clamp: "CLAMP_TO_EDGE",
@@ -1209,9 +1225,9 @@ var require_texture_wrap_modes = __commonJS({
   }
 });
 
-// ../../../Shaku/lib/logger.js
+// ../Shaku/lib/logger.js
 var require_logger = __commonJS({
-  "../../../Shaku/lib/logger.js"(exports, module) {
+  "../Shaku/lib/logger.js"(exports, module) {
     "use strict";
     var _drivers = console;
     var _application = "Shaku";
@@ -1277,15 +1293,15 @@ var require_logger = __commonJS({
   }
 });
 
-// ../../../Shaku/lib/assets/texture_asset.js
+// ../Shaku/lib/assets/texture_asset.js
 var require_texture_asset = __commonJS({
-  "../../../Shaku/lib/assets/texture_asset.js"(exports, module) {
+  "../Shaku/lib/assets/texture_asset.js"(exports, module) {
     "use strict";
     var Asset = require_asset();
     var { TextureFilterMode, TextureFilterModes } = require_texture_filter_modes();
     var { TextureWrapMode, TextureWrapModes } = require_texture_wrap_modes();
     var Color2 = require_color();
-    var Vector2 = require_vector2();
+    var Vector22 = require_vector2();
     var _logger = require_logger().getLogger("assets");
     var gl = null;
     var TextureAsset = class extends Asset {
@@ -1398,13 +1414,13 @@ var require_texture_asset = __commonJS({
         this._image = image;
         this._width = image.width;
         this._height = image.height;
-        const texture3 = gl.createTexture();
-        gl.bindTexture(gl.TEXTURE_2D, texture3);
+        const texture2 = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, texture2);
         const level = 0;
         const internalFormat = gl.RGBA;
         const srcFormat = gl.RGBA;
         const srcType = gl.UNSIGNED_BYTE;
-        gl.bindTexture(gl.TEXTURE_2D, texture3);
+        gl.bindTexture(gl.TEXTURE_2D, texture2);
         gl.texImage2D(gl.TEXTURE_2D, level, internalFormat, srcFormat, srcType, image);
         if (params.generateMipMaps) {
           if (isPowerOf2(image.width) && isPowerOf2(image.height)) {
@@ -1415,7 +1431,7 @@ var require_texture_asset = __commonJS({
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-        this._texture = texture3;
+        this._texture = texture2;
         this._notifyReady();
       }
       create(source, params) {
@@ -1447,7 +1463,7 @@ var require_texture_asset = __commonJS({
         return this._height;
       }
       get size() {
-        return new Vector2(this.width, this.height);
+        return new Vector22(this.width, this.height);
       }
       get texture() {
         return this._texture;
@@ -1485,19 +1501,19 @@ var require_texture_asset = __commonJS({
   }
 });
 
-// ../../../Shaku/lib/utils/vector3.js
+// ../Shaku/lib/utils/vector3.js
 var require_vector3 = __commonJS({
-  "../../../Shaku/lib/utils/vector3.js"(exports, module) {
+  "../Shaku/lib/utils/vector3.js"(exports, module) {
     "use strict";
     var MathHelper = require_math_helper();
-    var Vector32 = class {
+    var Vector3 = class {
       constructor(x = 0, y = 0, z2 = 0) {
         this.x = x;
         this.y = y;
         this.z = z2;
       }
       clone() {
-        return new Vector32(this.x, this.y, this.z);
+        return new Vector3(this.x, this.y, this.z);
       }
       set(x, y) {
         this.x = x;
@@ -1513,59 +1529,59 @@ var require_vector3 = __commonJS({
       }
       add(other) {
         if (typeof other === "number") {
-          return new Vector32(
+          return new Vector3(
             this.x + other,
             this.y + (arguments[1] === void 0 ? other : arguments[1]),
             this.z + (arguments[2] === void 0 ? other : arguments[2])
           );
         }
-        return new Vector32(this.x + other.x, this.y + other.y, this.z + other.z);
+        return new Vector3(this.x + other.x, this.y + other.y, this.z + other.z);
       }
       sub(other) {
         if (typeof other === "number") {
-          return new Vector32(
+          return new Vector3(
             this.x - other,
             this.y - (arguments[1] === void 0 ? other : arguments[1]),
             this.z - (arguments[2] === void 0 ? other : arguments[2])
           );
         }
-        return new Vector32(this.x - other.x, this.y - other.y, this.z - other.z);
+        return new Vector3(this.x - other.x, this.y - other.y, this.z - other.z);
       }
       div(other) {
         if (typeof other === "number") {
-          return new Vector32(
+          return new Vector3(
             this.x / other,
             this.y / (arguments[1] === void 0 ? other : arguments[1]),
             this.z / (arguments[2] === void 0 ? other : arguments[2])
           );
         }
-        return new Vector32(this.x / other.x, this.y / other.y, this.z / other.z);
+        return new Vector3(this.x / other.x, this.y / other.y, this.z / other.z);
       }
       mul(other) {
         if (typeof other === "number") {
-          return new Vector32(
+          return new Vector3(
             this.x * other,
             this.y * (arguments[1] === void 0 ? other : arguments[1]),
             this.z * (arguments[2] === void 0 ? other : arguments[2])
           );
         }
-        return new Vector32(this.x * other.x, this.y * other.y, this.z * other.z);
+        return new Vector3(this.x * other.x, this.y * other.y, this.z * other.z);
       }
       round() {
-        return new Vector32(Math.round(this.x), Math.round(this.y), Math.round(this.z));
+        return new Vector3(Math.round(this.x), Math.round(this.y), Math.round(this.z));
       }
       floor() {
-        return new Vector32(Math.floor(this.x), Math.floor(this.y), Math.floor(this.z));
+        return new Vector3(Math.floor(this.x), Math.floor(this.y), Math.floor(this.z));
       }
       ceil() {
-        return new Vector32(Math.ceil(this.x), Math.ceil(this.y), Math.ceil(this.z));
+        return new Vector3(Math.ceil(this.x), Math.ceil(this.y), Math.ceil(this.z));
       }
       normalized() {
         if (this.x == 0 && this.y == 0 && this.z == 0) {
-          return Vector32.zero;
+          return Vector3.zero;
         }
         let mag = this.length;
-        return new Vector32(this.x / mag, this.y / mag, this.z / mag);
+        return new Vector3(this.x / mag, this.y / mag, this.z / mag);
       }
       addSelf(other) {
         if (typeof other === "number") {
@@ -1654,41 +1670,41 @@ var require_vector3 = __commonJS({
         return Math.sqrt(this.x * this.x + this.y * this.y + this.z * this.z);
       }
       scaled(fac) {
-        return new Vector32(this.x * fac, this.y * fac, this.z * fac);
+        return new Vector3(this.x * fac, this.y * fac, this.z * fac);
       }
       static get zero() {
-        return new Vector32();
+        return new Vector3();
       }
       static get one() {
-        return new Vector32(1, 1, 1);
+        return new Vector3(1, 1, 1);
       }
       static get half() {
-        return new Vector32(0.5, 0.5, 0.5);
+        return new Vector3(0.5, 0.5, 0.5);
       }
       static get left() {
-        return new Vector32(-1, 0, 0);
+        return new Vector3(-1, 0, 0);
       }
       static get right() {
-        return new Vector32(1, 0, 0);
+        return new Vector3(1, 0, 0);
       }
       static get up() {
-        return new Vector32(0, -1, 0);
+        return new Vector3(0, 1, 0);
       }
       static get down() {
-        return new Vector32(0, 1, 0);
+        return new Vector3(0, -1, 0);
       }
       static get front() {
-        return new Vector32(0, 0, -1);
+        return new Vector3(0, 0, -1);
       }
       static get back() {
-        return new Vector32(0, 0, 1);
+        return new Vector3(0, 0, 1);
       }
       distanceTo(other) {
-        return Vector32.distance(this, other);
+        return Vector3.distance(this, other);
       }
       static lerp(p1, p2, a) {
         let lerpScalar = MathHelper.lerp;
-        return new Vector32(lerpScalar(p1.x, p2.x, a), lerpScalar(p1.y, p2.y, a), lerpScalar(p1.z, p2.z, a));
+        return new Vector3(lerpScalar(p1.x, p2.x, a), lerpScalar(p1.y, p2.y, a), lerpScalar(p1.z, p2.z, a));
       }
       static distance(p1, p2) {
         let a = p1.x - p2.x;
@@ -1702,23 +1718,23 @@ var require_vector3 = __commonJS({
         let x = ay * bz - az * by;
         let y = az * bx - ax * bz;
         let z2 = ax * by - ay * bx;
-        return new Vector32(x, y, z2);
+        return new Vector3(x, y, z2);
       }
       string() {
         return this.x + "," + this.y + "," + this.z;
       }
       static parse(str) {
         let parts = str.split(",");
-        return new Vector32(parseFloat(parts[0].trim()), parseFloat(parts[1].trim()), parseFloat(parts[2].trim()));
+        return new Vector3(parseFloat(parts[0].trim()), parseFloat(parts[1].trim()), parseFloat(parts[2].trim()));
       }
       toArray() {
         return [this.x, this.y, this.z];
       }
       static fromArray(arr) {
-        return new Vector32(arr[0], arr[1], arr[2]);
+        return new Vector3(arr[0], arr[1], arr[2]);
       }
       static fromDict(data) {
-        return new Vector32(data.x || 0, data.y || 0, data.z || 0);
+        return new Vector3(data.x || 0, data.y || 0, data.z || 0);
       }
       toDict(minimized) {
         if (minimized) {
@@ -1737,13 +1753,31 @@ var require_vector3 = __commonJS({
         return { x: this.x, y: this.y, z: this.z };
       }
     };
-    module.exports = Vector32;
+    Vector3.zeroReadonly = new Vector3(0, 0, 0);
+    Object.freeze(Vector3.zeroReadonly);
+    Vector3.oneReadonly = new Vector3(1, 1, 1);
+    Object.freeze(Vector3.oneReadonly);
+    Vector3.halfReadonly = new Vector3(0.5, 0.5, 0.5);
+    Object.freeze(Vector3.halfReadonly);
+    Vector3.leftReadonly = new Vector3(-1, 0, 0);
+    Object.freeze(Vector3.leftReadonly);
+    Vector3.rightReadonly = new Vector3(1, 0, 0);
+    Object.freeze(Vector3.rightReadonly);
+    Vector3.upReadonly = new Vector3(0, 1, 0);
+    Object.freeze(Vector3.upReadonly);
+    Vector3.downReadonly = new Vector3(0, -1, 0);
+    Object.freeze(Vector3.downReadonly);
+    Vector3.frontReadonly = new Vector3(0, 0, 1);
+    Object.freeze(Vector3.frontReadonly);
+    Vector3.backReadonly = new Vector3(0, 0, -1);
+    Object.freeze(Vector3.backReadonly);
+    module.exports = Vector3;
   }
 });
 
-// ../../../Shaku/lib/utils/animator.js
+// ../Shaku/lib/utils/animator.js
 var require_animator = __commonJS({
-  "../../../Shaku/lib/utils/animator.js"(exports, module) {
+  "../Shaku/lib/utils/animator.js"(exports, module) {
     "use strict";
     var _autoAnimators = [];
     var Animator = class {
@@ -1752,6 +1786,7 @@ var require_animator = __commonJS({
         this._fromValues = {};
         this._toValues = {};
         this._progress = 0;
+        this._onUpdate = null;
         this._onFinish = null;
         this._smoothDamp = false;
         this._repeats = false;
@@ -1760,6 +1795,7 @@ var require_animator = __commonJS({
         this._originalFrom = null;
         this._originalTo = null;
         this._originalRepeats = null;
+        this._easing = linearEasing;
         this.speedFactor = 1;
       }
       update(delta) {
@@ -1768,12 +1804,16 @@ var require_animator = __commonJS({
         }
         delta *= this.speedFactor;
         this._progress += delta;
+        if (this._progress < 0) {
+          return;
+        }
         if (this._progress >= 1) {
           this._progress = 1;
           if (this._onFinish) {
             this._onFinish();
           }
         }
+        let lerp_factor = this._easing(this._progress);
         for (let key in this._toValues) {
           let keyParts = this._toValues[key].keyParts;
           let toValue = this._toValues[key].value;
@@ -1790,16 +1830,18 @@ var require_animator = __commonJS({
           if (typeof fromValue === "function") {
             fromValue = toValue();
           }
-          let a = this._smoothDamp && this._progress < 1 ? this._progress * (1 + 1 - this._progress) : this._progress;
           let newValue = null;
           if (typeof fromValue === "number") {
-            newValue = lerp(fromValue, toValue, a);
+            newValue = lerp(fromValue, toValue, lerp_factor);
           } else if (fromValue.constructor.lerp) {
-            newValue = fromValue.constructor.lerp(fromValue, toValue, a);
+            newValue = fromValue.constructor.lerp(fromValue, toValue, lerp_factor);
           } else {
             throw new Error(`Animator issue: from-value for key '${key}' is not a number, and its class type don't implement a 'lerp()' method!`);
           }
           this._setValueToTarget(keyParts, newValue);
+        }
+        if (this._onUpdate) {
+          this._onUpdate(lerp_factor);
         }
         if (this._repeats && this._progress >= 1) {
           if (typeof this._repeats === "number") {
@@ -1834,12 +1876,24 @@ var require_animator = __commonJS({
       _validateValueType(value) {
         return typeof value === "number" || typeof value === "function" || value && value.constructor && value.constructor.lerp;
       }
+      onUpdate(callback) {
+        this._onUpdate = callback;
+        return this;
+      }
       then(callback) {
         this._onFinish = callback;
         return this;
       }
+      delay(value) {
+        this._progress = -value;
+        return this;
+      }
+      easing(easing) {
+        this._easing = easing;
+        return this;
+      }
       smoothDamp(enable) {
-        this._smoothDamp = enable;
+        this.easing(enable ? smoothDampEasing : lerp);
         return this;
       }
       repeats(enable, reverseAnimation) {
@@ -1924,13 +1978,19 @@ var require_animator = __commonJS({
     function lerp(start, end, amt) {
       return (1 - amt) * start + amt * end;
     }
+    function linearEasing(t) {
+      return t;
+    }
+    function smoothDampEasing(t) {
+      return t * t;
+    }
     module.exports = Animator;
   }
 });
 
-// ../../../Shaku/lib/utils/game_time.js
+// ../Shaku/lib/utils/game_time.js
 var require_game_time = __commonJS({
-  "../../../Shaku/lib/utils/game_time.js"(exports, module) {
+  "../Shaku/lib/utils/game_time.js"(exports, module) {
     "use strict";
     var GameTime = class {
       constructor() {
@@ -1984,9 +2044,9 @@ var require_game_time = __commonJS({
   }
 });
 
-// ../../../Shaku/lib/utils/seeded_random.js
+// ../Shaku/lib/utils/seeded_random.js
 var require_seeded_random = __commonJS({
-  "../../../Shaku/lib/utils/seeded_random.js"(exports, module) {
+  "../Shaku/lib/utils/seeded_random.js"(exports, module) {
     "use strict";
     var SeededRandom = class {
       constructor(seed) {
@@ -2013,9 +2073,9 @@ var require_seeded_random = __commonJS({
   }
 });
 
-// ../../../Shaku/lib/utils/perlin.js
+// ../Shaku/lib/utils/perlin.js
 var require_perlin = __commonJS({
-  "../../../Shaku/lib/utils/perlin.js"(exports, module) {
+  "../Shaku/lib/utils/perlin.js"(exports, module) {
     "use strict";
     var MathHelper = require_math_helper();
     var lerp = MathHelper.lerp;
@@ -2369,9 +2429,9 @@ var require_perlin = __commonJS({
   }
 });
 
-// ../../../Shaku/lib/utils/storage_adapter.js
+// ../Shaku/lib/utils/storage_adapter.js
 var require_storage_adapter = __commonJS({
-  "../../../Shaku/lib/utils/storage_adapter.js"(exports, module) {
+  "../Shaku/lib/utils/storage_adapter.js"(exports, module) {
     "use strict";
     var StorageAdapter = class {
       get persistent() {
@@ -2497,9 +2557,9 @@ var require_storage_adapter = __commonJS({
   }
 });
 
-// ../../../Shaku/lib/utils/storage.js
+// ../Shaku/lib/utils/storage.js
 var require_storage = __commonJS({
-  "../../../Shaku/lib/utils/storage.js"(exports, module) {
+  "../Shaku/lib/utils/storage.js"(exports, module) {
     "use strict";
     var StorageAdapter = require_storage_adapter();
     var Storage = class {
@@ -2607,11 +2667,11 @@ var require_storage = __commonJS({
   }
 });
 
-// ../../../Shaku/lib/utils/path_finder.js
+// ../Shaku/lib/utils/path_finder.js
 var require_path_finder = __commonJS({
-  "../../../Shaku/lib/utils/path_finder.js"(exports, module) {
+  "../Shaku/lib/utils/path_finder.js"(exports, module) {
     "use strict";
-    var Vector2 = require_vector2();
+    var Vector22 = require_vector2();
     var IGrid = class {
       isBlocked(_from, _to) {
         throw new Error("Not Implemented");
@@ -2731,9 +2791,9 @@ var require_path_finder = __commonJS({
   }
 });
 
-// ../../../Shaku/lib/utils/transform_modes.js
+// ../Shaku/lib/utils/transform_modes.js
 var require_transform_modes = __commonJS({
-  "../../../Shaku/lib/utils/transform_modes.js"(exports, module) {
+  "../Shaku/lib/utils/transform_modes.js"(exports, module) {
     "use strict";
     var TransformModes = {
       Relative: "relative",
@@ -2744,18 +2804,18 @@ var require_transform_modes = __commonJS({
   }
 });
 
-// ../../../Shaku/lib/utils/transformation.js
+// ../Shaku/lib/utils/transformation.js
 var require_transformation = __commonJS({
-  "../../../Shaku/lib/utils/transformation.js"(exports, module) {
+  "../Shaku/lib/utils/transformation.js"(exports, module) {
     "use strict";
     var MathHelper = require_math_helper();
     var TransformModes = require_transform_modes();
     var Matrix = require_matrix();
-    var Vector2 = require_vector2();
+    var Vector22 = require_vector2();
     var _defaults = {};
-    _defaults.position = Vector2.zero;
+    _defaults.position = Vector22.zero;
     _defaults.positionMode = TransformModes.Relative;
-    _defaults.scale = Vector2.one;
+    _defaults.scale = Vector22.one;
     _defaults.scaleMode = TransformModes.AxisAligned;
     _defaults.rotation = 0;
     _defaults.rotationMode = TransformModes.Relative;
@@ -3017,9 +3077,9 @@ var require_transformation = __commonJS({
   }
 });
 
-// ../../../Shaku/lib/utils/index.js
+// ../Shaku/lib/utils/index.js
 var require_utils = __commonJS({
-  "../../../Shaku/lib/utils/index.js"(exports, module) {
+  "../Shaku/lib/utils/index.js"(exports, module) {
     "use strict";
     module.exports = {
       Vector2: require_vector2(),
@@ -3042,16 +3102,16 @@ var require_utils = __commonJS({
   }
 });
 
-// ../../../Shaku/lib/gfx/vertex.js
+// ../Shaku/lib/gfx/vertex.js
 var require_vertex = __commonJS({
-  "../../../Shaku/lib/gfx/vertex.js"(exports, module) {
+  "../Shaku/lib/gfx/vertex.js"(exports, module) {
     "use strict";
-    var { Vector2, Color: Color2 } = require_utils();
+    var { Vector2: Vector22, Color: Color2 } = require_utils();
     var Matrix = require_matrix();
     var Vertex = class {
       constructor(position, textureCoord, color) {
-        this.position = position || Vector2.zero;
-        this.textureCoord = textureCoord || Vector2.zero;
+        this.position = position || Vector22.zero;
+        this.textureCoord = textureCoord || Vector22.zero;
         this.color = color || Color2.white;
       }
       transform(matrix) {
@@ -3074,16 +3134,19 @@ var require_vertex = __commonJS({
   }
 });
 
-// ../../../Shaku/lib/gfx/matrix.js
+// ../Shaku/lib/gfx/matrix.js
 var require_matrix = __commonJS({
-  "../../../Shaku/lib/gfx/matrix.js"(exports, module) {
+  "../Shaku/lib/gfx/matrix.js"(exports, module) {
     "use strict";
-    var Vector2 = require_vector2();
+    var Vector22 = require_vector2();
+    var Vector3 = require_vector3();
     var Vertex = require_vertex();
+    var EPSILON = Number.EPSILON;
     var Matrix = class {
       constructor(values, cloneValues) {
         if (!values) {
           values = Matrix.identity.values;
+          cloneValues = true;
         }
         if (cloneValues || cloneValues === void 0) {
           this.values = values.slice(0);
@@ -3305,6 +3368,68 @@ var require_matrix = __commonJS({
           result3[3]
         ], false);
       }
+      static lookAt(eyePosition, targetPosition, upVector) {
+        const eye = eyePosition;
+        const center = targetPosition;
+        const up = upVector || Vector3.upReadonly;
+        let x0, x1, x2, y0, y1, y2, z0, z1, z2, len;
+        if (Math.abs(eye.x - center.x) < EPSILON && Math.abs(eye.y - center.y) < EPSILON && Math.abs(eye.z - center.z) < EPSILON) {
+          return Matrix.identity.clone();
+        }
+        z0 = eye.x - center.x;
+        z1 = eye.y - center.y;
+        z2 = eye.z - center.z;
+        len = 1 / Math.hypot(z0, z1, z2);
+        z0 *= len;
+        z1 *= len;
+        z2 *= len;
+        x0 = up.y * z2 - up.z * z1;
+        x1 = up.z * z0 - up.x * z2;
+        x2 = up.x * z1 - up.y * z0;
+        len = Math.hypot(x0, x1, x2);
+        if (!len) {
+          x0 = 0;
+          x1 = 0;
+          x2 = 0;
+        } else {
+          len = 1 / len;
+          x0 *= len;
+          x1 *= len;
+          x2 *= len;
+        }
+        y0 = z1 * x2 - z2 * x1;
+        y1 = z2 * x0 - z0 * x2;
+        y2 = z0 * x1 - z1 * x0;
+        len = Math.hypot(y0, y1, y2);
+        if (!len) {
+          y0 = 0;
+          y1 = 0;
+          y2 = 0;
+        } else {
+          len = 1 / len;
+          y0 *= len;
+          y1 *= len;
+          y2 *= len;
+        }
+        const out = [];
+        out[0] = x0;
+        out[1] = y0;
+        out[2] = z0;
+        out[3] = 0;
+        out[4] = x1;
+        out[5] = y1;
+        out[6] = z1;
+        out[7] = 0;
+        out[8] = x2;
+        out[9] = y2;
+        out[10] = z2;
+        out[11] = 0;
+        out[12] = -(x0 * eye.x + x1 * eye.y + x2 * eye.z);
+        out[13] = -(y0 * eye.x + y1 * eye.y + y2 * eye.z);
+        out[14] = -(z0 * eye.x + z1 * eye.y + z2 * eye.z);
+        out[15] = 1;
+        return new Matrix(out, false);
+      }
       static multiplyMany(matrices) {
         let ret = matrices[0];
         for (let i = 1; i < matrices.length; i++) {
@@ -3349,7 +3474,11 @@ var require_matrix = __commonJS({
         return ret;
       }
       static transformVertex(matrix, vertex) {
-        return new Vertex(Matrix.transformVector2(matrix, vertex.position), vertex.textureCoord, vertex.color);
+        return new Vertex(
+          vertex.position instanceof Vector22 ? Matrix.transformVector2(matrix, vertex.position) : Matrix.transformVector3(matrix, vertex.position),
+          vertex.textureCoord,
+          vertex.color
+        );
       }
       static transformVector2(matrix, vector) {
         const x = vector.x, y = vector.y, z2 = vector.z || 0;
@@ -3357,7 +3486,7 @@ var require_matrix = __commonJS({
         const w = 1 / (e[3] * x + e[7] * y + e[11] * z2 + e[15]);
         const resx = (e[0] * x + e[4] * y + e[8] * z2 + e[12]) * w;
         const resy = (e[1] * x + e[5] * y + e[9] * z2 + e[13]) * w;
-        return new Vector2(resx, resy);
+        return new Vector22(resx, resy);
       }
       static transformVector3(matrix, vector) {
         const x = vector.x, y = vector.y, z2 = vector.z || 0;
@@ -3407,14 +3536,14 @@ var require_matrix = __commonJS({
   }
 });
 
-// ../../../Shaku/lib/gfx/effects/effect.js
+// ../Shaku/lib/gfx/effects/effect.js
 var require_effect = __commonJS({
-  "../../../Shaku/lib/gfx/effects/effect.js"(exports, module) {
+  "../Shaku/lib/gfx/effects/effect.js"(exports, module) {
     "use strict";
     var TextureAsset = require_texture_asset();
     var Color2 = require_color();
     var Rectangle = require_rectangle();
-    var { TextureFilterMode, TextureFilterModes } = require_texture_filter_modes();
+    var { TextureFilterModes } = require_texture_filter_modes();
     var { TextureWrapMode, TextureWrapModes } = require_texture_wrap_modes();
     var Matrix = require_matrix();
     var _logger = require_logger().getLogger("gfx-effect");
@@ -3458,18 +3587,18 @@ var require_effect = __commonJS({
             })(this, uniform, uniformLocation, uniformData.type);
           } else if (uniformData.type === UniformTypes.Texture) {
             (function(_this, name, location, method) {
-              _this.uniforms[name] = (texture3, index) => {
+              _this.uniforms[name] = (texture2, index) => {
                 index = index || 0;
-                const glTexture = texture3.texture || texture3;
+                const glTexture = texture2.texture || texture2;
                 const textureCode = _this._gl["TEXTURE" + (index || 0)];
                 _this._gl.activeTexture(textureCode);
                 _this._gl.bindTexture(_this._gl.TEXTURE_2D, glTexture);
                 _this._gl.uniform1i(location, index || 0);
-                if (texture3.filter) {
-                  _setTextureFilter(_this._gl, texture3.filter);
+                if (texture2.filter) {
+                  _setTextureFilter(_this._gl, texture2.filter);
                 }
-                if (texture3.wrapMode) {
-                  _setTextureWrapMode(_this._gl, texture3.wrapMode);
+                if (texture2.wrapMode) {
+                  _setTextureWrapMode(_this._gl, texture2.wrapMode);
                 }
               };
             })(this, uniform, uniformLocation, uniformData.type);
@@ -3540,6 +3669,7 @@ var require_effect = __commonJS({
         } else {
           this._gl.disable(this._gl.DITHER);
         }
+        this._gl.depthFunc(this._gl.LEQUAL);
         this._cachedValues = {};
       }
       prepareToDrawBatch(mesh, world) {
@@ -3567,17 +3697,17 @@ var require_effect = __commonJS({
       get enableDithering() {
         return false;
       }
-      setTexture(texture3) {
-        if (texture3 === this._cachedValues.texture) {
+      setTexture(texture2) {
+        if (texture2 === this._cachedValues.texture) {
           return false;
         }
         let uniform = this._uniformBinds[Effect.UniformBinds.MainTexture];
         if (uniform) {
-          this._cachedValues.texture = texture3;
-          let glTexture = texture3.texture || texture3;
+          this._cachedValues.texture = texture2;
+          let glTexture = texture2.texture || texture2;
           this._gl.activeTexture(this._gl.TEXTURE0);
           this._gl.bindTexture(this._gl.TEXTURE_2D, glTexture);
-          this.uniforms[uniform](texture3, 0);
+          this.uniforms[uniform](texture2, 0);
           return true;
         }
         return false;
@@ -3592,7 +3722,7 @@ var require_effect = __commonJS({
           this.uniforms[uniform](color.floatArray);
         }
       }
-      setUvOffsetAndScale(sourceRect, texture3) {
+      setUvOffsetAndScale(sourceRect, texture2) {
         if (sourceRect) {
           if (sourceRect.equals(this._cachedValues.sourceRect)) {
             return;
@@ -3604,15 +3734,15 @@ var require_effect = __commonJS({
         }
         this._cachedValues.sourceRect = sourceRect ? sourceRect.clone() : null;
         if (!sourceRect) {
-          sourceRect = new Rectangle(0, 0, texture3.width, texture3.height);
+          sourceRect = new Rectangle(0, 0, texture2.width, texture2.height);
         }
         let uvOffset = this._uniformBinds[Effect.UniformBinds.UvOffset];
         if (uvOffset) {
-          this.uniforms[uvOffset](sourceRect.x / texture3.width, sourceRect.y / texture3.height);
+          this.uniforms[uvOffset](sourceRect.x / texture2.width, sourceRect.y / texture2.height);
         }
         let uvScale = this._uniformBinds[Effect.UniformBinds.UvScale];
         if (uvScale) {
-          this.uniforms[uvScale](sourceRect.width / texture3.width, sourceRect.height / texture3.height);
+          this.uniforms[uvScale](sourceRect.width / texture2.width, sourceRect.height / texture2.height);
         }
       }
       setProjectionMatrix(matrix) {
@@ -3631,30 +3761,36 @@ var require_effect = __commonJS({
           this.uniforms[uniform](matrix.values);
         }
       }
-      setPositionsAttribute(buffer) {
+      setViewMatrix(matrix) {
+        let uniform = this._uniformBinds[Effect.UniformBinds.View];
+        if (uniform) {
+          this.uniforms[uniform](matrix.values);
+        }
+      }
+      setPositionsAttribute(buffer, forceSetBuffer) {
         let attr = this._attributeBinds[Effect.AttributeBinds.Position];
         if (attr) {
-          if (buffer === this._cachedValues.positions) {
+          if (!forceSetBuffer && buffer === this._cachedValues.positions) {
             return;
           }
           this._cachedValues.positions = buffer;
           this.attributes[attr](buffer);
         }
       }
-      setTextureCoordsAttribute(buffer) {
+      setTextureCoordsAttribute(buffer, forceSetBuffer) {
         let attr = this._attributeBinds[Effect.AttributeBinds.TextureCoords];
         if (attr) {
-          if (buffer === this._cachedValues.coords) {
+          if (!forceSetBuffer && buffer === this._cachedValues.coords) {
             return;
           }
           this._cachedValues.coords = buffer;
           this.attributes[attr](buffer);
         }
       }
-      setColorsAttribute(buffer) {
+      setColorsAttribute(buffer, forceSetBuffer) {
         let attr = this._attributeBinds[Effect.AttributeBinds.Colors];
         if (attr) {
-          if (buffer === this._cachedValues.colors) {
+          if (!forceSetBuffer && buffer === this._cachedValues.colors) {
             return;
           }
           this._cachedValues.colors = buffer;
@@ -3705,6 +3841,7 @@ var require_effect = __commonJS({
       Color: "color",
       Projection: "projection",
       World: "world",
+      View: "view",
       UvOffset: "uvOffset",
       UvScale: "uvScale"
     };
@@ -3749,9 +3886,9 @@ var require_effect = __commonJS({
   }
 });
 
-// ../../../Shaku/lib/gfx/effects/basic.js
+// ../Shaku/lib/gfx/effects/basic.js
 var require_basic = __commonJS({
-  "../../../Shaku/lib/gfx/effects/basic.js"(exports, module) {
+  "../Shaku/lib/gfx/effects/basic.js"(exports, module) {
     "use strict";
     var Effect = require_effect();
     var vertexShader = `
@@ -3798,7 +3935,8 @@ void main(void) {
         return {
           "texture": { type: Effect.UniformTypes.Texture, bind: Effect.UniformBinds.MainTexture },
           "projection": { type: Effect.UniformTypes.Matrix, bind: Effect.UniformBinds.Projection },
-          "world": { type: Effect.UniformTypes.Matrix, bind: Effect.UniformBinds.World }
+          "world": { type: Effect.UniformTypes.Matrix, bind: Effect.UniformBinds.World },
+          "view": { type: Effect.UniformTypes.Matrix, bind: Effect.UniformBinds.View }
         };
       }
       get attributeTypes() {
@@ -3813,9 +3951,9 @@ void main(void) {
   }
 });
 
-// ../../../Shaku/lib/gfx/effects/msdf_font.js
+// ../Shaku/lib/gfx/effects/msdf_font.js
 var require_msdf_font = __commonJS({
-  "../../../Shaku/lib/gfx/effects/msdf_font.js"(exports, module) {
+  "../Shaku/lib/gfx/effects/msdf_font.js"(exports, module) {
     "use strict";
     var Effect = require_effect();
     var vertexShader = `#version 300 es
@@ -3884,9 +4022,9 @@ void main(void) {
   }
 });
 
-// ../../../Shaku/lib/gfx/effects/index.js
+// ../Shaku/lib/gfx/effects/index.js
 var require_effects = __commonJS({
-  "../../../Shaku/lib/gfx/effects/index.js"(exports, module) {
+  "../Shaku/lib/gfx/effects/index.js"(exports, module) {
     "use strict";
     module.exports = {
       Effect: require_effect(),
@@ -3896,9 +4034,9 @@ var require_effects = __commonJS({
   }
 });
 
-// ../../../Shaku/lib/gfx/mesh.js
+// ../Shaku/lib/gfx/mesh.js
 var require_mesh = __commonJS({
-  "../../../Shaku/lib/gfx/mesh.js"(exports, module) {
+  "../Shaku/lib/gfx/mesh.js"(exports, module) {
     "use strict";
     var { Color: Color2 } = require_utils();
     var Mesh = class {
@@ -3931,9 +4069,9 @@ var require_mesh = __commonJS({
   }
 });
 
-// ../../../Shaku/lib/gfx/mesh_generator.js
+// ../Shaku/lib/gfx/mesh_generator.js
 var require_mesh_generator = __commonJS({
-  "../../../Shaku/lib/gfx/mesh_generator.js"(exports, module) {
+  "../Shaku/lib/gfx/mesh_generator.js"(exports, module) {
     "use strict";
     var Mesh = require_mesh();
     var MeshGenerator = class {
@@ -4010,12 +4148,12 @@ var require_mesh_generator = __commonJS({
   }
 });
 
-// ../../../Shaku/lib/gfx/camera.js
+// ../Shaku/lib/gfx/camera.js
 var require_camera = __commonJS({
-  "../../../Shaku/lib/gfx/camera.js"(exports, module) {
+  "../Shaku/lib/gfx/camera.js"(exports, module) {
     "use strict";
     var Rectangle = require_rectangle();
-    var Vector2 = require_vector2();
+    var Vector22 = require_vector2();
     var Matrix = require_matrix();
     var Camera = class {
       constructor(gfx) {
@@ -4042,12 +4180,12 @@ var require_camera = __commonJS({
       }
       orthographic(region, near, far) {
         if (region === void 0) {
-          region = this._gfx.getRenderingRegion();
+          region = this._gfx.__getRenderingRegionInternal();
         }
         this._region = region;
         this.projection = Matrix.orthographic(region.left, region.right, region.bottom, region.top, near || -1, far || 400);
       }
-      _perspective(fieldOfView, aspectRatio, near, far) {
+      perspective(fieldOfView, aspectRatio, near, far) {
         this.projection = Matrix.perspective(fieldOfView || Math.PI / 2, aspectRatio || 1, near || 0.1, far || 1e3);
       }
     };
@@ -4055,32 +4193,32 @@ var require_camera = __commonJS({
   }
 });
 
-// ../../../Shaku/lib/gfx/sprite.js
+// ../Shaku/lib/gfx/sprite.js
 var require_sprite = __commonJS({
-  "../../../Shaku/lib/gfx/sprite.js"(exports, module) {
+  "../Shaku/lib/gfx/sprite.js"(exports, module) {
     "use strict";
     var TextureAsset = require_texture_asset();
     var Color2 = require_color();
     var Rectangle = require_rectangle();
-    var Vector2 = require_vector2();
-    var Vector32 = require_vector3();
+    var Vector22 = require_vector2();
+    var Vector3 = require_vector3();
     var { BlendMode, BlendModes: BlendModes2 } = require_blend_modes();
     var Sprite = class {
-      constructor(texture3, sourceRect) {
-        this.texture = texture3;
-        this.position = new Vector2(0, 0);
+      constructor(texture2, sourceRect) {
+        this.texture = texture2;
+        this.position = new Vector22(0, 0);
         if (sourceRect) {
-          this.size = new Vector2(sourceRect.width, sourceRect.height);
-        } else if (texture3 && texture3.valid) {
-          this.size = texture3.size.clone();
+          this.size = new Vector22(sourceRect.width, sourceRect.height);
+        } else if (texture2 && texture2.valid) {
+          this.size = texture2.size.clone();
         } else {
-          this.size = new Vector2(100, 100);
+          this.size = new Vector22(100, 100);
         }
         this.sourceRect = sourceRect || null;
         this.blendMode = BlendModes2.AlphaBlend;
         this.rotation = 0;
-        this.origin = new Vector2(0.5, 0.5);
-        this.skew = new Vector2(0, 0);
+        this.origin = new Vector22(0.5, 0.5);
+        this.skew = new Vector22(0, 0);
         this.color = Color2.white;
         this.static = false;
       }
@@ -4138,20 +4276,20 @@ var require_sprite = __commonJS({
   }
 });
 
-// ../../../Shaku/lib/gfx/sprites_group.js
+// ../Shaku/lib/gfx/sprites_group.js
 var require_sprites_group = __commonJS({
-  "../../../Shaku/lib/gfx/sprites_group.js"(exports, module) {
+  "../Shaku/lib/gfx/sprites_group.js"(exports, module) {
     "use strict";
     var Color2 = require_color();
-    var Vector2 = require_vector2();
+    var Vector22 = require_vector2();
     var Matrix = require_matrix();
     var Sprite = require_sprite();
     var SpritesGroup = class {
       constructor() {
         this._sprites = [];
         this.rotation = 0;
-        this.position = new Vector2(0, 0);
-        this.scale = new Vector2(1, 1);
+        this.position = new Vector22(0, 0);
+        this.scale = new Vector22(1, 1);
       }
       forEach(callback) {
         this._sprites.forEach(callback);
@@ -4181,13 +4319,13 @@ var require_sprites_group = __commonJS({
         }
         return Matrix.multiplyMany(matrices);
       }
-      add(sprite3) {
-        this._sprites.push(sprite3);
-        return sprite3;
+      add(sprite2) {
+        this._sprites.push(sprite2);
+        return sprite2;
       }
-      remove(sprite3) {
+      remove(sprite2) {
         for (let i = 0; i < this._sprites.length; ++i) {
-          if (this._sprites[i] === sprite3) {
+          if (this._sprites[i] === sprite2) {
             this._sprites.splice(i, 1);
             return;
           }
@@ -4214,12 +4352,12 @@ var require_sprites_group = __commonJS({
   }
 });
 
-// ../../../Shaku/lib/assets/font_texture_asset.js
+// ../Shaku/lib/assets/font_texture_asset.js
 var require_font_texture_asset = __commonJS({
-  "../../../Shaku/lib/assets/font_texture_asset.js"(exports, module) {
+  "../Shaku/lib/assets/font_texture_asset.js"(exports, module) {
     "use strict";
     var Asset = require_asset();
-    var Vector2 = require_vector2();
+    var Vector22 = require_vector2();
     var Rectangle = require_rectangle();
     var TextureAsset = require_texture_asset();
     var FontTextureAsset = class extends Asset {
@@ -4270,7 +4408,7 @@ var require_font_texture_asset = __commonJS({
           let fontHeight = measureTextHeight(this.fontName, this.fontSize, void 0, extraPadding.y);
           let fontWidth = measureTextWidth(this.fontName, this.fontSize, void 0, extraPadding.x);
           this._lineHeight = fontHeight;
-          let estimatedCharSizeInTexture = new Vector2(fontWidth + margin.x * 2, fontHeight + margin.y * 2);
+          let estimatedCharSizeInTexture = new Vector22(fontWidth + margin.x * 2, fontHeight + margin.y * 2);
           let charsPerRow = Math.floor(maxTextureWidth / estimatedCharSizeInTexture.x);
           let textureWidth = Math.min(charsSet.length * estimatedCharSizeInTexture.x, maxTextureWidth);
           let textureHeight = Math.ceil(charsSet.length / charsPerRow) * estimatedCharSizeInTexture.y;
@@ -4320,9 +4458,9 @@ var require_font_texture_asset = __commonJS({
           let img = new Image();
           img.src = canvas.toDataURL("image/png");
           img.onload = () => {
-            let texture3 = new TextureAsset(this.url + "__font-texture");
-            texture3.fromImage(img);
-            this._texture = texture3;
+            let texture2 = new TextureAsset(this.url + "__font-texture");
+            texture2.fromImage(img);
+            this._texture = texture2;
             this._notifyReady();
             resolve();
           };
@@ -4335,7 +4473,7 @@ var require_font_texture_asset = __commonJS({
         return this._sourceRects[character] || this._sourceRects[this.placeholderCharacter];
       }
       getPositionOffset(character) {
-        return Vector2.zero;
+        return Vector22.zero;
       }
       getXAdvance(character) {
         return this.getSourceRect(character).width;
@@ -4392,9 +4530,9 @@ var require_font_texture_asset = __commonJS({
   }
 });
 
-// ../../../Shaku/lib/assets/json_asset.js
+// ../Shaku/lib/assets/json_asset.js
 var require_json_asset = __commonJS({
-  "../../../Shaku/lib/assets/json_asset.js"(exports, module) {
+  "../Shaku/lib/assets/json_asset.js"(exports, module) {
     "use strict";
     var Asset = require_asset();
     var JsonAsset = class extends Asset {
@@ -4462,11 +4600,11 @@ var require_json_asset = __commonJS({
   }
 });
 
-// ../../../Shaku/lib/assets/msdf_font_texture_asset.js
+// ../Shaku/lib/assets/msdf_font_texture_asset.js
 var require_msdf_font_texture_asset = __commonJS({
-  "../../../Shaku/lib/assets/msdf_font_texture_asset.js"(exports, module) {
+  "../Shaku/lib/assets/msdf_font_texture_asset.js"(exports, module) {
     "use strict";
-    var Vector2 = require_vector2();
+    var Vector22 = require_vector2();
     var Rectangle = require_rectangle();
     var TextureAsset = require_texture_asset();
     var FontTextureAsset = require_font_texture_asset();
@@ -4505,7 +4643,7 @@ var require_msdf_font_texture_asset = __commonJS({
             let currChar = charData.char;
             let sourceRect = new Rectangle(charData.x, charData.y, charData.width, charData.height);
             this._sourceRects[currChar] = sourceRect;
-            this._positionOffsets[currChar] = new Vector2(
+            this._positionOffsets[currChar] = new Vector22(
               charData.xoffset,
               charData.yoffset
             );
@@ -4533,9 +4671,9 @@ var require_msdf_font_texture_asset = __commonJS({
   }
 });
 
-// ../../../Shaku/lib/gfx/text_alignments.js
+// ../Shaku/lib/gfx/text_alignments.js
 var require_text_alignments = __commonJS({
-  "../../../Shaku/lib/gfx/text_alignments.js"(exports, module) {
+  "../Shaku/lib/gfx/text_alignments.js"(exports, module) {
     "use strict";
     var TextAlignments = {
       Left: "left",
@@ -4547,12 +4685,12 @@ var require_text_alignments = __commonJS({
   }
 });
 
-// ../../../Shaku/lib/gfx/sprite_batch.js
+// ../Shaku/lib/gfx/sprite_batch.js
 var require_sprite_batch = __commonJS({
-  "../../../Shaku/lib/gfx/sprite_batch.js"(exports, module) {
+  "../Shaku/lib/gfx/sprite_batch.js"(exports, module) {
     "use strict";
     var { Rectangle, Color: Color2 } = require_utils();
-    var Vector2 = require_vector2();
+    var Vector22 = require_vector2();
     var Vertex = require_vertex();
     var { BlendModes: BlendModes2 } = require_blend_modes();
     var Matrix = require_matrix();
@@ -4601,35 +4739,35 @@ var require_sprite_batch = __commonJS({
         }
         this._drawing = false;
       }
-      setTexture(texture3) {
-        if (texture3 !== this._currTexture) {
+      setTexture(texture2) {
+        if (texture2 !== this._currTexture) {
           if (this._currBatchCount) {
             this._drawCurrentBatch();
           }
-          this._currTexture = texture3;
+          this._currTexture = texture2;
         }
       }
       draw(sprites, cullOutOfScreen) {
         if (sprites.length === void 0) {
           sprites = [sprites];
         }
-        let region = cullOutOfScreen ? this._gfx.getRenderingRegion() : null;
+        let region = cullOutOfScreen ? this._gfx.__getRenderingRegionInternal() : null;
         let positions = this._positions;
         let uvs = this._uvs;
         let colors = this._colors;
-        for (let sprite3 of sprites) {
+        for (let sprite2 of sprites) {
           if (this._currBatchCount) {
-            if (this._currBatchCount >= this.batchSpritesCount || sprite3.blendMode !== this._currBlend || sprite3.texture !== this._currTexture) {
+            if (this._currBatchCount >= this.batchSpritesCount || sprite2.blendMode !== this._currBlend || sprite2.texture !== this._currTexture) {
               this._drawCurrentBatch();
             }
           }
-          this._currTexture = sprite3.texture;
-          this._currBlend = sprite3.blendMode;
+          this._currTexture = sprite2.texture;
+          this._currBlend = sprite2.blendMode;
           let ci = this._currBatchCount * 4 * 4;
-          if (sprite3.color instanceof Array) {
-            let lastColor = sprite3.color[0];
+          if (sprite2.color instanceof Array) {
+            let lastColor = sprite2.color[0];
             for (let x = 0; x < 4; ++x) {
-              let curr = sprite3.color[x] || lastColor;
+              let curr = sprite2.color[x] || lastColor;
               colors[ci + x * 4 + 0] = curr.r;
               colors[ci + x * 4 + 1] = curr.g;
               colors[ci + x * 4 + 2] = curr.b;
@@ -4638,91 +4776,95 @@ var require_sprite_batch = __commonJS({
             }
           } else {
             for (let x = 0; x < 4; ++x) {
-              colors[ci + x * 4 + 0] = sprite3.color.r;
-              colors[ci + x * 4 + 1] = sprite3.color.g;
-              colors[ci + x * 4 + 2] = sprite3.color.b;
-              colors[ci + x * 4 + 3] = sprite3.color.a;
+              colors[ci + x * 4 + 0] = sprite2.color.r;
+              colors[ci + x * 4 + 1] = sprite2.color.g;
+              colors[ci + x * 4 + 2] = sprite2.color.b;
+              colors[ci + x * 4 + 3] = sprite2.color.a;
             }
           }
-          if (sprite3.static && sprite3._cachedVertices) {
-            let topLeft2 = sprite3._cachedVertices[0];
-            let topRight2 = sprite3._cachedVertices[1];
-            let bottomLeft2 = sprite3._cachedVertices[2];
-            let bottomRight2 = sprite3._cachedVertices[3];
+          if (sprite2.static && sprite2._cachedVertices) {
+            let cTopLeft = sprite2._cachedVertices[0];
+            let cTopRight = sprite2._cachedVertices[1];
+            let cBottomLeft = sprite2._cachedVertices[2];
+            let cBottomRight = sprite2._cachedVertices[3];
             let pi2 = this._currBatchCount * 4 * 3;
-            positions[pi2 + 0] = topLeft2.position.x;
-            positions[pi2 + 1] = topLeft2.position.y;
-            positions[pi2 + 2] = topLeft2.position.z || 0;
-            positions[pi2 + 3] = topRight2.position.x;
-            positions[pi2 + 4] = topRight2.position.y;
-            positions[pi2 + 5] = topRight2.position.z || 0;
-            positions[pi2 + 6] = bottomLeft2.position.x;
-            positions[pi2 + 7] = bottomLeft2.position.y;
-            positions[pi2 + 8] = bottomLeft2.position.z || 0;
-            positions[pi2 + 9] = bottomRight2.position.x;
-            positions[pi2 + 10] = bottomRight2.position.y;
-            positions[pi2 + 11] = bottomRight2.position.z || 0;
+            positions[pi2 + 0] = cTopLeft.position.x;
+            positions[pi2 + 1] = cTopLeft.position.y;
+            positions[pi2 + 2] = cTopLeft.position.z || 0;
+            positions[pi2 + 3] = cTopRight.position.x;
+            positions[pi2 + 4] = cTopRight.position.y;
+            positions[pi2 + 5] = cTopRight.position.z || 0;
+            positions[pi2 + 6] = cBottomLeft.position.x;
+            positions[pi2 + 7] = cBottomLeft.position.y;
+            positions[pi2 + 8] = cBottomLeft.position.z || 0;
+            positions[pi2 + 9] = cBottomRight.position.x;
+            positions[pi2 + 10] = cBottomRight.position.y;
+            positions[pi2 + 11] = cBottomRight.position.z || 0;
             let uvi2 = this._currBatchCount * 4 * 2;
-            uvs[uvi2 + 0] = topLeft2.uv.x;
-            uvs[uvi2 + 1] = topLeft2.uv.y;
-            uvs[uvi2 + 2] = bottomRight2.uv.x;
-            uvs[uvi2 + 3] = topLeft2.uv.y;
-            uvs[uvi2 + 4] = topLeft2.uv.x;
-            uvs[uvi2 + 5] = bottomRight2.uv.y;
-            uvs[uvi2 + 6] = bottomRight2.uv.x;
-            uvs[uvi2 + 7] = bottomRight2.uv.y;
+            uvs[uvi2 + 0] = cTopLeft.uv.x;
+            uvs[uvi2 + 1] = cTopLeft.uv.y;
+            uvs[uvi2 + 2] = cBottomRight.uv.x;
+            uvs[uvi2 + 3] = cTopLeft.uv.y;
+            uvs[uvi2 + 4] = cTopLeft.uv.x;
+            uvs[uvi2 + 5] = cBottomRight.uv.y;
+            uvs[uvi2 + 6] = cBottomRight.uv.x;
+            uvs[uvi2 + 7] = cBottomRight.uv.y;
             this._currBatchCount++;
             continue;
           }
-          let sizeX = sprite3.size.x;
-          let sizeY = sprite3.size.y;
-          let left = -sizeX * sprite3.origin.x;
-          let top = -sizeY * sprite3.origin.y;
-          let topLeft = new Vector2(left, top);
-          let topRight = new Vector2(left + sizeX, top);
-          let bottomLeft = new Vector2(left, top + sizeY);
-          let bottomRight = new Vector2(left + sizeX, top + sizeY);
-          if (sprite3.skew) {
-            if (sprite3.skew.x) {
-              topLeft.x += sprite3.skew.x * sprite3.origin.y;
-              topRight.x += sprite3.skew.x * sprite3.origin.y;
-              bottomLeft.x -= sprite3.skew.x * (1 - sprite3.origin.y);
-              bottomRight.x -= sprite3.skew.x * (1 - sprite3.origin.y);
+          let sizeX = sprite2.size.x;
+          let sizeY = sprite2.size.y;
+          let left = -sizeX * sprite2.origin.x;
+          let top = -sizeY * sprite2.origin.y;
+          topLeft.set(left, top);
+          topRight.set(left + sizeX, top);
+          bottomLeft.set(left, top + sizeY);
+          bottomRight.set(left + sizeX, top + sizeY);
+          let axisAlined = true;
+          if (sprite2.skew) {
+            if (sprite2.skew.x) {
+              topLeft.x += sprite2.skew.x * sprite2.origin.y;
+              topRight.x += sprite2.skew.x * sprite2.origin.y;
+              bottomLeft.x -= sprite2.skew.x * (1 - sprite2.origin.y);
+              bottomRight.x -= sprite2.skew.x * (1 - sprite2.origin.y);
+              axisAlined = false;
             }
-            if (sprite3.skew.y) {
-              topLeft.y += sprite3.skew.y * sprite3.origin.x;
-              bottomLeft.y += sprite3.skew.y * sprite3.origin.x;
-              topRight.y -= sprite3.skew.y * (1 - sprite3.origin.x);
-              bottomRight.y -= sprite3.skew.y * (1 - sprite3.origin.x);
+            if (sprite2.skew.y) {
+              topLeft.y += sprite2.skew.y * sprite2.origin.x;
+              bottomLeft.y += sprite2.skew.y * sprite2.origin.x;
+              topRight.y -= sprite2.skew.y * (1 - sprite2.origin.x);
+              bottomRight.y -= sprite2.skew.y * (1 - sprite2.origin.x);
+              axisAlined = false;
             }
           }
-          if (sprite3.rotation) {
+          if (sprite2.rotation) {
             let rotateVec = function(vector) {
               let x = vector.x * cos - vector.y * sin;
               let y = vector.x * sin + vector.y * cos;
               vector.set(x, y);
             };
-            let cos = Math.cos(sprite3.rotation);
-            let sin = Math.sin(sprite3.rotation);
+            let cos = Math.cos(sprite2.rotation);
+            let sin = Math.sin(sprite2.rotation);
             rotateVec(topLeft);
             rotateVec(topRight);
             rotateVec(bottomLeft);
             rotateVec(bottomRight);
+            axisAlined = false;
           }
-          topLeft.addSelf(sprite3.position);
-          topRight.addSelf(sprite3.position);
-          bottomLeft.addSelf(sprite3.position);
-          bottomRight.addSelf(sprite3.position);
+          topLeft.addSelf(sprite2.position);
+          topRight.addSelf(sprite2.position);
+          bottomLeft.addSelf(sprite2.position);
+          bottomRight.addSelf(sprite2.position);
           if (this.snapPixels) {
             topLeft.floorSelf();
             topRight.floorSelf();
             bottomLeft.floorSelf();
             bottomRight.floorSelf();
           }
-          let z2 = sprite3.position.z || 0;
-          let zDepth = sprite3.size.z || 0;
+          let z2 = sprite2.position.z || 0;
+          let zDepth = sprite2.size.z || 0;
           if (cullOutOfScreen) {
-            let destRect = Rectangle.fromPoints([topLeft, topRight, bottomLeft, bottomRight]);
+            let destRect = axisAlined ? new Rectangle(topLeft.x, topLeft.y, bottomRight.x - topLeft.x, bottomRight.y - topLeft.y) : Rectangle.fromPoints([topLeft, topRight, bottomLeft, bottomRight]);
             if (!region.collideRect(destRect)) {
               continue;
             }
@@ -4743,10 +4885,10 @@ var require_sprite_batch = __commonJS({
           let uvi = this._currBatchCount * 4 * 2;
           var uvTl;
           var uvBr;
-          if (sprite3.sourceRect) {
-            uvTl = { x: sprite3.sourceRect.x / this._currTexture.width, y: sprite3.sourceRect.y / this._currTexture.height };
-            uvBr = { x: uvTl.x + sprite3.sourceRect.width / this._currTexture.width, y: uvTl.y + sprite3.sourceRect.height / this._currTexture.height };
-            if (sprite3.rotation && this.applyAntiBleeding) {
+          if (sprite2.sourceRect) {
+            uvTl = { x: sprite2.sourceRect.x / this._currTexture.width, y: sprite2.sourceRect.y / this._currTexture.height };
+            uvBr = { x: uvTl.x + sprite2.sourceRect.width / this._currTexture.width, y: uvTl.y + sprite2.sourceRect.height / this._currTexture.height };
+            if (sprite2.rotation && this.applyAntiBleeding) {
               let marginX = 0.015 / this._currTexture.width;
               let marginY = 0.015 / this._currTexture.height;
               uvTl.x += marginX;
@@ -4772,12 +4914,12 @@ var require_sprite_batch = __commonJS({
             uvs[uvi + 6] = 1;
             uvs[uvi + 7] = 1;
           }
-          if (sprite3.static) {
-            sprite3._cachedVertices = [
-              { position: topLeft, uv: uvTl || { x: 0, y: 0 } },
-              { position: topRight },
-              { position: bottomLeft },
-              { position: bottomRight, uv: uvBr || { x: 1, y: 1 } }
+          if (sprite2.static) {
+            sprite2._cachedVertices = [
+              { position: topLeft.clone(), uv: uvTl || { x: 0, y: 0 } },
+              { position: topRight.clone() },
+              { position: bottomLeft.clone() },
+              { position: bottomRight.clone(), uv: uvBr || { x: 1, y: 1 } }
             ];
           }
           this._currBatchCount++;
@@ -4798,23 +4940,23 @@ var require_sprite_batch = __commonJS({
           colors[ci + 2] = vertex.color.b;
           colors[ci + 3] = vertex.color.a;
         }
-        let topLeft = vertices[0].position;
-        let topRight = vertices[1].position;
-        let bottomLeft = vertices[2].position;
-        let bottomRight = vertices[3].position;
+        let topLeft2 = vertices[0].position;
+        let topRight2 = vertices[1].position;
+        let bottomLeft2 = vertices[2].position;
+        let bottomRight2 = vertices[3].position;
         let pi = this._currBatchCount * 4 * 3;
-        positions[pi + 0] = topLeft.x;
-        positions[pi + 1] = topLeft.y;
-        positions[pi + 2] = topLeft.z || 0;
-        positions[pi + 3] = topRight.x;
-        positions[pi + 4] = topRight.y;
-        positions[pi + 5] = topRight.z || 0;
-        positions[pi + 6] = bottomLeft.x;
-        positions[pi + 7] = bottomLeft.y;
-        positions[pi + 8] = bottomLeft.z || 0;
-        positions[pi + 9] = bottomRight.x;
-        positions[pi + 10] = bottomRight.y;
-        positions[pi + 11] = bottomRight.z || 0;
+        positions[pi + 0] = topLeft2.x;
+        positions[pi + 1] = topLeft2.y;
+        positions[pi + 2] = topLeft2.z || 0;
+        positions[pi + 3] = topRight2.x;
+        positions[pi + 4] = topRight2.y;
+        positions[pi + 5] = topRight2.z || 0;
+        positions[pi + 6] = bottomLeft2.x;
+        positions[pi + 7] = bottomLeft2.y;
+        positions[pi + 8] = bottomLeft2.z || 0;
+        positions[pi + 9] = bottomRight2.x;
+        positions[pi + 10] = bottomRight2.y;
+        positions[pi + 11] = bottomRight2.z || 0;
         let uvi = this._currBatchCount * (4 * 2);
         uvs[uvi++] = vertices[0].textureCoord.x / this._currTexture.width;
         uvs[uvi++] = vertices[0].textureCoord.y / this._currTexture.height;
@@ -4842,44 +4984,54 @@ var require_sprite_batch = __commonJS({
         if (this._effect !== this._gfx._activeEffect) {
           _logger.error("Effect changed while drawing batch!");
         }
+        this._gfx._activeEffect._cachedValues = {};
         this._gfx._setBlendMode(this._currBlend);
-        let mesh = new Mesh(positionBuffer, textureCoordBuffer, colorsBuffer, indexBuffer, this._currBatchCount * 6);
-        this._gfx._activeEffect.prepareToDrawBatch(mesh, transform || Matrix.identity);
-        this._gfx._setActiveTexture(this._currTexture);
-        let shouldSliceArrays = this._currBatchCount < this.batchSpritesCount / 2;
-        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+        let shouldSliceArrays = this._gfx.webglVersion < 2 && this._currBatchCount < this.batchSpritesCount / 2;
+        this._gfx._activeEffect.setWorldMatrix(transform || Matrix.identity);
+        this._gfx._activeEffect.setPositionsAttribute(positionBuffer, true);
         gl.bufferData(
           gl.ARRAY_BUFFER,
           shouldSliceArrays ? positionArray.slice(0, this._currBatchCount * 4 * 3) : positionArray,
-          gl.DYNAMIC_DRAW
+          gl.DYNAMIC_DRAW,
+          0,
+          this._currBatchCount * 4 * 3
         );
-        gl.bindBuffer(gl.ARRAY_BUFFER, textureCoordBuffer);
+        this._gfx._activeEffect.setTextureCoordsAttribute(textureCoordBuffer, true);
         gl.bufferData(
           gl.ARRAY_BUFFER,
           shouldSliceArrays ? textureArray.slice(0, this._currBatchCount * 4 * 2) : textureArray,
-          gl.DYNAMIC_DRAW
+          gl.DYNAMIC_DRAW,
+          0,
+          this._currBatchCount * 4 * 2
         );
-        gl.bindBuffer(gl.ARRAY_BUFFER, colorsBuffer);
+        this._gfx._activeEffect.setColorsAttribute(colorsBuffer, true);
         gl.bufferData(
           gl.ARRAY_BUFFER,
           shouldSliceArrays ? colorsArray.slice(0, this._currBatchCount * 4 * 4) : colorsArray,
-          gl.DYNAMIC_DRAW
+          gl.DYNAMIC_DRAW,
+          0,
+          this._currBatchCount * 4 * 4
         );
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
         this._currIndices = null;
+        this._gfx._setActiveTexture(this._currTexture);
         gl.drawElements(gl.TRIANGLES, this._currBatchCount * 6, gl.UNSIGNED_SHORT, 0);
         this._gfx._drawCallsCount++;
         this._gfx._drawQuadsCount += this._currBatchCount;
         this._currBatchCount = 0;
       }
     };
+    var topLeft = new Vector22(0, 0);
+    var topRight = new Vector22(0, 0);
+    var bottomLeft = new Vector22(0, 0);
+    var bottomRight = new Vector22(0, 0);
     module.exports = SpriteBatch;
   }
 });
 
-// ../../../Shaku/lib/gfx/gfx.js
+// ../Shaku/lib/gfx/gfx.js
 var require_gfx = __commonJS({
-  "../../../Shaku/lib/gfx/gfx.js"(exports, module) {
+  "../Shaku/lib/gfx/gfx.js"(exports, module) {
     "use strict";
     var IManager = require_manager();
     var Color2 = require_color();
@@ -4894,14 +5046,14 @@ var require_gfx = __commonJS({
     var Camera = require_camera();
     var Sprite = require_sprite();
     var SpritesGroup = require_sprites_group();
-    var Vector2 = require_vector2();
+    var Vector22 = require_vector2();
     var FontTextureAsset = require_font_texture_asset();
     var MsdfFontTextureAsset = require_msdf_font_texture_asset();
     var { TextAlignment, TextAlignments } = require_text_alignments();
     var Mesh = require_mesh();
     var Circle = require_circle();
     var SpriteBatch = require_sprite_batch();
-    var Vector32 = require_vector3();
+    var Vector3 = require_vector3();
     var Vertex = require_vertex();
     var _whiteColor = Color2.white;
     var _logger = require_logger().getLogger("gfx");
@@ -4928,6 +5080,11 @@ var require_gfx = __commonJS({
         this._drawCallsCount = 0;
         this._drawQuadsCount = 0;
         this.spritesBatch = null;
+        this._cachedRenderingRegion = {};
+        this._webglVersion = 0;
+      }
+      get webglVersion() {
+        return this._webglVersion;
       }
       get batchSpritesCount() {
         return 2048;
@@ -4939,7 +5096,9 @@ var require_gfx = __commonJS({
         if (this._gl) {
           throw new Error("Can't call setContextAttributes() after gfx was initialized!");
         }
-        this._initSettings = flags;
+        for (let key in flags) {
+          this._initSettings[key] = flags[key];
+        }
       }
       setCanvas(element) {
         if (this._gl) {
@@ -5027,9 +5186,10 @@ var require_gfx = __commonJS({
           this.setResolution(width, height, true);
         }
       }
-      setRenderTarget(texture3, keepCamera) {
+      setRenderTarget(texture2, keepCamera) {
         this.presentBufferedData();
-        if (texture3 === null) {
+        this.__resetCachedRenderingRegion();
+        if (texture2 === null) {
           this._renderTarget = null;
           this._gl.bindFramebuffer(this._gl.FRAMEBUFFER, null);
           this._gl.pixelStorei(this._gl.UNPACK_FLIP_Y_WEBGL, false);
@@ -5038,17 +5198,17 @@ var require_gfx = __commonJS({
           }
           return;
         }
-        if (!(texture3 instanceof Array)) {
-          texture3 = [texture3];
+        if (!(texture2 instanceof Array)) {
+          texture2 = [texture2];
         }
         this._gl.bindFramebuffer(this._gl.FRAMEBUFFER, this._fb);
         this._gl.pixelStorei(this._gl.UNPACK_FLIP_Y_WEBGL, false);
         var drawBuffers = [];
-        for (let index = 0; index < texture3.length; ++index) {
+        for (let index = 0; index < texture2.length; ++index) {
           const attachmentPoint = this._gl["COLOR_ATTACHMENT" + index];
-          this._gl.framebufferTexture2D(this._gl.FRAMEBUFFER, attachmentPoint, this._gl.TEXTURE_2D, texture3[index].texture, 0);
+          this._gl.framebufferTexture2D(this._gl.FRAMEBUFFER, attachmentPoint, this._gl.TEXTURE_2D, texture2[index].texture, 0);
           if (index === 0) {
-            this._renderTarget = texture3[index];
+            this._renderTarget = texture2[index];
           }
           drawBuffers.push(attachmentPoint);
         }
@@ -5095,29 +5255,48 @@ var require_gfx = __commonJS({
       applyCamera(camera) {
         this.presentBufferedData();
         this._viewport = camera.viewport;
-        let viewport = this.getRenderingRegion(true);
+        let viewport = this.__getRenderingRegionInternal(true);
         this._gl.viewport(viewport.x, viewport.y, viewport.width, viewport.height);
         this._projection = camera.projection.clone();
         if (this._activeEffect) {
           this._activeEffect.setProjectionMatrix(this._projection);
         }
+        this.__resetCachedRenderingRegion();
+      }
+      __getRenderingRegionInternal(includeOffset) {
+        if (includeOffset && this._cachedRenderingRegion.withOffset) {
+          return this._cachedRenderingRegion.withOffset;
+        }
+        if (!includeOffset && this._cachedRenderingRegion.withoutOffset) {
+          return this._cachedRenderingRegion.withoutOffset;
+        }
+        if (this._viewport) {
+          let ret2 = this._viewport.clone();
+          if (includeOffset === false) {
+            ret2.x = ret2.y = 0;
+            this._cachedRenderingRegion.withoutOffset = ret2;
+            return ret2;
+          } else {
+            this._cachedRenderingRegion.withOffset = ret2;
+            return ret2;
+          }
+        }
+        let ret = new Rectangle(0, 0, (this._renderTarget || this._canvas).width, (this._renderTarget || this._canvas).height);
+        this._cachedRenderingRegion.withoutOffset = this._cachedRenderingRegion.withOffset = ret;
+        return ret;
+      }
+      __resetCachedRenderingRegion() {
+        this._cachedRenderingRegion.withoutOffset = this._cachedRenderingRegion.withOffset = null;
       }
       getRenderingRegion(includeOffset) {
-        if (this._viewport) {
-          let ret = this._viewport.clone();
-          if (includeOffset === false) {
-            ret.x = ret.y = 0;
-          }
-          return ret;
-        }
-        return new Rectangle(0, 0, (this._renderTarget || this._canvas).width, (this._renderTarget || this._canvas).height);
+        return this.__getRenderingRegionInternal(includeOffset).clone();
       }
       getRenderingSize() {
-        let region = this.getRenderingRegion();
+        let region = this.__getRenderingRegionInternal();
         return region.getSize();
       }
       getCanvasSize() {
-        return new Vector2(this._canvas.width, this._canvas.height);
+        return new Vector22(this._canvas.width, this._canvas.height);
       }
       setup() {
         return new Promise(async (resolve, reject2) => {
@@ -5125,8 +5304,15 @@ var require_gfx = __commonJS({
           if (!this._canvas) {
             this._canvas = document.createElement("canvas");
           }
-          this._gl = this._canvas.getContext("webgl2", this._initSettings) || this._canvas.getContext("webgl", this._initSettings);
+          this._gl = this._canvas.getContext("webgl2", this._initSettings);
+          this._webglVersion = 2;
           if (!this._gl) {
+            _logger.warn("Failed to init WebGL2, attempt fallback to WebGL1.");
+            this._gl = this._canvas.getContext("webgl", this._initSettings);
+            this._webglVersion = 1;
+          }
+          if (!this._gl) {
+            this._webglVersion = 0;
             _logger.error("Can't get WebGL context!");
             return reject2("Failed to get WebGL context from canvas!");
           }
@@ -5192,9 +5378,9 @@ var require_gfx = __commonJS({
         alignment = alignment || TextAlignments.Left;
         color = color || Color2.black;
         fontSize = fontSize || fontTexture.fontSize;
-        marginFactor = marginFactor || Vector2.one;
+        marginFactor = marginFactor || Vector22.one;
         let scale = fontSize / fontTexture.fontSize;
-        let position = new Vector2(0, 0);
+        let position = new Vector22(0, 0);
         let currentLineSprites = [];
         let lineWidth = 0;
         function breakLine() {
@@ -5225,27 +5411,27 @@ var require_gfx = __commonJS({
             breakLine();
             continue;
           }
-          let size = new Vector2(sourceRect.width * scale, sourceRect.height * scale);
+          let size = new Vector22(sourceRect.width * scale, sourceRect.height * scale);
           if (character !== " ") {
-            let sprite3 = new Sprite(fontTexture.texture, sourceRect);
-            sprite3.size = size;
+            let sprite2 = new Sprite(fontTexture.texture, sourceRect);
+            sprite2.size = size;
             if (fontTexture instanceof MsdfFontTextureAsset) {
-              sprite3.origin.set(0, 0);
+              sprite2.origin.set(0, 0);
             } else {
-              sprite3.origin.set(0.5, 0.5);
+              sprite2.origin.set(0.5, 0.5);
             }
-            sprite3.position.copy(position).addSelf(fontTexture.getPositionOffset(character).mul(scale));
+            sprite2.position.copy(position).addSelf(fontTexture.getPositionOffset(character).mul(scale));
             if (color instanceof Color2) {
-              sprite3.color.copy(color);
+              sprite2.color.copy(color);
             } else {
-              sprite3.color = [];
+              sprite2.color = [];
               for (let col of color) {
-                sprite3.color.push(col.clone());
+                sprite2.color.push(col.clone());
               }
             }
-            sprite3.origin.x = 0;
-            ret.add(sprite3);
-            currentLineSprites.push(sprite3);
+            sprite2.origin.x = 0;
+            ret.add(sprite2);
+            currentLineSprites.push(sprite2);
           }
           let moveCursorAmount = fontTexture.getXAdvance(character) * scale * marginFactor.x;
           lineWidth += moveCursorAmount;
@@ -5260,54 +5446,54 @@ var require_gfx = __commonJS({
       drawGroup(group, cullOutOfScreen) {
         this._drawBatch(group, Boolean(cullOutOfScreen));
       }
-      drawSprite(sprite3) {
-        if (!sprite3.texture || !sprite3.texture.valid) {
+      drawSprite(sprite2) {
+        if (!sprite2.texture || !sprite2.texture.valid) {
           return;
         }
         this.__startDrawingSprites(this._activeEffect, null);
-        this.spritesBatch.draw(sprite3);
+        this.spritesBatch.draw(sprite2);
       }
-      cover(texture3, destRect, sourceRect, color, blendMode) {
-        if (destRect instanceof Vector2 || destRect instanceof Vector32) {
+      cover(texture2, destRect, sourceRect, color, blendMode) {
+        if (destRect instanceof Vector22 || destRect instanceof Vector3) {
           destRect = new Rectangle(0, 0, destRect.x, destRect.y);
         }
-        return this.draw(texture3, destRect.getCenter(), destRect.getSize(), sourceRect, color, blendMode);
+        return this.draw(texture2, destRect.getCenter(), destRect.getSize(), sourceRect, color, blendMode);
       }
-      draw(texture3, position, size, sourceRect, color, blendMode, rotation, origin, skew) {
-        let sprite3 = new Sprite(texture3, sourceRect);
-        sprite3.position = position;
-        sprite3.size = typeof size === "number" ? new Vector2(size, size) : size;
+      draw(texture2, position, size, sourceRect, color, blendMode, rotation, origin, skew) {
+        let sprite2 = new Sprite(texture2, sourceRect);
+        sprite2.position = position;
+        sprite2.size = typeof size === "number" ? new Vector22(size, size) : size;
         if (color) {
-          sprite3.color = color;
+          sprite2.color = color;
         }
         if (blendMode) {
-          sprite3.blendMode = blendMode;
+          sprite2.blendMode = blendMode;
         }
         if (rotation !== void 0) {
-          sprite3.rotation = rotation;
+          sprite2.rotation = rotation;
         }
         if (origin) {
-          sprite3.origin = origin;
+          sprite2.origin = origin;
         }
         if (skew) {
-          sprite3.skew = skew;
+          sprite2.skew = skew;
         }
-        this.drawSprite(sprite3);
+        this.drawSprite(sprite2);
       }
-      drawQuadFromVertices(texture3, vertices, blendMode) {
-        if (!texture3 || !texture3.valid) {
+      drawQuadFromVertices(texture2, vertices, blendMode) {
+        if (!texture2 || !texture2.valid) {
           return;
         }
         this.__startDrawingSprites(this._activeEffect, null);
         this._setBlendMode(blendMode || BlendModes2.AlphaBlend);
-        this.spritesBatch.setTexture(texture3);
+        this.spritesBatch.setTexture(texture2);
         this.spritesBatch.pushVertices(vertices);
       }
       fillRect(destRect, color, blend, rotation) {
         this.draw(
           this.whiteTexture,
-          new Vector2(destRect.x + destRect.width / 2, destRect.y + destRect.height / 2),
-          new Vector2(destRect.width, destRect.height),
+          new Vector22(destRect.x + destRect.width / 2, destRect.y + destRect.height / 2),
+          new Vector22(destRect.width, destRect.height),
           null,
           color,
           blend || BlendModes2.Opaque,
@@ -5322,15 +5508,15 @@ var require_gfx = __commonJS({
         }
         let group = new SpritesGroup();
         for (let i = 0; i < destRects.length; ++i) {
-          let sprite3 = new Sprite(this.whiteTexture);
-          sprite3.color = colors[i] || colors;
-          sprite3.rotation = rotation.length ? rotation[i] : rotation;
-          sprite3.blendMode = blend || BlendModes2.Opaque;
+          let sprite2 = new Sprite(this.whiteTexture);
+          sprite2.color = colors[i] || colors;
+          sprite2.rotation = rotation.length ? rotation[i] : rotation;
+          sprite2.blendMode = blend || BlendModes2.Opaque;
           let destRect = destRects[i];
-          sprite3.size.set(destRect.width, destRect.height);
-          sprite3.position.set(destRect.x + destRect.width / 2, destRect.y + destRect.width / 2);
-          sprite3.origin.set(0.5, 0.5);
-          group.add(sprite3);
+          sprite2.size.set(destRect.width, destRect.height);
+          sprite2.position.set(destRect.x + destRect.width / 2, destRect.y + destRect.width / 2);
+          sprite2.origin.set(0.5, 0.5);
+          group.add(sprite2);
         }
         this.drawGroup(group);
       }
@@ -5370,7 +5556,7 @@ var require_gfx = __commonJS({
         let lines = [];
         const twicePi = 2 * Math.PI;
         for (let i = 0; i <= lineAmount; i++) {
-          let point = new Vector2(
+          let point = new Vector22(
             circle.center.x + circle.radius * Math.cos(i * twicePi / lineAmount),
             circle.center.y + circle.radius * Math.sin(i * twicePi / lineAmount)
           );
@@ -5385,7 +5571,7 @@ var require_gfx = __commonJS({
         let lines = [circle.center];
         const twicePi = 2 * Math.PI;
         for (let i = 0; i <= lineAmount; i++) {
-          let point = new Vector2(
+          let point = new Vector22(
             circle.center.x + circle.radius * Math.cos(i * twicePi / lineAmount),
             circle.center.y + circle.radius * Math.sin(i * twicePi / lineAmount)
           );
@@ -5408,11 +5594,11 @@ var require_gfx = __commonJS({
           let color = colors[i] || colors;
           const twicePi = 2 * Math.PI;
           for (let i2 = 0; i2 <= lineAmount; i2++) {
-            vertsArr.push(new Vector2(
+            vertsArr.push(new Vector22(
               circle.center.x + circle.radius * Math.cos(i2 * twicePi / lineAmount),
               circle.center.y + circle.radius * Math.sin(i2 * twicePi / lineAmount)
             ));
-            vertsArr.push(new Vector2(
+            vertsArr.push(new Vector22(
               circle.center.x + circle.radius * Math.cos((i2 + 1) * twicePi / lineAmount),
               circle.center.y + circle.radius * Math.sin((i2 + 1) * twicePi / lineAmount)
             ));
@@ -5476,10 +5662,10 @@ var require_gfx = __commonJS({
         canvas.style.position = "relative";
       }
       inScreen(shape) {
-        let region = this.getRenderingRegion();
+        let region = this.__getRenderingRegionInternal();
         if (shape instanceof Circle) {
           return region.collideCircle(shape);
-        } else if (shape instanceof Vector2) {
+        } else if (shape instanceof Vector22) {
           return region.containsVector(shape);
         } else if (shape instanceof Rectangle) {
           return region.collideRect(shape);
@@ -5571,10 +5757,10 @@ var require_gfx = __commonJS({
         this.spritesBatch.draw(group._sprites, cullOutOfScreen);
         this.spritesBatch.end();
       }
-      _setActiveTexture(texture3) {
-        if (this._activeEffect.setTexture(texture3)) {
-          this._setTextureFilter(texture3.filter || this.defaultTextureFilter);
-          this._setTextureWrapMode(texture3.wrapMode || this.defaultTextureWrapMode);
+      _setActiveTexture(texture2) {
+        if (this._activeEffect.setTexture(texture2)) {
+          this._setTextureFilter(texture2.filter || this.defaultTextureFilter);
+          this._setTextureWrapMode(texture2.wrapMode || this.defaultTextureWrapMode);
         }
       }
       get BlendModes() {
@@ -5597,6 +5783,9 @@ var require_gfx = __commonJS({
         color = color || Color2.black;
         this._gl.clearColor(color.r, color.g, color.b, color.a);
         this._gl.clear(this._gl.COLOR_BUFFER_BIT | this._gl.DEPTH_BUFFER_BIT);
+      }
+      clearDepth(value) {
+        this._gl.clearDepth(value !== void 0 ? value : 1);
       }
       _setTextureFilter(filter) {
         if (!TextureFilterModes._values.has(filter)) {
@@ -5711,6 +5900,7 @@ var require_gfx = __commonJS({
         this._lastBlendMode = null;
         this._drawCallsCount = 0;
         this._drawQuadsCount = 0;
+        this.__resetCachedRenderingRegion();
       }
       endFrame() {
         this.presentBufferedData();
@@ -5723,17 +5913,17 @@ var require_gfx = __commonJS({
   }
 });
 
-// ../../../Shaku/lib/gfx/index.js
+// ../Shaku/lib/gfx/index.js
 var require_gfx2 = __commonJS({
-  "../../../Shaku/lib/gfx/index.js"(exports, module) {
+  "../Shaku/lib/gfx/index.js"(exports, module) {
     "use strict";
     module.exports = require_gfx();
   }
 });
 
-// ../../../Shaku/lib/assets/sound_asset.js
+// ../Shaku/lib/assets/sound_asset.js
 var require_sound_asset = __commonJS({
-  "../../../Shaku/lib/assets/sound_asset.js"(exports, module) {
+  "../Shaku/lib/assets/sound_asset.js"(exports, module) {
     "use strict";
     var Asset = require_asset();
     var SoundAsset = class extends Asset {
@@ -5743,23 +5933,13 @@ var require_sound_asset = __commonJS({
       }
       load() {
         return new Promise((resolve, reject2) => {
-          let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
           var request = new XMLHttpRequest();
           request.open("GET", this.url, true);
           request.responseType = "arraybuffer";
           request.onload = () => {
-            var audioData = request.response;
             this._valid = true;
             this._notifyReady();
-            audioCtx.decodeAudioData(
-              audioData,
-              function(buffer) {
-                resolve();
-              },
-              (e) => {
-                reject2(e.err);
-              }
-            );
+            resolve();
           };
           request.onerror = (e) => {
             reject2(e);
@@ -5778,9 +5958,9 @@ var require_sound_asset = __commonJS({
   }
 });
 
-// ../../../Shaku/lib/sfx/sound_instance.js
+// ../Shaku/lib/sfx/sound_instance.js
 var require_sound_instance = __commonJS({
-  "../../../Shaku/lib/sfx/sound_instance.js"(exports, module) {
+  "../Shaku/lib/sfx/sound_instance.js"(exports, module) {
     "use strict";
     var _logger = require_logger().getLogger("sfx");
     var SoundInstance = class {
@@ -5792,6 +5972,7 @@ var require_sound_instance = __commonJS({
         this._sfx = sfxManager;
         this._audio = new Audio(url);
         this._volume = 1;
+        this._sfx._soundsNotDisposed.add(this);
       }
       disposeWhenDone() {
         this._audio.onended = () => {
@@ -5799,9 +5980,13 @@ var require_sound_instance = __commonJS({
         };
       }
       dispose() {
-        this._audio.src = "";
-        this._audio.srcObject = null;
-        this._audio.remove();
+        if (this._audio) {
+          this._audio.pause();
+          this._audio.src = "";
+          this._audio.srcObject = null;
+          this._audio.remove();
+          this._sfx._soundsNotDisposed.delete(this);
+        }
         this._audio = null;
       }
       play() {
@@ -5892,9 +6077,9 @@ var require_sound_instance = __commonJS({
   }
 });
 
-// ../../../Shaku/lib/sfx/sound_mixer.js
+// ../Shaku/lib/sfx/sound_mixer.js
 var require_sound_mixer = __commonJS({
-  "../../../Shaku/lib/sfx/sound_mixer.js"(exports, module) {
+  "../Shaku/lib/sfx/sound_mixer.js"(exports, module) {
     "use strict";
     var SoundInstance = require_sound_instance();
     var SoundMixer = class {
@@ -5977,9 +6162,9 @@ var require_sound_mixer = __commonJS({
   }
 });
 
-// ../../../Shaku/lib/sfx/sfx.js
+// ../Shaku/lib/sfx/sfx.js
 var require_sfx = __commonJS({
-  "../../../Shaku/lib/sfx/sfx.js"(exports, module) {
+  "../Shaku/lib/sfx/sfx.js"(exports, module) {
     "use strict";
     var SoundAsset = require_sound_asset();
     var IManager = require_manager();
@@ -5990,41 +6175,38 @@ var require_sfx = __commonJS({
       constructor() {
         super();
         this._playingSounds = null;
+        this._soundsNotDisposed = null;
       }
       setup() {
         return new Promise((resolve, reject2) => {
           _logger.info("Setup sfx manager..");
+          if (this._soundsNotDisposed) {
+            this.cleanup();
+          }
           this._playingSounds = /* @__PURE__ */ new Set();
+          this._soundsNotDisposed = /* @__PURE__ */ new Set();
           resolve();
         });
       }
       startFrame() {
-        var playingSounds = Array.from(this._playingSounds);
-        for (var i = 0; i < playingSounds.length; ++i) {
-          var sound = playingSounds[i];
+        let playingSounds = Array.from(this._playingSounds);
+        for (let sound of playingSounds) {
           if (!sound.isPlaying) {
             this._playingSounds.delete(sound);
           }
         }
       }
       endFrame() {
-        var playingSounds = Array.from(this._playingSounds);
-        for (var i = 0; i < playingSounds.length; ++i) {
-          var sound = playingSounds[i];
-          if (!sound.isPlaying) {
-            this._playingSounds.delete(sound);
-          }
-        }
       }
       destroy() {
         this.stopAll();
-        this._playingSounds = /* @__PURE__ */ new Set();
+        this.cleanup();
       }
       get SoundMixer() {
         return SoundMixer;
       }
-      play(sound, volume, playbackRate, preservesPitch) {
-        var sound = this.createSound(sound);
+      play(soundAsset2, volume, playbackRate, preservesPitch) {
+        let sound = this.createSound(soundAsset2);
         sound.volume = volume !== void 0 ? volume : 1;
         if (playbackRate !== void 0) {
           sound.playbackRate = playbackRate;
@@ -6037,12 +6219,20 @@ var require_sfx = __commonJS({
         return ret;
       }
       stopAll() {
-        var playingSounds = Array.from(this._playingSounds);
-        for (var i = 0; i < playingSounds.length; ++i) {
-          var sound = playingSounds[i];
+        let playingSounds = Array.from(this._playingSounds);
+        for (let sound of playingSounds) {
           sound.stop();
         }
         this._playingSounds = /* @__PURE__ */ new Set();
+      }
+      cleanup() {
+        let notDisposedSounds = Array.from(this._soundsNotDisposed);
+        for (let sound of notDisposedSounds) {
+          if (!sound.isPlaying) {
+            sound.dispose();
+          }
+        }
+        this._soundsNotDisposed = /* @__PURE__ */ new Set();
       }
       get playingSoundsCount() {
         return this._playingSounds.size;
@@ -6066,17 +6256,17 @@ var require_sfx = __commonJS({
   }
 });
 
-// ../../../Shaku/lib/sfx/index.js
+// ../Shaku/lib/sfx/index.js
 var require_sfx2 = __commonJS({
-  "../../../Shaku/lib/sfx/index.js"(exports, module) {
+  "../Shaku/lib/sfx/index.js"(exports, module) {
     "use strict";
     module.exports = require_sfx();
   }
 });
 
-// ../../../Shaku/lib/input/key_codes.js
+// ../Shaku/lib/input/key_codes.js
 var require_key_codes = __commonJS({
-  "../../../Shaku/lib/input/key_codes.js"(exports, module) {
+  "../Shaku/lib/input/key_codes.js"(exports, module) {
     "use strict";
     var MouseButtons = {
       left: 0,
@@ -6190,26 +6380,110 @@ var require_key_codes = __commonJS({
   }
 });
 
-// ../../../Shaku/lib/input/input.js
+// ../Shaku/lib/input/gamepad.js
+var require_gamepad = __commonJS({
+  "../Shaku/lib/input/gamepad.js"(exports, module) {
+    "use strict";
+    var Vector22 = require_vector2();
+    var Gamepad = class {
+      constructor(gp) {
+        this.id = gp.id;
+        this._buttonsDown = [];
+        for (let i = 0; i < gp.buttons.length; ++i) {
+          this._buttonsDown[i] = _gamepadButtonPressed(gp.buttons[i]);
+        }
+        this.axis1 = new Vector22(gp.axes[0], gp.axes[1]);
+        this.axis2 = new Vector22(gp.axes[2] || 0, gp.axes[3] || 0);
+        this.mapping = gp.mapping;
+        this.isMapped = false;
+        if (this.mapping === "standard") {
+          this.leftStick = this.axis1;
+          this.rightStick = this.axis2;
+          this.leftStickPressed = this._buttonsDown[10];
+          this.rightStickPressed = this._buttonsDown[11];
+          this.rightButtons = new FourButtonsCluster(this._buttonsDown[0], this._buttonsDown[1], this._buttonsDown[2], this._buttonsDown[3]);
+          this.leftButtons = new FourButtonsCluster(this._buttonsDown[13], this._buttonsDown[15], this._buttonsDown[14], this._buttonsDown[12]);
+          this.centerButtons = new ThreeButtonsCluster(this._buttonsDown[8], this._buttonsDown[9], this._buttonsDown[16]);
+          this.frontButtons = new FrontButtons(this._buttonsDown[4], this._buttonsDown[5], this._buttonsDown[6], this._buttonsDown[7]);
+          this.isMapped = true;
+        }
+        Object.freeze(this);
+      }
+      button(index) {
+        return this._buttonsDown[index];
+      }
+      get buttonsCount() {
+        return this._buttonsDown.length;
+      }
+    };
+    var FourButtonsCluster = class {
+      constructor(bottom, right, left, top) {
+        this.bottom = Boolean(bottom);
+        this.right = Boolean(right);
+        this.left = Boolean(left);
+        this.top = Boolean(top);
+      }
+    };
+    var ThreeButtonsCluster = class {
+      constructor(left, right, center) {
+        this.left = Boolean(left);
+        this.right = Boolean(right);
+        this.center = Boolean(center);
+      }
+    };
+    var FrontButtons = class {
+      constructor(topLeft, topRight, bottomLeft, bottomRight) {
+        this.topLeft = Boolean(topLeft);
+        this.topRight = Boolean(topRight);
+        this.bottomLeft = Boolean(bottomLeft);
+        this.bottomRight = Boolean(bottomRight);
+      }
+    };
+    function _gamepadButtonPressed(b) {
+      if (typeof b === "object") {
+        return b.pressed;
+      }
+      return b === 1;
+    }
+    module.exports = Gamepad;
+  }
+});
+
+// ../Shaku/lib/input/input.js
 var require_input = __commonJS({
-  "../../../Shaku/lib/input/input.js"(exports, module) {
+  "../Shaku/lib/input/input.js"(exports, module) {
     "use strict";
     var IManager = require_manager();
-    var Vector2 = require_vector2();
+    var Vector22 = require_vector2();
     var { MouseButton, MouseButtons, KeyboardKey, KeyboardKeys } = require_key_codes();
+    var Gamepad = require_gamepad();
     var _logger = require_logger().getLogger("input");
+    function timestamp() {
+      return new Date().getTime();
+    }
+    var _touchKeyCode = "touch";
     var Input = class extends IManager {
       constructor() {
         super();
         this._callbacks = null;
         this._targetElement = window;
-        this.MouseButtons = MouseButtons;
-        this.KeyboardKeys = KeyboardKeys;
         this.preventDefaults = false;
         this.enableMouseDeltaWhileMouseWheelDown = true;
         this.disableContextMenu = true;
+        this.delegateTouchInputToMouse = true;
+        this.delegateGamepadInputToKeys = true;
         this.resetOnFocusLoss = true;
+        this.defaultDoublePressInterval = 250;
         this._resetAll();
+      }
+      get MouseButtons() {
+        return MouseButtons;
+      }
+      get KeyboardKeys() {
+        return KeyboardKeys;
+      }
+      get TouchKeyCode() {
+        return _touchKeyCode;
       }
       setup() {
         return new Promise((resolve, reject2) => {
@@ -6259,6 +6533,8 @@ var require_input = __commonJS({
             },
             "wheel": function(event2) {
               _this._onMouseWheel(event2);
+              if (this.preventDefaults)
+                event2.preventDefault();
             },
             "touchstart": function(event2) {
               _this._onTouchStart(event2);
@@ -6266,7 +6542,7 @@ var require_input = __commonJS({
                 event2.preventDefault();
             },
             "touchend": function(event2) {
-              _this._onMouseUp(event2);
+              _this._onTouchEnd(event2);
               if (this.preventDefaults)
                 event2.preventDefault();
             },
@@ -6289,10 +6565,85 @@ var require_input = __commonJS({
             window.addEventListener("mouseup", this._callbacks["mouseup"], false);
             window.addEventListener("touchend", this._callbacks["touchend"], false);
           }
+          this._customKeys = /* @__PURE__ */ new Set();
           resolve();
         });
       }
       startFrame() {
+        const prevGamepadData = this._gamepadsData || [];
+        const prevDefaultGamepadId = (this._defaultGamepad || { id: "null" }).id;
+        this._gamepadsData = navigator.getGamepads();
+        this._defaultGamepad = null;
+        let i = 0;
+        for (let gp of this._gamepadsData) {
+          let newId = (gp || { id: "null" }).id;
+          let prevId = (prevGamepadData[i] || { id: "null" }).id;
+          if (newId !== prevId) {
+            if (newId !== "null") {
+              _logger.info(`Gamepad ${i} connected: ${newId}.`);
+            } else if (newId === "null") {
+              _logger.info(`Gamepad ${i} disconnected: ${prevId}.`);
+            }
+          }
+          if (gp && !this._defaultGamepad) {
+            this._defaultGamepad = gp;
+            this._defaultGamepadIndex = i;
+          }
+          i++;
+        }
+        const newDefaultGamepadId = (this._defaultGamepad || { id: "null" }).id;
+        if (newDefaultGamepadId !== prevDefaultGamepadId) {
+          _logger.info(`Default gamepad changed from '${prevDefaultGamepadId}' to '${newDefaultGamepadId}'.`);
+        }
+        this._queriedGamepadStates = {};
+        if (this.delegateGamepadInputToKeys) {
+          for (let i2 = 0; i2 < 4; ++i2) {
+            const gp = this.gamepad(i2);
+            if (!gp || !gp.isMapped) {
+              this.setCustomState(`gamepad${i2}_top`, false);
+              this.setCustomState(`gamepad${i2}_bottom`, false);
+              this.setCustomState(`gamepad${i2}_left`, false);
+              this.setCustomState(`gamepad${i2}_right`, false);
+              this.setCustomState(`gamepad${i2}_y`, false);
+              this.setCustomState(`gamepad${i2}_a`, false);
+              this.setCustomState(`gamepad${i2}_x`, false);
+              this.setCustomState(`gamepad${i2}_b`, false);
+              this.setCustomState(`gamepad${i2}_frontTopLeft`, false);
+              this.setCustomState(`gamepad${i2}_frontTopRight`, false);
+              this.setCustomState(`gamepad${i2}_frontBottomLeft`, false);
+              this.setCustomState(`gamepad${i2}_frontBottomRight`, false);
+              this.setCustomState(`gamepad${i2}_leftStickUp`, false);
+              this.setCustomState(`gamepad${i2}_leftStickDown`, false);
+              this.setCustomState(`gamepad${i2}_leftStickLeft`, false);
+              this.setCustomState(`gamepad${i2}_leftStickRight`, false);
+              this.setCustomState(`gamepad${i2}_rightStickUp`, false);
+              this.setCustomState(`gamepad${i2}_rightStickDown`, false);
+              this.setCustomState(`gamepad${i2}_rightStickLeft`, false);
+              this.setCustomState(`gamepad${i2}_rightStickRight`, false);
+              continue;
+            }
+            this.setCustomState(`gamepad${i2}_top`, gp.leftButtons.top);
+            this.setCustomState(`gamepad${i2}_bottom`, gp.leftButtons.bottom);
+            this.setCustomState(`gamepad${i2}_left`, gp.leftButtons.left);
+            this.setCustomState(`gamepad${i2}_right`, gp.leftButtons.right);
+            this.setCustomState(`gamepad${i2}_y`, gp.rightButtons.top);
+            this.setCustomState(`gamepad${i2}_a`, gp.rightButtons.bottom);
+            this.setCustomState(`gamepad${i2}_x`, gp.rightButtons.left);
+            this.setCustomState(`gamepad${i2}_b`, gp.rightButtons.right);
+            this.setCustomState(`gamepad${i2}_frontTopLeft`, gp.frontButtons.topLeft);
+            this.setCustomState(`gamepad${i2}_frontTopRight`, gp.frontButtons.topRight);
+            this.setCustomState(`gamepad${i2}_frontBottomLeft`, gp.frontButtons.bottomLeft);
+            this.setCustomState(`gamepad${i2}_frontBottomRight`, gp.frontButtons.bottomRight);
+            this.setCustomState(`gamepad${i2}_leftStickUp`, gp.leftStick.y < -0.8);
+            this.setCustomState(`gamepad${i2}_leftStickDown`, gp.leftStick.y > 0.8);
+            this.setCustomState(`gamepad${i2}_leftStickLeft`, gp.leftStick.x < -0.8);
+            this.setCustomState(`gamepad${i2}_leftStickRight`, gp.leftStick.x > 0.8);
+            this.setCustomState(`gamepad${i2}_rightStickUp`, gp.rightStick.y < -0.8);
+            this.setCustomState(`gamepad${i2}_rightStickDown`, gp.rightStick.y > 0.8);
+            this.setCustomState(`gamepad${i2}_rightStickLeft`, gp.rightStick.x < -0.8);
+            this.setCustomState(`gamepad${i2}_rightStickRight`, gp.rightStick.x > 0.8);
+          }
+        }
       }
       destroy() {
         if (this._callbacks) {
@@ -6313,15 +6664,115 @@ var require_input = __commonJS({
         }
         this._targetElement = element;
       }
-      _resetAll() {
-        this._mousePos = new Vector2();
-        this._mousePrevPos = new Vector2();
+      _resetAll(keepMousePosition) {
+        if (!keepMousePosition) {
+          this._mousePos = new Vector22();
+          this._mousePrevPos = new Vector22();
+        }
         this._mouseState = {};
-        this._mousePrevState = {};
         this._mouseWheel = 0;
+        if (!keepMousePosition) {
+          this._touchPosition = new Vector22();
+        }
+        this._isTouching = false;
+        this._touchStarted = false;
+        this._touchEnded = false;
         this._keyboardState = {};
         this._keyboardPrevState = {};
-        this._touchStarted = false;
+        this._keyboardPressed = {};
+        this._keyboardReleased = {};
+        this._mousePressed = {};
+        this._mouseReleased = {};
+        this._customStates = {};
+        this._customPressed = {};
+        this._customReleased = {};
+        this._lastCustomReleasedTime = {};
+        this._lastCustomPressedTime = {};
+        this._prevLastCustomReleasedTime = {};
+        this._prevLastCustomPressedTime = {};
+        this._lastMouseReleasedTime = {};
+        this._lastKeyReleasedTime = {};
+        this._lastTouchReleasedTime = 0;
+        this._lastMousePressedTime = {};
+        this._lastKeyPressedTime = {};
+        this._lastTouchPressedTime = 0;
+        this._prevLastMouseReleasedTime = {};
+        this._prevLastKeyReleasedTime = {};
+        this._prevLastTouchReleasedTime = 0;
+        this._prevLastMousePressedTime = {};
+        this._prevLastKeyPressedTime = {};
+        this._prevLastTouchPressedTime = 0;
+        this._defaultGamepad = null;
+        this._gamepadsData = [];
+        this._queriedGamepadStates = {};
+      }
+      gamepad(index) {
+        if (index === null || index === void 0) {
+          index = this._defaultGamepadIndex;
+        }
+        let cached = this._queriedGamepadStates[index];
+        if (!cached) {
+          const gp = this._gamepadsData[index];
+          if (!gp) {
+            return null;
+          }
+          this._queriedGamepadStates[index] = cached = new Gamepad(gp);
+        }
+        return cached;
+      }
+      gamepadId(index) {
+        return this.gamepadIds()[index || 0] || null;
+      }
+      gamepadIds() {
+        let ret = [];
+        for (let gp of this._gamepadsData) {
+          if (gp) {
+            ret.push(gp.id);
+          }
+        }
+        return ret;
+      }
+      get touchPosition() {
+        return this._touchPosition.clone();
+      }
+      get touching() {
+        return this._isTouching;
+      }
+      get touchStarted() {
+        return this._touchStarted;
+      }
+      get touchEnded() {
+        return this._touchEnded;
+      }
+      setCustomState(code, value) {
+        if (value === null) {
+          this._customKeys.delete(code);
+          delete this._customPressed[code];
+          delete this._customReleased[code];
+          delete this._customStates[code];
+          return;
+        } else {
+          this._customKeys.add(code);
+        }
+        value = Boolean(value);
+        const prev = Boolean(this._customStates[code]);
+        this._customStates[code] = value;
+        if (this._customPressed[code] === void 0) {
+          this._customPressed[code] = false;
+        }
+        if (this._customReleased[code] === void 0) {
+          this._customReleased[code] = false;
+        }
+        if (!prev && value) {
+          this._customPressed[code] = true;
+          this._prevLastCustomPressedTime[code] = this._lastCustomPressedTime[code];
+          this._lastCustomPressedTime[code] = timestamp();
+        }
+        if (prev && !value) {
+          this._customReleased[code] = true;
+          this._prevLastCustomReleasedTime[code] = this._lastCustomReleasedTime[code];
+          this._lastCustomReleasedTime[code] = timestamp();
+        }
       }
       get mousePosition() {
         return this._mousePos.clone();
@@ -6331,9 +6782,9 @@ var require_input = __commonJS({
       }
       get mouseDelta() {
         if (!this._mousePrevPos) {
-          return Vector2.zero;
+          return Vector22.zero;
         }
-        return new Vector2(this._mousePos.x - this._mousePrevPos.x, this._mousePos.y - this._mousePrevPos.y);
+        return new Vector22(this._mousePos.x - this._mousePrevPos.x, this._mousePos.y - this._mousePrevPos.y);
       }
       get mouseMoving() {
         return this._mousePrevPos && !this._mousePrevPos.equals(this._mousePos);
@@ -6341,7 +6792,7 @@ var require_input = __commonJS({
       mousePressed(button = 0) {
         if (button === void 0)
           throw new Error("Invalid button code!");
-        return Boolean(this._mouseState[button] && !this._mousePrevState[button]);
+        return Boolean(this._mousePressed[button]);
       }
       mouseDown(button = 0) {
         if (button === void 0)
@@ -6356,7 +6807,7 @@ var require_input = __commonJS({
       mouseReleased(button = 0) {
         if (button === void 0)
           throw new Error("Invalid button code!");
-        return Boolean(!this._mouseState[button] && this._mousePrevState[button]);
+        return Boolean(this._mouseReleased[button]);
       }
       keyDown(key) {
         if (key === void 0)
@@ -6371,12 +6822,12 @@ var require_input = __commonJS({
       keyReleased(key) {
         if (key === void 0)
           throw new Error("Invalid key code!");
-        return Boolean(!this._keyboardState[key] && this._keyboardPrevState[key]);
+        return Boolean(this._keyboardReleased[key]);
       }
       keyPressed(key) {
         if (key === void 0)
           throw new Error("Invalid key code!");
-        return Boolean(this._keyboardState[key] && !this._keyboardPrevState[key]);
+        return Boolean(this._keyboardPressed[key]);
       }
       get shiftDown() {
         return Boolean(this.keyDown(this.KeyboardKeys.shift));
@@ -6388,12 +6839,7 @@ var require_input = __commonJS({
         return Boolean(this.keyDown(this.KeyboardKeys.alt));
       }
       get anyKeyPressed() {
-        for (var key in this._keyboardState) {
-          if (this._keyboardState[key] && !this._keyboardPrevState[key]) {
-            return true;
-          }
-        }
-        return false;
+        return Object.keys(this._keyboardPressed).length !== 0;
       }
       get anyKeyDown() {
         for (var key in this._keyboardState) {
@@ -6404,12 +6850,7 @@ var require_input = __commonJS({
         return false;
       }
       get anyMouseButtonPressed() {
-        for (var key in this._mouseState) {
-          if (this._mouseState[key] && !this._mousePrevState[key]) {
-            return true;
-          }
-        }
-        return false;
+        return Object.keys(this._mousePressed).length !== 0;
       }
       get anyMouseButtonDown() {
         for (var key in this._mouseState) {
@@ -6419,14 +6860,32 @@ var require_input = __commonJS({
         }
         return false;
       }
-      _getValueWithCode(code, mouseCheck, keyboardCheck) {
+      _getValueWithCode(code, mouseCheck, keyboardCheck, touchValue, customValues) {
         code = String(code);
+        const customVal = customValues[code];
+        if (customVal !== void 0) {
+          return customVal;
+        }
+        if (this._customKeys.has(code)) {
+          return false;
+        }
+        if (code === _touchKeyCode) {
+          return touchValue;
+        }
         if (code.indexOf("mouse_") === 0) {
-          var codename = code.split("_")[1];
-          return mouseCheck.call(this, this.MouseButtons[codename]);
+          const codename = code.split("_")[1];
+          const mouseKey = this.MouseButtons[codename];
+          if (mouseKey === void 0) {
+            throw new Error("Unknown mouse button: " + code);
+          }
+          return mouseCheck.call(this, mouseKey);
         }
         if (!isNaN(parseInt(code)) && code.length === 1) {
           code = "n" + code;
+        }
+        const keyboardKey = this.KeyboardKeys[code];
+        if (keyboardKey === void 0) {
+          throw new Error("Unknown keyboard key: " + code);
         }
         return keyboardCheck.call(this, this.KeyboardKeys[code]);
       }
@@ -6435,7 +6894,7 @@ var require_input = __commonJS({
           code = [code];
         }
         for (let c of code) {
-          if (Boolean(this._getValueWithCode(c, this.mouseDown, this.keyDown))) {
+          if (Boolean(this._getValueWithCode(c, this.mouseDown, this.keyDown, this.touching, this._customStates))) {
             return true;
           }
         }
@@ -6446,7 +6905,7 @@ var require_input = __commonJS({
           code = [code];
         }
         for (let c of code) {
-          if (Boolean(this._getValueWithCode(c, this.mouseReleased, this.keyReleased))) {
+          if (Boolean(this._getValueWithCode(c, this.mouseReleased, this.keyReleased, this.touchEnded, this._customReleased))) {
             return true;
           }
         }
@@ -6457,8 +6916,52 @@ var require_input = __commonJS({
           code = [code];
         }
         for (let c of code) {
-          if (Boolean(this._getValueWithCode(c, this.mousePressed, this.keyPressed))) {
+          if (Boolean(this._getValueWithCode(c, this.mousePressed, this.keyPressed, this.touchStarted, this._customPressed))) {
             return true;
+          }
+        }
+        return false;
+      }
+      lastReleaseTime(code) {
+        if (code instanceof Array) {
+          throw new Error("Array not supported in 'lastReleaseTime'!");
+        }
+        return this._getValueWithCode(code, (c) => this._lastMouseReleasedTime[c], (c) => this._lastKeyReleasedTime[c], this._lastTouchReleasedTime, this._prevLastCustomReleasedTime) || 0;
+      }
+      lastPressTime(code) {
+        if (code instanceof Array) {
+          throw new Error("Array not supported in 'lastPressTime'!");
+        }
+        return this._getValueWithCode(code, (c) => this._lastMousePressedTime[c], (c) => this._lastKeyPressedTime[c], this._lastTouchPressedTime, this._prevLastCustomPressedTime) || 0;
+      }
+      doublePressed(code, maxInterval) {
+        maxInterval = maxInterval || this.defaultDoublePressInterval;
+        let currTime = timestamp();
+        if (!(code instanceof Array)) {
+          code = [code];
+        }
+        for (let c of code) {
+          if (this.pressed(c)) {
+            let currKeyTime = this._getValueWithCode(c, (c2) => this._prevLastMousePressedTime[c2], (c2) => this._prevLastKeyPressedTime[c2], this._prevLastTouchPressedTime, this._prevLastCustomPressedTime);
+            if (currTime - currKeyTime <= maxInterval) {
+              return true;
+            }
+          }
+        }
+        return false;
+      }
+      doubleReleased(code, maxInterval) {
+        maxInterval = maxInterval || this.defaultDoublePressInterval;
+        let currTime = timestamp();
+        if (!(code instanceof Array)) {
+          code = [code];
+        }
+        for (let c of code) {
+          if (this.released(c)) {
+            let currKeyTime = this._getValueWithCode(c, (c2) => this._prevLastMousePressedTime[c2], (c2) => this._prevLastKeyPressedTime[c2], this._prevLastTouchPressedTime, this._prevLastCustomPressedTime);
+            if (currTime - currKeyTime <= maxInterval) {
+              return true;
+            }
           }
         }
         return false;
@@ -6471,18 +6974,14 @@ var require_input = __commonJS({
       }
       endFrame() {
         this._mousePrevPos = this._mousePos.clone();
-        this._keyboardPrevState = {};
-        for (var key in this._keyboardState) {
-          this._keyboardPrevState[key] = this._keyboardState[key];
-        }
-        this._mousePrevState = {};
-        for (var key in this._mouseState) {
-          this._mousePrevState[key] = this._mouseState[key];
-        }
-        if (this._touchStarted) {
-          this._mouseState[this.MouseButtons.left] = true;
-          this._touchStarted = false;
-        }
+        this._keyboardPressed = {};
+        this._keyboardReleased = {};
+        this._mousePressed = {};
+        this._mouseReleased = {};
+        this._customPressed = {};
+        this._customReleased = {};
+        this._touchStarted = false;
+        this._touchEnded = false;
         this._mouseWheel = 0;
       }
       _getKeyboardKeyCode(event) {
@@ -6491,7 +6990,7 @@ var require_input = __commonJS({
       }
       _onBlur(event) {
         if (this.resetOnFocusLoss) {
-          this._resetAll();
+          this._resetAll(true);
         }
       }
       _onMouseWheel(event) {
@@ -6499,45 +6998,107 @@ var require_input = __commonJS({
       }
       _onKeyDown(event) {
         var keycode = this._getKeyboardKeyCode(event);
+        if (!this._keyboardState[keycode]) {
+          this._keyboardPressed[keycode] = true;
+          this._prevLastKeyPressedTime[keycode] = this._lastKeyPressedTime[keycode];
+          this._lastKeyPressedTime[keycode] = timestamp();
+        }
         this._keyboardState[keycode] = true;
       }
       _onKeyUp(event) {
-        var keycode = this._getKeyboardKeyCode(event);
-        this._keyboardState[keycode || 0] = false;
+        var keycode = this._getKeyboardKeyCode(event) || 0;
+        this._keyboardState[keycode] = false;
+        this._keyboardReleased[keycode] = true;
+        this._prevLastKeyReleasedTime[keycode] = this._lastKeyReleasedTime[keycode];
+        this._lastKeyReleasedTime[keycode] = timestamp();
       }
-      _onTouchStart(event) {
-        var touches = event.changedTouches;
+      _getTouchEventPosition(event) {
+        var touches = event.changedTouches || event.touches;
         if (touches && touches.length) {
           var touch = touches[0];
           var x = touch.pageX || touch.offsetX || touch.clientX;
           var y = touch.pageY || touch.offsetY || touch.clientY;
-          if (x !== void 0 && y !== void 0) {
-            this._mousePos.x = x;
-            this._mousePos.y = y;
+          return new Vector22(x, y);
+        }
+        return null;
+      }
+      _onTouchStart(event) {
+        let position = this._getTouchEventPosition(event);
+        if (position) {
+          if (this.delegateTouchInputToMouse) {
+            this._mousePos.x = position.x;
+            this._mousePos.y = position.y;
             this._normalizeMousePos();
           }
         }
+        this._isTouching = true;
         this._touchStarted = true;
+        this._prevLastTouchPressedTime = this._lastTouchPressedTime;
+        this._lastTouchPressedTime = timestamp();
+        if (this.delegateTouchInputToMouse) {
+          this._mouseButtonDown(this.MouseButtons.left);
+        }
+      }
+      _onTouchEnd(event) {
+        let position = this._getTouchEventPosition(event);
+        if (position) {
+          this._touchPosition.copy(position);
+          if (this.delegateTouchInputToMouse) {
+            this._mousePos.x = position.x;
+            this._mousePos.y = position.y;
+            this._normalizeMousePos();
+          }
+        }
+        this._isTouching = false;
+        this._touchEnded = true;
+        this._prevLastTouchReleasedTime = this._lastTouchReleasedTime;
+        this._lastTouchReleasedTime = timestamp();
+        if (this.delegateTouchInputToMouse) {
+          this._mouseButtonUp(this.MouseButtons.left);
+        }
+      }
+      _onTouchMove(event) {
+        let position = this._getTouchEventPosition(event);
+        if (position) {
+          this._touchPosition.copy(position);
+          if (this.delegateTouchInputToMouse) {
+            this._mousePos.x = position.x;
+            this._mousePos.y = position.y;
+            this._normalizeMousePos();
+          }
+        }
+        this._isTouching = true;
       }
       _onMouseDown(event) {
         event = this._getEvent(event);
         if (this.enableMouseDeltaWhileMouseWheelDown && event.button === this.MouseButtons.middle) {
           event.preventDefault();
         }
-        this._mouseState[event.button || 0] = true;
+        this._mouseButtonDown(event.button);
       }
       _onMouseUp(event) {
         event = this._getEvent(event);
-        this._mouseState[event.button || 0] = false;
+        this._mouseButtonUp(event.button);
       }
-      _onTouchMove(event) {
-        event = this._getEvent(event);
-        this._mousePos.x = event.touches[0].pageX;
-        this._mousePos.y = event.touches[0].pageY;
-        this._normalizeMousePos();
+      _mouseButtonDown(button) {
+        this._mouseState[button] = true;
+        this._mousePressed[button] = true;
+        this._prevLastMousePressedTime[button] = this._lastMousePressedTime[button];
+        this._lastMousePressedTime[button] = timestamp();
+      }
+      _mouseButtonUp(button) {
+        this._mouseState[button] = false;
+        this._mouseReleased[button] = true;
+        this._prevLastMouseReleasedTime[button] = this._lastMouseReleasedTime[button];
+        this._lastMouseReleasedTime[button] = timestamp();
       }
       _onMouseMove(event) {
         event = this._getEvent(event);
+        if (document.pointerLockElement !== null) {
+          this._mousePos.x += event.movementX;
+          this._mousePos.y += event.movementY;
+          return;
+        }
         var pageX = event.clientX;
         if (pageX === void 0) {
           pageX = event.x;
@@ -6572,6 +7133,7 @@ var require_input = __commonJS({
           this._mousePos.x -= rect.left;
           this._mousePos.y -= rect.top;
         }
+        this._mousePos.roundSelf();
       }
       _getEvent(event) {
         return event || window.event;
@@ -6581,17 +7143,17 @@ var require_input = __commonJS({
   }
 });
 
-// ../../../Shaku/lib/input/index.js
+// ../Shaku/lib/input/index.js
 var require_input2 = __commonJS({
-  "../../../Shaku/lib/input/index.js"(exports, module) {
+  "../Shaku/lib/input/index.js"(exports, module) {
     "use strict";
     module.exports = require_input();
   }
 });
 
-// ../../../Shaku/lib/assets/binary_asset.js
+// ../Shaku/lib/assets/binary_asset.js
 var require_binary_asset = __commonJS({
-  "../../../Shaku/lib/assets/binary_asset.js"(exports, module) {
+  "../Shaku/lib/assets/binary_asset.js"(exports, module) {
     "use strict";
     var Asset = require_asset();
     var BinaryAsset = class extends Asset {
@@ -6651,9 +7213,9 @@ var require_binary_asset = __commonJS({
   }
 });
 
-// ../../../Shaku/lib/assets/assets.js
+// ../Shaku/lib/assets/assets.js
 var require_assets = __commonJS({
-  "../../../Shaku/lib/assets/assets.js"(exports, module) {
+  "../Shaku/lib/assets/assets.js"(exports, module) {
     "use strict";
     var SoundAsset = require_sound_asset();
     var IManager = require_manager();
@@ -6857,21 +7419,21 @@ var require_assets = __commonJS({
   }
 });
 
-// ../../../Shaku/lib/assets/index.js
+// ../Shaku/lib/assets/index.js
 var require_assets2 = __commonJS({
-  "../../../Shaku/lib/assets/index.js"(exports, module) {
+  "../Shaku/lib/assets/index.js"(exports, module) {
     "use strict";
     module.exports = require_assets();
   }
 });
 
-// ../../../Shaku/lib/collision/shapes/shape.js
+// ../Shaku/lib/collision/shapes/shape.js
 var require_shape = __commonJS({
-  "../../../Shaku/lib/collision/shapes/shape.js"(exports, module) {
+  "../Shaku/lib/collision/shapes/shape.js"(exports, module) {
     "use strict";
     var Color2 = require_color();
     var Rectangle = require_rectangle();
-    var Vector2 = require_vector2();
+    var Vector22 = require_vector2();
     var CollisionWorld = require_collision_world();
     var CollisionShape = class {
       constructor() {
@@ -6945,11 +7507,11 @@ var require_shape = __commonJS({
   }
 });
 
-// ../../../Shaku/lib/collision/result.js
+// ../Shaku/lib/collision/result.js
 var require_result = __commonJS({
-  "../../../Shaku/lib/collision/result.js"(exports, module) {
+  "../Shaku/lib/collision/result.js"(exports, module) {
     "use strict";
-    var Vector2 = require_vector2();
+    var Vector22 = require_vector2();
     var CollisionShape = require_shape();
     var CollisionTestResult = class {
       constructor(position, first, second) {
@@ -6962,11 +7524,11 @@ var require_result = __commonJS({
   }
 });
 
-// ../../../Shaku/lib/collision/resolver.js
+// ../Shaku/lib/collision/resolver.js
 var require_resolver = __commonJS({
-  "../../../Shaku/lib/collision/resolver.js"(exports, module) {
+  "../Shaku/lib/collision/resolver.js"(exports, module) {
     "use strict";
-    var Vector2 = require_vector2();
+    var Vector22 = require_vector2();
     var CollisionTestResult = require_result();
     var CollisionShape = require_shape();
     var _logger = require_logger().getLogger("collision");
@@ -7002,7 +7564,7 @@ var require_resolver = __commonJS({
         }
         let result2 = handler(first, second);
         if (result2) {
-          let position = result2 instanceof Vector2 ? result2 : null;
+          let position = result2 instanceof Vector22 ? result2 : null;
           return new CollisionTestResult(position, first, second);
         }
         return null;
@@ -7022,13 +7584,13 @@ var require_resolver = __commonJS({
   }
 });
 
-// ../../../Shaku/lib/collision/shapes/point.js
+// ../Shaku/lib/collision/shapes/point.js
 var require_point = __commonJS({
-  "../../../Shaku/lib/collision/shapes/point.js"(exports, module) {
+  "../Shaku/lib/collision/shapes/point.js"(exports, module) {
     "use strict";
     var CollisionShape = require_shape();
     var gfx = require_gfx2();
-    var Vector2 = require_vector2();
+    var Vector22 = require_vector2();
     var Rectangle = require_rectangle();
     var Circle = require_circle();
     var PointShape = class extends CollisionShape {
@@ -7068,9 +7630,9 @@ var require_point = __commonJS({
   }
 });
 
-// ../../../Shaku/lib/collision/shapes/circle.js
+// ../Shaku/lib/collision/shapes/circle.js
 var require_circle2 = __commonJS({
-  "../../../Shaku/lib/collision/shapes/circle.js"(exports, module) {
+  "../Shaku/lib/collision/shapes/circle.js"(exports, module) {
     "use strict";
     var CollisionShape = require_shape();
     var gfx = require_gfx2();
@@ -7113,12 +7675,12 @@ var require_circle2 = __commonJS({
   }
 });
 
-// ../../../Shaku/lib/collision/collision_world.js
+// ../Shaku/lib/collision/collision_world.js
 var require_collision_world = __commonJS({
-  "../../../Shaku/lib/collision/collision_world.js"(exports, module) {
+  "../Shaku/lib/collision/collision_world.js"(exports, module) {
     "use strict";
     var Color2 = require_color();
-    var Vector2 = require_vector2();
+    var Vector22 = require_vector2();
     var Circle = require_circle();
     var CollisionTestResult = require_result();
     var CollisionShape = require_shape();
@@ -7132,9 +7694,9 @@ var require_collision_world = __commonJS({
       constructor(resolver, gridCellSize) {
         this.resolver = resolver;
         if (typeof gridCellSize === "undefined") {
-          gridCellSize = new Vector2(512, 512);
+          gridCellSize = new Vector22(512, 512);
         } else if (typeof gridCellSize === "number") {
-          gridCellSize = new Vector2(gridCellSize, gridCellSize);
+          gridCellSize = new Vector22(gridCellSize, gridCellSize);
         } else {
           gridCellSize = gridCellSize.clone();
         }
@@ -7142,9 +7704,27 @@ var require_collision_world = __commonJS({
         this._grid = {};
         this._shapesToUpdate = /* @__PURE__ */ new Set();
         this._cellsToDelete = /* @__PURE__ */ new Set();
+        this.resetStats();
+      }
+      resetStats() {
+        this._stats = {
+          updatedShapes: 0,
+          addedShapes: 0,
+          deletedGridCells: 0,
+          createdGridCell: 0,
+          broadPhaseShapesChecksPrePredicate: 0,
+          broadPhaseShapesChecksPostPredicate: 0,
+          broadPhaseCalls: 0,
+          collisionChecks: 0,
+          collisionMatches: 0
+        };
+      }
+      get stats() {
+        return this._stats;
       }
       _performUpdates() {
         if (this._cellsToDelete.size > 0) {
+          this._stats.deletedGridCells += this._cellsToDelete.size;
           for (let key of this._cellsToDelete) {
             if (this._grid[key] && this._grid[key].size === 0) {
               delete this._grid[key];
@@ -7159,10 +7739,20 @@ var require_collision_world = __commonJS({
           this._shapesToUpdate.clear();
         }
       }
+      _getCell(i, j) {
+        let key = i + "," + j;
+        let ret = this._grid[key];
+        if (!ret) {
+          this._stats.createdGridCells++;
+          this._grid[key] = ret = /* @__PURE__ */ new Set();
+        }
+        return ret;
+      }
       _updateShape(shape) {
         if (shape._world !== this) {
           return;
         }
+        this._stats.updatedShapes++;
         let bb = shape._getBoundingBox();
         let minx = Math.floor(bb.left / this._gridCellSize.x);
         let miny = Math.floor(bb.top / this._gridCellSize.y);
@@ -7196,22 +7786,15 @@ var require_collision_world = __commonJS({
               if (i >= ominx && i < omaxx && j >= ominy && j < omaxy) {
                 continue;
               }
-              let key = i + "," + j;
-              let currSet = this._grid[key];
-              if (!currSet) {
-                this._grid[key] = currSet = /* @__PURE__ */ new Set();
-              }
+              let currSet = this._getCell(i, j);
               currSet.add(shape);
             }
           }
         } else {
+          this._stats.addedShapes++;
           for (let i = minx; i < maxx; ++i) {
             for (let j = miny; j < maxy; ++j) {
-              let key = i + "," + j;
-              let currSet = this._grid[key];
-              if (!currSet) {
-                this._grid[key] = currSet = /* @__PURE__ */ new Set();
-              }
+              let currSet = this._getCell(i, j);
               currSet.add(shape);
             }
           }
@@ -7271,6 +7854,7 @@ var require_collision_world = __commonJS({
         let miny = Math.floor(bb.top / this._gridCellSize.y);
         let maxx = Math.ceil(bb.right / this._gridCellSize.x);
         let maxy = Math.ceil(bb.bottom / this._gridCellSize.y);
+        this._stats.broadPhaseCalls++;
         let checked = /* @__PURE__ */ new Set();
         for (let i = minx; i < maxx; ++i) {
           for (let j = miny; j < maxy; ++j) {
@@ -7288,9 +7872,11 @@ var require_collision_world = __commonJS({
                 if (other === shape) {
                   continue;
                 }
+                this._stats.broadPhaseShapesChecksPrePredicate++;
                 if (predicate && !predicate(other)) {
                   continue;
                 }
+                this._stats.broadPhaseShapesChecksPostPredicate++;
                 let proceedLoop = Boolean(handler(other));
                 if (!proceedLoop) {
                   return;
@@ -7312,15 +7898,21 @@ var require_collision_world = __commonJS({
           sortByDistanceShapes(sourceShape, options);
           var handlers = this.resolver.getHandlers(sourceShape);
           for (let other of options) {
+            this._stats.collisionChecks++;
             result2 = this.resolver.testWithHandler(sourceShape, other, handlers[other.shapeId]);
             if (result2) {
+              this._stats.collisionMatches++;
               break;
             }
           }
         } else {
           var handlers = this.resolver.getHandlers(sourceShape);
           this._iterateBroadPhase(sourceShape, (other) => {
+            this._stats.collisionChecks++;
             result2 = this.resolver.testWithHandler(sourceShape, other, handlers[other.shapeId]);
+            if (result2) {
+              this._stats.collisionMatches++;
+            }
             return !result2;
           }, mask, predicate);
         }
@@ -7331,8 +7923,10 @@ var require_collision_world = __commonJS({
         var ret = [];
         var handlers = this.resolver.getHandlers(sourceShape);
         this._iterateBroadPhase(sourceShape, (other) => {
+          this._stats.collisionChecks++;
           let result2 = this.resolver.testWithHandler(sourceShape, other, handlers[other.shapeId]);
           if (result2) {
+            this._stats.collisionMatches++;
             ret.push(result2);
             if (intermediateProcessor && intermediateProcessor(result2) === false) {
               return false;
@@ -7366,7 +7960,7 @@ var require_collision_world = __commonJS({
         gridColor.a *= opacity;
         gridHighlitColor.a *= opacity;
         let renderedShapes = /* @__PURE__ */ new Set();
-        let bb = camera ? camera.getRegion() : gfx.getRenderingRegion(false);
+        let bb = camera ? camera.getRegion() : gfx.__getRenderingRegionInternal(false);
         let minx = Math.floor(bb.left / this._gridCellSize.x);
         let miny = Math.floor(bb.top / this._gridCellSize.y);
         let maxx = minx + Math.ceil(bb.width / this._gridCellSize.x);
@@ -7402,9 +7996,9 @@ var require_collision_world = __commonJS({
   }
 });
 
-// ../../../Shaku/lib/collision/shapes/rectangle.js
+// ../Shaku/lib/collision/shapes/rectangle.js
 var require_rectangle2 = __commonJS({
-  "../../../Shaku/lib/collision/shapes/rectangle.js"(exports, module) {
+  "../Shaku/lib/collision/shapes/rectangle.js"(exports, module) {
     "use strict";
     var Rectangle = require_rectangle();
     var CollisionShape = require_shape();
@@ -7446,9 +8040,9 @@ var require_rectangle2 = __commonJS({
   }
 });
 
-// ../../../Shaku/lib/collision/resolvers_imp.js
+// ../Shaku/lib/collision/resolvers_imp.js
 var require_resolvers_imp = __commonJS({
-  "../../../Shaku/lib/collision/resolvers_imp.js"(exports, module) {
+  "../Shaku/lib/collision/resolvers_imp.js"(exports, module) {
     "use strict";
     var CollisionsImp = {
       pointPoint: function(v1, v2) {
@@ -7546,9 +8140,9 @@ var require_resolvers_imp = __commonJS({
   }
 });
 
-// ../../../Shaku/lib/collision/shapes/lines.js
+// ../Shaku/lib/collision/shapes/lines.js
 var require_lines = __commonJS({
-  "../../../Shaku/lib/collision/shapes/lines.js"(exports, module) {
+  "../Shaku/lib/collision/shapes/lines.js"(exports, module) {
     "use strict";
     var CollisionShape = require_shape();
     var gfx = require_gfx2();
@@ -7607,13 +8201,13 @@ var require_lines = __commonJS({
   }
 });
 
-// ../../../Shaku/lib/collision/shapes/tilemap.js
+// ../Shaku/lib/collision/shapes/tilemap.js
 var require_tilemap = __commonJS({
-  "../../../Shaku/lib/collision/shapes/tilemap.js"(exports, module) {
+  "../Shaku/lib/collision/shapes/tilemap.js"(exports, module) {
     "use strict";
     var CollisionShape = require_shape();
     var Rectangle = require_rectangle();
-    var Vector2 = require_vector2();
+    var Vector22 = require_vector2();
     var gfx = require_gfx2();
     var RectangleShape = require_rectangle2();
     var TilemapShape = class extends CollisionShape {
@@ -7659,15 +8253,15 @@ var require_tilemap = __commonJS({
         }
       }
       getTileAt(position) {
-        let index = new Vector2(Math.floor(position.x / this._tileSize.x), Math.floor(position.y / this._tileSize.y));
+        let index = new Vector22(Math.floor(position.x / this._tileSize.x), Math.floor(position.y / this._tileSize.y));
         let key = index.x + "," + index.y;
         return this._tiles[key] || null;
       }
       iterateTilesAtRegion(region, callback) {
         let topLeft = region.getTopLeft();
         let bottomRight = region.getBottomRight();
-        let startIndex = new Vector2(Math.floor(topLeft.x / this._tileSize.x), Math.floor(topLeft.y / this._tileSize.y));
-        let endIndex = new Vector2(Math.floor(bottomRight.x / this._tileSize.x), Math.floor(bottomRight.y / this._tileSize.y));
+        let startIndex = new Vector22(Math.floor(topLeft.x / this._tileSize.x), Math.floor(topLeft.y / this._tileSize.y));
+        let endIndex = new Vector22(Math.floor(bottomRight.x / this._tileSize.x), Math.floor(bottomRight.y / this._tileSize.y));
         for (let i = startIndex.x; i <= endIndex.x; ++i) {
           for (let j = startIndex.y; j <= endIndex.y; ++j) {
             let key = i + "," + j;
@@ -7714,12 +8308,12 @@ var require_tilemap = __commonJS({
   }
 });
 
-// ../../../Shaku/lib/collision/collision.js
+// ../Shaku/lib/collision/collision.js
 var require_collision = __commonJS({
-  "../../../Shaku/lib/collision/collision.js"(exports, module) {
+  "../Shaku/lib/collision/collision.js"(exports, module) {
     "use strict";
     var IManager = require_manager();
-    var Vector2 = require_vector2();
+    var Vector22 = require_vector2();
     var CollisionWorld = require_collision_world();
     var CollisionResolver = require_resolver();
     var CircleShape = require_circle2();
@@ -7784,17 +8378,17 @@ var require_collision = __commonJS({
   }
 });
 
-// ../../../Shaku/lib/collision/index.js
+// ../Shaku/lib/collision/index.js
 var require_collision2 = __commonJS({
-  "../../../Shaku/lib/collision/index.js"(exports, module) {
+  "../Shaku/lib/collision/index.js"(exports, module) {
     "use strict";
     module.exports = require_collision();
   }
 });
 
-// ../../../Shaku/lib/shaku.js
+// ../Shaku/lib/shaku.js
 var require_shaku = __commonJS({
-  "../../../Shaku/lib/shaku.js"(exports, module) {
+  "../Shaku/lib/shaku.js"(exports, module) {
     "use strict";
     var isBrowser = typeof window !== "undefined";
     var IManager = require_manager();
@@ -7815,7 +8409,7 @@ var require_shaku = __commonJS({
     var _startFrameTime = 0;
     var _frameTimeMeasuresCount = 0;
     var _totalFrameTimes = 0;
-    var version = "1.6.1";
+    var version = "1.7.3";
     var Shaku2 = class {
       constructor() {
         this.utils = utils;
@@ -7858,6 +8452,9 @@ var require_shaku = __commonJS({
       }
       startFrame() {
         if (this.isPaused) {
+          if (this.input) {
+            this.input.startFrame();
+          }
           this._wasPaused = true;
           return;
         }
@@ -7886,6 +8483,9 @@ var require_shaku = __commonJS({
           this._managersStarted = false;
         }
         if (this.isPaused) {
+          if (this.input) {
+            this.input.endFrame();
+          }
           return;
         }
         _prevUpdateTime = this._gameTime;
@@ -10425,19 +11025,16 @@ function updateDisplays(controllerArray) {
 var GUI$1 = GUI;
 
 // src/main.ts
+var import_vector2 = __toESM(require_vector2());
 var CONFIG = {
-  value_1: 100,
-  value_2: 0.6
+  move_speed: 100
 };
 var gui = new GUI$1({});
 gui.remember(CONFIG);
-gui.add(CONFIG, "value_1", 0, 200);
-gui.add(CONFIG, "value_2", -1, 1);
+gui.add(CONFIG, "move_speed", 10, 500);
 await import_shaku.default.init();
 document.body.appendChild(import_shaku.default.gfx.canvas);
 import_shaku.default.gfx.setResolution(800, 600, true);
-console.log(CONFIG.value_1);
-console.log(CONFIG.value_2);
 import_shaku.default.startFrame();
 import_shaku.default.gfx.clear(import_shaku.default.utils.Color.cornflowerblue);
 import_shaku.default.endFrame();
@@ -10446,7 +11043,7 @@ var soundInstance = import_shaku.default.sfx.createSound(soundAsset);
 var texture = await import_shaku.default.assets.loadTexture("imgs/example_image.png", null);
 var sprite = new import_shaku.default.gfx.Sprite(texture);
 sprite.position.set(import_shaku.default.gfx.canvas.width / 2, import_shaku.default.gfx.canvas.height / 2);
-var texture2 = await loadAsciiTexture(`
+var player_texture = await loadAsciiTexture(`
         .000.
         .111.
         22222
@@ -10458,17 +11055,33 @@ var texture2 = await loadAsciiTexture(`
   import_shaku.default.utils.Color.white,
   import_shaku.default.utils.Color.blue
 ]);
-var sprite2 = new import_shaku.default.gfx.Sprite(texture2);
-sprite2.position.set(import_shaku.default.gfx.canvas.width / 2, import_shaku.default.gfx.canvas.height / 2);
-sprite2.size.mulSelf(30);
+var player_sprite = new import_shaku.default.gfx.Sprite(player_texture);
+player_sprite.position.set(import_shaku.default.gfx.canvas.width / 2, import_shaku.default.gfx.canvas.height / 2);
+player_sprite.size.mulSelf(30);
+var player_position = new import_vector2.default(import_shaku.default.gfx.canvas.width / 2, import_shaku.default.gfx.canvas.height / 2);
 function step() {
   import_shaku.default.startFrame();
   import_shaku.default.gfx.clear(import_shaku.default.utils.Color.cornflowerblue);
+  let move_dir = new import_vector2.default(0, 0);
+  if (import_shaku.default.input.down(["w", "up"])) {
+    move_dir.y -= 1;
+  }
+  if (import_shaku.default.input.down(["s", "down"])) {
+    move_dir.y += 1;
+  }
+  if (import_shaku.default.input.down(["d", "right"])) {
+    move_dir.x += 1;
+  }
+  if (import_shaku.default.input.down(["a", "left"])) {
+    move_dir.x -= 1;
+  }
+  player_position.addSelf(move_dir.mul(CONFIG.move_speed * import_shaku.default.gameTime.delta));
   import_shaku.default.gfx.drawSprite(sprite);
-  if (import_shaku.default.input.pressed("a")) {
+  player_sprite.position.copy(player_position);
+  import_shaku.default.gfx.drawSprite(player_sprite);
+  if (import_shaku.default.input.pressed("space")) {
     soundInstance.play();
   }
-  import_shaku.default.gfx.drawSprite(sprite2);
   import_shaku.default.endFrame();
   import_shaku.default.requestAnimationFrame(step);
 }
@@ -10574,6 +11187,18 @@ async function loadAsciiTexture(ascii, colors) {
  * 
  */
 /**
+ * Define a gamepad object.
+ * 
+ * |-- copyright and license --|
+ * @package    Shaku
+ * @file       shaku\lib\input\gamepad.js
+ * @author     Ronen Ness (ronenness@gmail.com | http://ronenness.com)
+ * @copyright  (c) 2021 Ronen Ness
+ * @license    MIT
+ * |-- end copyright and license --|
+ * 
+ */
+/**
  * Define a mesh object.
  * 
  * |-- copyright and license --|
@@ -10626,7 +11251,7 @@ async function loadAsciiTexture(ascii, colors) {
  * 
  * |-- copyright and license --|
  * @package    Shaku
- * @file       shaku\lib\gfx\text_alignment.js
+ * @file       shaku\lib\gfx\text_alignments.js
  * @author     Ronen Ness (ronenness@gmail.com | http://ronenness.com)
  * @copyright  (c) 2021 Ronen Ness
  * @license    MIT
