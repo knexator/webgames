@@ -1,0 +1,50 @@
+114477AADD
+....S.....
+
+# path one
+225588BBEE
+...S.S....
+
+336699CCFF
+..S...S...
+
+4477AADDGG
+.S.....S..
+
+# standing on the left side, deactivate timezones
+4444444444
+.S.....S..
+
+5555555555
+..Ss..S...
+
+6666666666
+..sS......
+
+7777777777
+....S.....
+
+
+# path 2: deactivate timezones
+
+7777777777
+....S.....
+
+8888888888
+...S.S....
+
+9999999999
+..S...S...
+
+AAAAAAAAAA
+.S.....S..
+
+BBBBBBBBBB
+S.......S.
+
+# standing on the right side, reactivate timezones
+ZZ225588BB
+S.......S.
+
+00336699CC
+.S....sS..
