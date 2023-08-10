@@ -9,6 +9,10 @@ rush_hour_antigrid
 sweet_buns
 thinky_shmup
 harvest
+aaa_template_vanilla
+
+# weird github stuff so better to upload separately
+sphere_music
 
 # abandoned
 keyframes
@@ -21,6 +25,11 @@ online_game
 solitaire
 aaa_shaku_zig
 parcel_test
+quantum_childminding
 
-# Shaku is another git repository, don't include it
+# private stuff
+museum
+
+# other git repositories, don't include them
 Shaku
+open-games
