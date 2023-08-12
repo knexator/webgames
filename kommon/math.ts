@@ -221,6 +221,10 @@ export class Vec2 {
         return a.x === b.x && a.y === b.y;
     }
 
+    static magSq(v: Vec2): number {
+        return v.x * v.x + v.y * v.y;
+    }
+
     static map1(v: Vec2, fn: (x: number) => number, out?: Vec2): Vec2 {
         out = out || new Vec2();
         out.x = fn(v.x);
