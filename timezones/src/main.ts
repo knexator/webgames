@@ -159,7 +159,7 @@ function every_frame(cur_timestamp: number) {
         }
       },
       {
-        duration: animating_connection.cost,
+        duration: .5 * animating_connection.cost,
         onUpdate: (t: number) => {
           player_time_anim_offset = t * animating_connection!.cost;
 
@@ -231,22 +231,61 @@ function* tutorialSequence(): Generator<void, void, number> {
     dt = yield;
   }
   // write text
-  let text = "AGENT T: Hey there kiddo, get to NYC before 5:30";
+  const text_intro = "AGENT T: Hey there kiddo, get to NYC before 5:40";
   let n_show_chars = 0;
-  while (n_show_chars < text.length) {
+  while (n_show_chars < text_intro.length) {
     hideClocks();
     handlerFace();
-    n_show_chars = towards(n_show_chars, text.length, dt / .02);
-    handlerText(text.slice(0, Math.floor(n_show_chars)));
+    n_show_chars = towards(n_show_chars, text_intro.length, dt / .02);
+    handlerText(text_intro.slice(0, Math.floor(n_show_chars)));
     // TODO (big): if yield also gave user input state, we could "press to skip"
     dt = yield;
   }
+  let success = false;
   while (true) {
-    hideClocks();
+    if (player_time > 9) {
+      // player is being silly
+      success = false;
+      break;
+    }
+    if (player_city === "nyc") {
+      // twist: player got on time, but not on local time!
+      success = true;
+      break;
+    } else {
+      hideClocks();
+      handlerFace();
+      handlerText(text_intro);
+      dt = yield;
+    }
+  }
+
+  if (!success) {
+    const text_dissapointed = "AGENT T: come on, this is no game. Undo and try again.\nWe really need you in NYC before 5:40";
+    n_show_chars = 0;
+    while (true) {
+      hideClocks();
+      handlerFace();
+      n_show_chars = towards(n_show_chars, text_dissapointed.length, dt / .02);
+      handlerText(text_dissapointed.slice(0, Math.floor(n_show_chars)));
+      if (player_city === "nyc" && player_time <= 9) {
+        break
+      }
+      dt = yield;
+    }
+  }
+  n_show_chars = 0;
+  const text_twist = "AGENT T: did I say 5:40? I meant 5:40, NYC time";
+  let clock_unhide_progress = 0;
+  while (true) {
+    clock_unhide_progress = towards(clock_unhide_progress, 1, dt / 1);
+    hideClocks(clock_unhide_progress);
     handlerFace();
-    handlerText(text);
+    n_show_chars = towards(n_show_chars, text_twist.length, dt / .02);
+    handlerText(text_twist.slice(0, Math.floor(n_show_chars)));
     dt = yield;
   }
+
   // while (true) {
   //   ctx.drawImage(textures.face_handler, 0, 0);
   //   dt = yield;
@@ -257,17 +296,20 @@ function* tutorialSequence(): Generator<void, void, number> {
   function handlerText(text: string) {
     ctx.font = "20px monospace";
     ctx.fillStyle = "#22f24c";
-    ctx.fillText(text, textures.face_handler.width, 20);
+    let lines = text.split('\n');
+    lines.forEach((line, k) => {
+      ctx.fillText(line, textures.face_handler.width + 10, 20 + k * 25);
+    })
   }
   function handlerFace(offset: number = 0) {
     ctx.fillStyle = "#052713";
     ctx.fillRect(0, 0, canvas.width, (1 - (offset * offset)) * textures.face_handler.height);
     ctx.drawImage(textures.face_handler, 0, -(offset * offset) * textures.face_handler.height);
   }
-  function hideClocks() {
+  function hideClocks(offset: number = 0) {
     ctx.fillStyle = "#000501";
-    ctx.fillRect(0, 484, 200, 150);
-    ctx.fillRect(350, 484, 400, 150);
+    ctx.fillRect(0, 484, 200 - offset * 350, 150);
+    ctx.fillRect(350 + offset * 350, 484, 400, 150);
   }
 }
 
