@@ -89,15 +89,16 @@ function doSequentialAnimation(name: string, dt: number, parts: SequencePart[], 
 }
 let _ongoing_sequences = new Map<string, SequenceData>();
 
-type Connection = { a: string, b: string, cost: number };
+// TODO: remove label_offset
+type Connection = { a: string, b: string, cost: number, label_offset: Vec2 };
 let connections: Connection[] = [
-  { a: "alamos", b: "nowhere", cost: 2 },
-  { a: "alamos", b: "dc", cost: 3 },
-  { a: "alamos", b: "california", cost: 2 },
-  { a: "montana", b: "california", cost: 3 },
-  { a: "montana", b: "nyc", cost: 4 },
-  { a: "nowhere", b: "nyc", cost: 2 },
-  { a: "dc", b: "nyc", cost: 1 },
+  { a: "alamos", b: "nowhere", cost: 2, label_offset: new Vec2(-10, -10) },
+  { a: "alamos", b: "dc", cost: 3, label_offset: new Vec2(0, 25) },
+  { a: "alamos", b: "california", cost: 2, label_offset: new Vec2(1, -2) },
+  { a: "montana", b: "california", cost: 3, label_offset: new Vec2(0, -20) },
+  { a: "montana", b: "nyc", cost: 4, label_offset: new Vec2(-75, -15) },
+  { a: "nowhere", b: "nyc", cost: 2, label_offset: new Vec2(-30, 25) },
+  { a: "dc", b: "nyc", cost: 1, label_offset: new Vec2(-20, 0) },
 ];
 
 /** null during player move animation */
@@ -120,7 +121,7 @@ document.addEventListener("pointerdown", ev => {
   if (player_city !== null && hovering_city !== null) {
     let connection = getConnection(player_city, hovering_city);
     if (connection !== null) {
-      animating_connection = { a: player_city, b: hovering_city, cost: connection.cost };
+      animating_connection = { a: player_city, b: hovering_city, cost: connection.cost, label_offset: Vec2.zero };
       player_city = null;
     }
   }
@@ -135,18 +136,11 @@ function every_frame(cur_timestamp: number) {
 
   // update
 
-  // cities.forEach(city => {
-  //   if (city.id === hovering_city) {
-  //     city.ani_hovered = towards(city.ani_hovered, 1, delta_time / .1);
-  //     // console.log(city.id);
-  //   } else {
-  //     city.ani_hovered = towards(city.ani_hovered, 0, delta_time / .1);
-  //   }
-  // })
-
   // draw
   ctx.drawImage(textures.map_vanilla, 0, 0);
 
+  ctx.font = "30px monospace";
+  ctx.fillStyle = "white";
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.strokeStyle = "white";
@@ -155,6 +149,10 @@ function every_frame(cur_timestamp: number) {
     let city_b = cities.find(({ id }) => id === con.b)!;
     ctx.moveTo(city_a.screen_pos.x, city_a.screen_pos.y);
     ctx.lineTo(city_b.screen_pos.x, city_b.screen_pos.y);
+
+    let midpoint = Vec2.lerp(city_a.screen_pos, city_b.screen_pos, .5);
+    Vec2.add(midpoint, con.label_offset, midpoint);
+    ctx.fillText(stringFromTime(con.cost / 2), midpoint.x, midpoint.y);
   })
   ctx.stroke();
 
@@ -236,14 +234,18 @@ function every_frame(cur_timestamp: number) {
 
   const colors = ["#3C6CEA", "#CF8471", "#0ACBAE", "#FCCA43"];
   colors.forEach((color, k) => {
-    let value = k + player_time + player_time_anim_offset;
-    let hours = Math.floor(value);
-    let minutes = Math.floor(mod(value, 1) * 60).toString().padStart(2, '0');
+    let value = k + .5 * (player_time + player_time_anim_offset);
     ctx.fillStyle = color;
-    ctx.fillText(`${hours}:${minutes}`, 57 + k * 164, 525);
+    ctx.fillText(stringFromTime(value), 57 + k * 164, 525);
   });
 
   requestAnimationFrame(every_frame);
+}
+
+function stringFromTime(value: number): string {
+  let hours = Math.floor(value);
+  let minutes = Math.floor(mod(value, 1) * 60).toString().padStart(2, '0');
+  return `${hours}:${minutes}`;
 }
 
 function getCity(target_id: string): City {
