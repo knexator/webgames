@@ -225,6 +225,14 @@ export class Vec2 {
         return v.x * v.x + v.y * v.y;
     }
 
+    static taxicab(v: Vec2): number {
+        return Math.abs(v.x) + Math.abs(v.y);
+    }
+
+    static lInf(v: Vec2): number {
+        return Math.max(Math.abs(v.x), Math.abs(v.y));
+    }
+
     static map1(v: Vec2, fn: (x: number) => number, out?: Vec2): Vec2 {
         out = out || new Vec2();
         out.x = fn(v.x);
@@ -237,6 +245,11 @@ export class Vec2 {
         out.x = fn(a.x, b.x);
         out.y = fn(a.y, b.y);
         return out;
+    }
+
+    static isInsideBox(point: Vec2, box_center: Vec2, box_size: Vec2): boolean {
+        return (Math.abs(point.x - box_center.x) < box_size.x * .5)
+            && (Math.abs(point.y - box_center.y) < box_size.y * .5);
     }
 
     static roundToCardinal(a: Vec2): CardinalDirection {

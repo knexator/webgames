@@ -49,3 +49,25 @@ export class DefaultDict<T> {
         })
     }
 }
+
+// from https://gist.github.com/rosszurowski/67f04465c424a9bc0dae
+// and https://gist.github.com/nikolas/b0cce2261f1382159b507dd492e1ceef
+export function lerpHexColor(a: string, b: string, t: number): string {
+    const ah = Number(a.replace('#', '0x'));
+    const bh = Number(b.replace('#', '0x'));
+
+    const ar = (ah & 0xFF0000) >> 16,
+        ag = (ah & 0x00FF00) >> 8,
+        ab = (ah & 0x0000FF),
+
+        br = (bh & 0xFF0000) >> 16,
+        bg = (bh & 0x00FF00) >> 8,
+        bb = (bh & 0x0000FF),
+
+        rr = ar + t * (br - ar),
+        rg = ag + t * (bg - ag),
+        rb = ab + t * (bb - ab);
+
+
+    return `#${((rr << 16) + (rg << 8) + (rb | 0)).toString(16).padStart(6, '0').slice(-6)}`
+}

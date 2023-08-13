@@ -1,10 +1,12 @@
 import GUI from "lil-gui"
 
 import { imageFromUrl } from "../../kommon/kanvas"
+import { lerpHexColor } from "../../kommon/kommon"
 import { Vec2, clamp, lerp, mod, towards } from "../../kommon/math"
 
 import map_vanilla_url from "./images/map_vanilla.png?url"
 import face_handler_url from "./images/face_handler.png?url"
+import { hexToCSSFilter } from "hex-to-css-filter"
 
 const CONFIG = {
   tmp50: 50,
@@ -30,6 +32,13 @@ let textures = {
   map_vanilla: await imageFromUrl(map_vanilla_url),
   face_handler: await imageFromUrl(face_handler_url),
 };
+
+let image_elements = [
+  document.querySelector("#california") as HTMLImageElement,
+  document.querySelector("#alamos") as HTMLImageElement,
+  document.querySelector("#nowhere") as HTMLImageElement,
+  document.querySelector("#nyc") as HTMLImageElement,
+]
 
 type City = { id: string, screen_pos: Vec2 };
 let cities: City[] = [
@@ -72,6 +81,14 @@ let undo_button = {
   hovering: false,
 };
 
+let machine = {
+  shown: false,
+  active: false,
+  center: new Vec2(68, 317),
+  size: new Vec2(40, 40),
+  hovering: false,
+};
+
 let tutorial_sequence: ReturnType<typeof tutorialSequence> | null = tutorialSequence();
 tutorial_sequence.next();
 
@@ -81,6 +98,7 @@ document.addEventListener("pointermove", ev => {
     return (20 * 20) > Vec2.magSq(Vec2.sub(mouse_pos, screen_pos));
   })?.id || null;
   undo_button.hovering = Vec2.inBounds(Vec2.sub(mouse_pos, undo_button.top_left), undo_button.size);
+  machine.hovering = machine.shown && Vec2.isInsideBox(mouse_pos, machine.center, machine.size);
 });
 
 document.addEventListener("pointerdown", ev => {
@@ -104,6 +122,10 @@ document.addEventListener("pointerdown", ev => {
       player_city = prev.city;
       player_time = prev.time;
     }
+  } else if (machine.shown && !machine.active) {
+    if (player_city === "california") {
+      machine.active = true;
+    }
   }
 })
 
@@ -113,6 +135,8 @@ function every_frame(cur_timestamp: number) {
   if (last_timestamp === null) {
     // first frame
     last_timestamp = cur_timestamp;
+    animValue("machine_shown", 0, { targetValue: 0, lerpFactor: 1 });
+    animValue("magic", 0, { targetValue: 0, lerpFactor: 1 });
     requestAnimationFrame(every_frame);
     return;
   }
@@ -124,7 +148,8 @@ function every_frame(cur_timestamp: number) {
   // update
 
   // draw
-  ctx.drawImage(textures.map_vanilla, 0, 0);
+  // ctx.drawImage(textures.map_vanilla, 0, 0);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   ctx.font = "30px monospace";
   ctx.fillStyle = "white";
@@ -231,9 +256,51 @@ function every_frame(cur_timestamp: number) {
   const colors = ["#3C6CEA", "#CF8471", "#0ACBAE", "#FCCA43"];
   colors.forEach((color, k) => {
     let value = k + .5 * (player_time + player_time_anim_offset);
-    ctx.fillStyle = color;
+    if (machine.active) {
+      let magic_progress = animValue("magic", delta_time, { targetValue: 1, lerpFactor: .005 });
+      value -= k * magic_progress;
+      if (magic_progress === 1) {
+        ctx.fillStyle = colors[0];
+        doOnce(`magic_color_${k}`, () => image_elements[k].style.filter = hexToCSSFilter(colors[0]).filter.replace(";", ""));
+      } else {
+        let lerped_color = lerpHexColor(color, colors[0], magic_progress);
+        ctx.fillStyle = lerped_color;
+        image_elements[k].style.filter = hexToCSSFilter(lerped_color).filter.replace(";", "");
+      }
+    } else {
+      ctx.fillStyle = color;
+      doOnce(`start_color_${k}`, () => image_elements[k].style.filter = hexToCSSFilter(color).filter.replace(";", ""));
+    }
     ctx.fillText(stringFromTime(value), 57 + k * 164, 525);
   });
+
+  // draw machine
+  {
+    if (machine.shown) {
+      if (machine.active) {
+        let remaining = animValue("machine_hovered", delta_time, { targetValue: 0, lerpFactor: .2 });
+        ctx.beginPath();
+        ctx.fillStyle = "#22f24c";
+        rectFromCenter(machine.center, machine.size);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.fillStyle = "#052713";
+        rectFromCenter(machine.center, Vec2.scale(machine.size, .8 * remaining));
+        ctx.fill();
+      } else {
+        let shown = animValue("machine_shown", delta_time, { targetValue: 1, lerpFactor: .04 });
+        let hovered = animValue("machine_hovered", delta_time, { targetValue: machine.hovering ? (player_city === "california" ? .6 : .9) : 1, lerpFactor: .2 });
+        ctx.beginPath();
+        ctx.fillStyle = "#22f24c";
+        rectFromCenter(machine.center, Vec2.scale(machine.size, shown));
+        ctx.fill();
+        ctx.beginPath();
+        ctx.fillStyle = "#052713";
+        rectFromCenter(machine.center, Vec2.scale(machine.size, .8 * shown * hovered));
+        ctx.fill();
+      }
+    }
+  }
 
   if (tutorial_sequence !== null && tutorial_sequence.next(delta_time).done) {
     tutorial_sequence = null;
@@ -301,7 +368,7 @@ function* tutorialSequence(): Generator<void, void, number> {
   }
 
   if (!success) {
-    const text_dissapointed = "AGENT T: come on, this is no game. Undo and try again.\nWe really need you in NYC before 5:40";
+    const text_dissapointed = "AGENT T: come on, this is no game. Undo and try again.\nñWe really need you in NYC before 5:40";
     n_show_chars = 0;
     while (true) {
       hideClocks();
@@ -309,33 +376,52 @@ function* tutorialSequence(): Generator<void, void, number> {
       n_show_chars = towards(n_show_chars, text_dissapointed.length, dt / .02);
       handlerText(text_dissapointed.slice(0, Math.floor(n_show_chars)));
       if (player_city === "nyc" && player_time <= 9) {
-        break
+        break;
       }
       dt = yield;
     }
   }
   n_show_chars = 0;
-  const text_twist = "AGENT T: did I say 5:40? I meant 5:40, NYC time";
-  let clock_unhide_progress = 0;
+  const text_twist = `AGENT T: did I say 5:40? I meant 5:40, NYC time
+ññNo way to get there fast enoughñ.ñ.ñ.ññññ unlessñ.ñ.ñ.ñññññ
+Undo back to the start, and go to Californiaññ
+We have a useful device there.`;
+  let clock_unhide_anim_t = 0;
   while (true) {
-    clock_unhide_progress = towards(clock_unhide_progress, 1, dt / 1);
-    hideClocks(clock_unhide_progress);
+    clock_unhide_anim_t = towards(clock_unhide_anim_t, 1, dt / 1);
+    hideClocks(clock_unhide_anim_t);
     handlerFace();
-    n_show_chars = towards(n_show_chars, text_twist.length, dt / .02);
-    handlerText(text_twist.slice(0, Math.floor(n_show_chars)));
+    let in_pause = text_twist.charAt(Math.floor(n_show_chars)) === 'ñ';
+    n_show_chars = towards(n_show_chars, text_twist.length, (in_pause ? .05 : 1) * dt / .02);
+    let shown_text = text_twist.slice(0, Math.floor(n_show_chars));
+    handlerText(shown_text);
+    machine.shown = true; // DEBUG
+    if (!machine.shown && shown_text.includes("California")) {
+      machine.shown = true;
+    }
+    if (machine.active) {
+      break;
+    }
     dt = yield;
   }
-
-  // while (true) {
-  //   ctx.drawImage(textures.face_handler, 0, 0);
-  //   dt = yield;
-  // }
-
+  // machine has been activated!
+  n_show_chars = 0;
+  const text_good_job = `AGENT T: Good job! Now all the US of A is on the same timezone.
+ññDon't run into your past self!`;
+  while (true) {
+    handlerFace();
+    let in_pause = text_good_job.charAt(Math.floor(n_show_chars)) === 'ñ';
+    n_show_chars = towards(n_show_chars, text_good_job.length, (in_pause ? .05 : 1) * dt / .02);
+    let shown_text = text_good_job.slice(0, Math.floor(n_show_chars));
+    handlerText(shown_text);
+    dt = yield;
+  }
   return;
 
   function handlerText(text: string) {
     ctx.font = "20px monospace";
     ctx.fillStyle = "#22f24c";
+    text = text.replace(/ñ/g, '')
     let lines = text.split('\n');
     lines.forEach((line, k) => {
       ctx.fillText(line, textures.face_handler.width + 10, 20 + k * 25);
@@ -370,6 +456,23 @@ function getConnection(id_a: string, id_b: string): Connection | null {
     return (id_a === a && id_b === b) || (id_b === a && id_a === b);
   }) || null;
 }
+
+///////////////////////////////////
+
+function rectFromCenter(center: Vec2, size: Vec2) {
+  let top_left = Vec2.sub(center, Vec2.scale(size, .5));
+  ctx.rect(top_left.x, top_left.y, size.x, size.y)
+}
+
+///////////////////////////////////
+
+function doOnce(name: string, fn: CallableFunction) {
+  if (!_done_once.has(name)) {
+    fn();
+    _done_once.add(name);
+  }
+}
+let _done_once = new Set<string>();
 
 ///////////////////////////////////
 
