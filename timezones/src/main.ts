@@ -4,6 +4,7 @@ import { imageFromUrl } from "../../kommon/kanvas"
 import { Vec2, clamp, lerp, mod, towards } from "../../kommon/math"
 
 import map_vanilla_url from "./images/map_vanilla.png?url"
+import face_handler_url from "./images/face_handler.png?url"
 
 const CONFIG = {
   tmp50: 50,
@@ -15,6 +16,8 @@ const gui = new GUI();
 gui.add(CONFIG, "tmp50", 0, 100);
 gui.add(CONFIG, "tmp250", 0, 500);
 gui.add(CONFIG, "tmp500", 0, 1000);
+gui.domElement.style.bottom = "0px";
+gui.domElement.style.top = "auto";
 
 const canvas = document.querySelector<HTMLCanvasElement>("#game_canvas")!;
 const ctx = canvas.getContext("2d")!;
@@ -23,7 +26,8 @@ canvas.height = 600;
 
 let textures = {
   map_vanilla: await imageFromUrl(map_vanilla_url),
-}
+  face_handler: await imageFromUrl(face_handler_url),
+};
 
 let player_time = 2.0;
 let player_time_anim_offset = 0;
@@ -38,57 +42,6 @@ let cities: City[] = [
   { id: "dc", screen_pos: new Vec2(625, 320) },
 ];
 
-// Design 1: all happens in the animValue call, it assumes that it's called every frame
-// maybe Design 2: have a dedicated "processAnimValues" every frame, animValue only sets things up
-type AnimValueOptions = {
-  targetValue: number;
-  lerpFactor: number;
-}
-function animValue(name: string, dt: number, options: AnimValueOptions) {
-  if (!_anim_vals.has(name)) {
-    _anim_vals.set(name, options.targetValue);
-  } else {
-    _anim_vals.set(name, lerp(_anim_vals.get(name), options.targetValue, options.lerpFactor))
-  }
-  return _anim_vals.get(name);
-}
-let _anim_vals = new Map();
-
-///////////////////////////////////
-
-// different system, don't confuse it with animValue
-type SequencePart = {
-  duration: number,
-  onUpdate: (t: number) => void,
-};
-type SequenceData = {
-  stage: number,
-  /** between 0 and 1 */
-  progress: number,
-};
-function doSequentialAnimation(name: string, dt: number, parts: SequencePart[], onEnd: () => void) {
-  if (!_ongoing_sequences.has(name)) {
-    _ongoing_sequences.set(name, {
-      stage: 0,
-      progress: 0,
-    });
-  }
-  let cur_data = _ongoing_sequences.get(name)!;
-  let cur_part = parts[cur_data.stage];
-  cur_data.progress += dt / cur_part.duration;
-  cur_data.progress = clamp(cur_data.progress, 0, 1);
-  cur_part.onUpdate(cur_data.progress);
-  if (cur_data.progress === 1) {
-    cur_data.stage += 1;
-    cur_data.progress = 0;
-    if (cur_data.stage >= parts.length) {
-      _ongoing_sequences.delete(name);
-      onEnd();
-    }
-  }
-}
-let _ongoing_sequences = new Map<string, SequenceData>();
-
 // TODO: remove label_offset
 type Connection = { a: string, b: string, cost: number, label_offset: Vec2 };
 let connections: Connection[] = [
@@ -98,7 +51,7 @@ let connections: Connection[] = [
   { a: "montana", b: "california", cost: 3, label_offset: new Vec2(0, -20) },
   { a: "montana", b: "nyc", cost: 4, label_offset: new Vec2(-75, -15) },
   { a: "nowhere", b: "nyc", cost: 2, label_offset: new Vec2(-30, 25) },
-  { a: "dc", b: "nyc", cost: 1, label_offset: new Vec2(-20, 0) },
+  { a: "dc", b: "nyc", cost: 1, label_offset: new Vec2(5, 15) },
 ];
 
 /** null during player move animation */
@@ -108,6 +61,9 @@ let player_city: string | null = "alamos";
 let animating_connection: Connection | null = null;
 
 let hovering_city: string | null = null;
+
+let tutorial_sequence: ReturnType<typeof tutorialSequence> | null = tutorialSequence();
+tutorial_sequence.next();
 
 document.addEventListener("pointermove", ev => {
   let mouse_pos = new Vec2(ev.clientX, ev.clientY);
@@ -127,9 +83,16 @@ document.addEventListener("pointerdown", ev => {
   }
 })
 
-let last_timestamp = 0;
+let last_timestamp: number | null = null;
 // main loop; game logic lives here
 function every_frame(cur_timestamp: number) {
+  if (last_timestamp === null) {
+    // first frame
+    last_timestamp = cur_timestamp;
+    requestAnimationFrame(every_frame);
+    return;
+  }
+
   // in seconds
   let delta_time = (cur_timestamp - last_timestamp) / 1000;
   last_timestamp = cur_timestamp;
@@ -230,8 +193,15 @@ function every_frame(cur_timestamp: number) {
     });
   }
 
-  ctx.font = "50px monospace";
+  {
+    let goal_pos = getCity("nyc").screen_pos;
+    ctx.beginPath();
+    ctx.strokeStyle = "red";
+    ctx.arc(goal_pos.x, goal_pos.y, 35 + Math.sin(cur_timestamp * .008) * 1.5, 0, 2 * Math.PI);
+    ctx.stroke();
+  }
 
+  ctx.font = "50px monospace";
   const colors = ["#3C6CEA", "#CF8471", "#0ACBAE", "#FCCA43"];
   colors.forEach((color, k) => {
     let value = k + .5 * (player_time + player_time_anim_offset);
@@ -239,7 +209,66 @@ function every_frame(cur_timestamp: number) {
     ctx.fillText(stringFromTime(value), 57 + k * 164, 525);
   });
 
+  if (tutorial_sequence !== null && tutorial_sequence.next(delta_time).done) {
+    tutorial_sequence = null;
+  }
+
   requestAnimationFrame(every_frame);
+}
+
+function* tutorialSequence(): Generator<void, void, number> {
+  // initialization
+  // let stuff = ...;
+  let dt = yield;
+
+  // We must get to NYC at 5:30!
+  // drop down
+  let offset = 1;
+  while (offset > 0) {
+    offset = towards(offset, 0, dt / .5);
+    hideClocks();
+    handlerFace(offset);
+    dt = yield;
+  }
+  // write text
+  let text = "AGENT T: Hey there kiddo, get to NYC before 5:30";
+  let n_show_chars = 0;
+  while (n_show_chars < text.length) {
+    hideClocks();
+    handlerFace();
+    n_show_chars = towards(n_show_chars, text.length, dt / .02);
+    handlerText(text.slice(0, Math.floor(n_show_chars)));
+    // TODO (big): if yield also gave user input state, we could "press to skip"
+    dt = yield;
+  }
+  while (true) {
+    hideClocks();
+    handlerFace();
+    handlerText(text);
+    dt = yield;
+  }
+  // while (true) {
+  //   ctx.drawImage(textures.face_handler, 0, 0);
+  //   dt = yield;
+  // }
+
+  return;
+
+  function handlerText(text: string) {
+    ctx.font = "20px monospace";
+    ctx.fillStyle = "#22f24c";
+    ctx.fillText(text, textures.face_handler.width, 20);
+  }
+  function handlerFace(offset: number = 0) {
+    ctx.fillStyle = "#052713";
+    ctx.fillRect(0, 0, canvas.width, (1 - (offset * offset)) * textures.face_handler.height);
+    ctx.drawImage(textures.face_handler, 0, -(offset * offset) * textures.face_handler.height);
+  }
+  function hideClocks() {
+    ctx.fillStyle = "#000501";
+    ctx.fillRect(0, 484, 200, 150);
+    ctx.fillRect(350, 484, 400, 150);
+  }
 }
 
 function stringFromTime(value: number): string {
@@ -259,6 +288,61 @@ function getConnection(id_a: string, id_b: string): Connection | null {
     return (id_a === a && id_b === b) || (id_b === a && id_a === b);
   }) || null;
 }
+
+///////////////////////////////////
+
+// Design 1: all happens in the animValue call, it assumes that it's called every frame
+// maybe Design 2: have a dedicated "processAnimValues" every frame, animValue only sets things up
+type AnimValueOptions = {
+  targetValue: number;
+  lerpFactor: number;
+}
+function animValue(name: string, dt: number, options: AnimValueOptions) {
+  if (!_anim_vals.has(name)) {
+    _anim_vals.set(name, options.targetValue);
+  } else {
+    _anim_vals.set(name, lerp(_anim_vals.get(name), options.targetValue, options.lerpFactor))
+  }
+  return _anim_vals.get(name);
+}
+let _anim_vals = new Map();
+
+///////////////////////////////////
+
+// different system, don't confuse it with animValue
+type SequencePart = {
+  duration: number,
+  onUpdate: (t: number) => void,
+};
+type SequenceData = {
+  stage: number,
+  /** between 0 and 1 */
+  progress: number,
+};
+function doSequentialAnimation(name: string, dt: number, parts: SequencePart[], onEnd: () => void) {
+  if (!_ongoing_sequences.has(name)) {
+    _ongoing_sequences.set(name, {
+      stage: 0,
+      progress: 0,
+    });
+  }
+  let cur_data = _ongoing_sequences.get(name)!;
+  let cur_part = parts[cur_data.stage];
+  cur_data.progress += dt / cur_part.duration;
+  cur_data.progress = clamp(cur_data.progress, 0, 1);
+  cur_part.onUpdate(cur_data.progress);
+  if (cur_data.progress === 1) {
+    cur_data.stage += 1;
+    cur_data.progress = 0;
+    if (cur_data.stage >= parts.length) {
+      _ongoing_sequences.delete(name);
+      onEnd();
+    }
+  }
+}
+let _ongoing_sequences = new Map<string, SequenceData>();
+
+/////////////////
 
 const loading_screen_element = document.querySelector<HTMLDivElement>("#loading_screen")!;
 loading_screen_element.innerText = "Press to start!";
