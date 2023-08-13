@@ -68,8 +68,6 @@ let player_time_anim_offset = 0;
 /** null during player move animation */
 let player_city: string | null = "alamos";
 
-let player_history = [{ time: player_time, city: player_city }];
-
 /** the connection being used in the current player move */
 let animating_connection: Connection | null = null;
 
@@ -88,6 +86,8 @@ let machine = {
   size: new Vec2(40, 40),
   hovering: false,
 };
+
+let history = [{ player_time: player_time, player_city: player_city, machine_active: machine.active }];
 
 let tutorial_sequence: ReturnType<typeof tutorialSequence> | null = tutorialSequence();
 tutorial_sequence.next();
@@ -116,15 +116,17 @@ document.addEventListener("pointerdown", ev => {
       player_time_anim_offset = 0;
       animating_connection = null;
       cancelSequentialAnimation("shrink_travel_grow");
-    } else if (player_history.length > 1) {
-      player_history.pop();
-      let prev = player_history[player_history.length - 1];
-      player_city = prev.city;
-      player_time = prev.time;
+    } else if (history.length > 1) {
+      history.pop();
+      let prev = history[history.length - 1];
+      player_city = prev.player_city;
+      player_time = prev.player_time;
+      machine.active = prev.machine_active;
     }
-  } else if (machine.shown && !machine.active) {
+  } else if (machine.shown && !machine.active && machine.hovering) {
     if (player_city === "california") {
       machine.active = true;
+      history.push({ player_time: player_time, player_city: player_city, machine_active: machine.active });
     }
   }
 })
@@ -240,7 +242,7 @@ function every_frame(cur_timestamp: number) {
       player_time += player_time_anim_offset;
       player_time_anim_offset = 0;
 
-      player_history.push({ city: player_city, time: player_time });
+      history.push({ player_city: player_city, player_time: player_time, machine_active: machine.active });
     });
   }
 
@@ -258,10 +260,13 @@ function every_frame(cur_timestamp: number) {
     let value = k + .5 * (player_time + player_time_anim_offset);
     if (machine.active) {
       let magic_progress = animValue("magic", delta_time, { targetValue: 1, lerpFactor: .005 });
+      if (magic_progress > .99) {
+        magic_progress = animValue("magic", delta_time, { targetValue: 1, lerpFactor: 1 });
+      }
       value -= k * magic_progress;
       if (magic_progress === 1) {
         ctx.fillStyle = colors[0];
-        doOnce(`magic_color_${k}`, () => image_elements[k].style.filter = hexToCSSFilter(colors[0]).filter.replace(";", ""));
+        doIfNotDoneLastFrame(`magic_color_${k}`, () => image_elements[k].style.filter = hexToCSSFilter(colors[0]).filter.replace(";", ""));
       } else {
         let lerped_color = lerpHexColor(color, colors[0], magic_progress);
         ctx.fillStyle = lerped_color;
@@ -269,7 +274,7 @@ function every_frame(cur_timestamp: number) {
       }
     } else {
       ctx.fillStyle = color;
-      doOnce(`start_color_${k}`, () => image_elements[k].style.filter = hexToCSSFilter(color).filter.replace(";", ""));
+      doIfNotDoneLastFrame(`start_color_${k}`, () => image_elements[k].style.filter = hexToCSSFilter(color).filter.replace(";", ""));
     }
     ctx.fillText(stringFromTime(value), 57 + k * 164, 525);
   });
@@ -320,6 +325,7 @@ function every_frame(cur_timestamp: number) {
     ctx.fillText("undo", undo_button.top_left.x + 9, undo_button.top_left.y + 21);
   }
 
+  DINDLF_endFrame();
   requestAnimationFrame(every_frame);
 }
 
@@ -406,7 +412,7 @@ We have a useful device there.`;
   }
   // machine has been activated!
   n_show_chars = 0;
-  const text_good_job = `AGENT T: Good job! Now all the US of A is on the same timezone.
+  const text_good_job = `AGENT T: Good job! Now the whole USA is on the same timezone.
 ññDon't run into your past self!`;
   while (true) {
     handlerFace();
@@ -473,6 +479,23 @@ function doOnce(name: string, fn: CallableFunction) {
   }
 }
 let _done_once = new Set<string>();
+
+///////////////////////////////////
+
+function doIfNotDoneLastFrame(name: string, fn: CallableFunction) {
+  if (!_done_last_frame.has(name)) {
+    console.log(`DINDLF ${name}`);
+    fn();
+  }
+  _done_this_frame.add(name);
+}
+function DINDLF_endFrame() {
+  _done_last_frame.clear();
+  _done_this_frame.forEach(name => _done_last_frame.add(name));
+  _done_this_frame.clear();
+}
+let _done_this_frame = new Set<string>();
+let _done_last_frame = new Set<string>();
 
 ///////////////////////////////////
 
