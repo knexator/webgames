@@ -10,12 +10,14 @@ const CONFIG = {
   tmp50: 50,
   tmp250: 250,
   tmp500: 500,
+  color: "#000000",
 };
 
 const gui = new GUI();
 gui.add(CONFIG, "tmp50", 0, 100);
 gui.add(CONFIG, "tmp250", 0, 500);
 gui.add(CONFIG, "tmp500", 0, 1000);
+gui.addColor(CONFIG, "color");
 gui.domElement.style.bottom = "0px";
 gui.domElement.style.top = "auto";
 
@@ -28,9 +30,6 @@ let textures = {
   map_vanilla: await imageFromUrl(map_vanilla_url),
   face_handler: await imageFromUrl(face_handler_url),
 };
-
-let player_time = 2.0;
-let player_time_anim_offset = 0;
 
 type City = { id: string, screen_pos: Vec2 };
 let cities: City[] = [
@@ -54,13 +53,24 @@ let connections: Connection[] = [
   { a: "dc", b: "nyc", cost: 1, label_offset: new Vec2(5, 15) },
 ];
 
+let player_time = 2.0;
+let player_time_anim_offset = 0;
+
 /** null during player move animation */
 let player_city: string | null = "alamos";
+
+let player_history = [{ time: player_time, city: player_city }];
 
 /** the connection being used in the current player move */
 let animating_connection: Connection | null = null;
 
 let hovering_city: string | null = null;
+
+let undo_button = {
+  top_left: new Vec2(20, 550),
+  size: new Vec2(60, 30),
+  hovering: false,
+};
 
 let tutorial_sequence: ReturnType<typeof tutorialSequence> | null = tutorialSequence();
 tutorial_sequence.next();
@@ -70,6 +80,7 @@ document.addEventListener("pointermove", ev => {
   hovering_city = cities.find(({ screen_pos }) => {
     return (20 * 20) > Vec2.magSq(Vec2.sub(mouse_pos, screen_pos));
   })?.id || null;
+  undo_button.hovering = Vec2.inBounds(Vec2.sub(mouse_pos, undo_button.top_left), undo_button.size);
 });
 
 document.addEventListener("pointerdown", ev => {
@@ -79,6 +90,19 @@ document.addEventListener("pointerdown", ev => {
     if (connection !== null) {
       animating_connection = { a: player_city, b: hovering_city, cost: connection.cost, label_offset: Vec2.zero };
       player_city = null;
+    }
+  } else if (undo_button.hovering) {
+    if (animating_connection !== null) {
+      // special case: just cancel the animation
+      player_city = animating_connection.a;
+      player_time_anim_offset = 0;
+      animating_connection = null;
+      cancelSequentialAnimation("shrink_travel_grow");
+    } else if (player_history.length > 1) {
+      player_history.pop();
+      let prev = player_history[player_history.length - 1];
+      player_city = prev.city;
+      player_time = prev.time;
     }
   }
 })
@@ -190,6 +214,8 @@ function every_frame(cur_timestamp: number) {
 
       player_time += player_time_anim_offset;
       player_time_anim_offset = 0;
+
+      player_history.push({ city: player_city, time: player_time });
     });
   }
 
@@ -211,6 +237,20 @@ function every_frame(cur_timestamp: number) {
 
   if (tutorial_sequence !== null && tutorial_sequence.next(delta_time).done) {
     tutorial_sequence = null;
+  }
+
+  // draw undo button
+  {
+    ctx.beginPath();
+    let undo_hover_anim_value = animValue(`hover_undo`, delta_time, {
+      targetValue: undo_button.hovering ? 6 : 0,
+      lerpFactor: .3,
+    });
+    ctx.fillStyle = "#052713";
+    ctx.fillRect(undo_button.top_left.x - undo_hover_anim_value, undo_button.top_left.y - undo_hover_anim_value, undo_button.size.x + 2 * undo_hover_anim_value, undo_button.size.y + 2 * undo_hover_anim_value);
+    ctx.font = "20px monospace";
+    ctx.fillStyle = "#22f24c";
+    ctx.fillText("undo", undo_button.top_left.x + 9, undo_button.top_left.y + 21);
   }
 
   requestAnimationFrame(every_frame);
@@ -381,6 +421,9 @@ function doSequentialAnimation(name: string, dt: number, parts: SequencePart[], 
       onEnd();
     }
   }
+}
+function cancelSequentialAnimation(name: string) {
+  _ongoing_sequences.delete(name);
 }
 let _ongoing_sequences = new Map<string, SequenceData>();
 
