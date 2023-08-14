@@ -15,6 +15,8 @@ const CONFIG = {
   color: "#000000",
 };
 
+/*
+// DEBUG
 const gui = new GUI();
 gui.add(CONFIG, "tmp50", 0, 100);
 gui.add(CONFIG, "tmp250", 0, 500);
@@ -22,6 +24,7 @@ gui.add(CONFIG, "tmp500", 0, 1000);
 gui.addColor(CONFIG, "color");
 gui.domElement.style.bottom = "0px";
 gui.domElement.style.top = "auto";
+*/
 
 const canvas = document.querySelector<HTMLCanvasElement>("#game_canvas")!;
 const ctx = canvas.getContext("2d")!;
@@ -39,6 +42,8 @@ let image_elements = [
   document.querySelector("#nowhere") as HTMLImageElement,
   document.querySelector("#nyc") as HTMLImageElement,
 ]
+
+// TODO: properly detect paradoxes
 
 let timezones = [
   { offset: 0, color: "#3C6CEA" },
@@ -87,7 +92,7 @@ let undo_button = {
 };
 
 let machine = {
-  shown: true, // DEBUG: should be false
+  shown: false,
   active: false,
   timezone: 0,
   center: new Vec2(68, 317),
@@ -95,8 +100,6 @@ let machine = {
   hovering: false,
 };
 
-// type HistoryData = { player_city: string, player_time: number, machine_active: boolean, machine_timezone: number }
-// let history: HistoryData[] = [{ player_city: player_city, player_time: player_time, machine_active: machine.active, machine_timezone: machine.timezone }];
 let history = [{ player_city: player_city, player_time: player_time, machine_active: machine.active, machine_timezone: machine.timezone }];
 
 let tutorial_sequence: ReturnType<typeof tutorialSequence> | null = tutorialSequence();
@@ -116,8 +119,11 @@ document.addEventListener("pointerdown", ev => {
   if (player_city !== null && hovering_city !== null) {
     let connection = getConnection(player_city, hovering_city);
     if (connection !== null) {
-      animating_connection = { id_a: player_city, id_b: hovering_city, cost: connection.cost, label_offset: Vec2.zero, cross_points: [] };
-      player_city = null;
+      // TODO: proper handling of past players
+      if (!isPresentOrPastPlayerOnCity(hovering_city, player_time)) {
+        animating_connection = { id_a: player_city, id_b: hovering_city, cost: connection.cost, label_offset: Vec2.zero, cross_points: [] };
+        player_city = null;
+      }
     }
   } else if (undo_button.hovering) {
     if (animating_connection !== null) {
@@ -138,9 +144,9 @@ document.addEventListener("pointerdown", ev => {
       machine.active = true;
       history.push({ player_time: player_time, player_city: player_city, machine_active: machine.active, machine_timezone: machine.timezone });
     }
-  } else { // DEBUG
+  } /* else { // DEBUG
     console.log(history);
-  }
+  }*/
 })
 
 let last_timestamp: number | null = null;
@@ -178,7 +184,7 @@ function every_frame(cur_timestamp: number) {
 
     let midpoint = Vec2.lerp(city_a.screen_pos, city_b.screen_pos, .5);
     Vec2.add(midpoint, con.label_offset, midpoint);
-    ctx.fillText(stringFromTime(con.cost), midpoint.x, midpoint.y);
+    ctx.fillText(stringFromTime(con.cost, true), midpoint.x, midpoint.y);
   })
   ctx.stroke();
 
@@ -200,7 +206,7 @@ function every_frame(cur_timestamp: number) {
       } else if (getConnection(id, player_city!) !== null) {
         ctx.beginPath();
         let hover_anim_value = animValue(`hover_${id}`, delta_time, {
-          targetValue: (id === hovering_city) ? 1 : 0,
+          targetValue: (id === hovering_city) ? (isPresentOrPastPlayerOnCity(hovering_city, player_time) ? .2 : 1) : 0,
           lerpFactor: .2,
         });
         ctx.arc(screen_pos.x, screen_pos.y, 15 + hover_anim_value * 5, 0, 2 * Math.PI);
@@ -290,7 +296,7 @@ function every_frame(cur_timestamp: number) {
       ctx.fillStyle = zone.color;
       doIfNotDoneLastFrame(`start_color_${k}`, () => image_elements[k].style.filter = hexToCSSFilter(zone.color).filter.replace(";", ""));
     }
-    ctx.fillText(stringFromTime(value), 57 + k * 164, 525);
+    ctx.fillText(stringFromTime(value, false), 57 + k * 164, 525);
   })
 
   // draw machine
@@ -485,7 +491,6 @@ We have a useful device there.`;
     n_show_chars = towards(n_show_chars, text_twist.length, (in_pause ? .05 : 1) * dt / .02);
     let shown_text = text_twist.slice(0, Math.floor(n_show_chars));
     handlerText(shown_text);
-    machine.shown = true; // DEBUG
     if (!machine.shown && shown_text.includes("California")) {
       machine.shown = true;
     }
@@ -497,12 +502,29 @@ We have a useful device there.`;
   // machine has been activated!
   n_show_chars = 0;
   const text_good_job = `AGENT T: Good job! Now the whole USA is on the same
-timezone. ññDon't run into your past self!`;
+timezone. ññDon't run into your past self!
+And get to NYC before 5:40!`;
   while (true) {
     handlerFace();
     let in_pause = text_good_job.charAt(Math.floor(n_show_chars)) === 'ñ';
     n_show_chars = towards(n_show_chars, text_good_job.length, (in_pause ? .05 : 1) * dt / .02);
     let shown_text = text_good_job.slice(0, Math.floor(n_show_chars));
+    handlerText(shown_text);
+    if (player_city === "nyc" && player_time <= 11) {
+      break;
+    }
+    dt = yield;
+  }
+  // won!
+  n_show_chars = 0;
+  const text_ending = `AGENT T: oh yeah baby you've saved AñMñEñRñIñCñAñ!
+ñNo further instructions for now, you've earned a rest
+ñ.ñ.ñ.until your next mission.`;
+  while (true) {
+    handlerFace();
+    let in_pause = text_ending.charAt(Math.floor(n_show_chars)) === 'ñ';
+    n_show_chars = towards(n_show_chars, text_ending.length, (in_pause ? .2 : 1) * dt / .02);
+    let shown_text = text_ending.slice(0, Math.floor(n_show_chars));
     handlerText(shown_text);
     dt = yield;
   }
@@ -525,7 +547,6 @@ timezone. ññDon't run into your past self!`;
     ctx.drawImage(textures.face_handler, 0, -(offset * offset) * textures.face_handler.height);
   }
   function hideClocks(offset: number = 0) {
-    return; // DEBUG
     ctx.beginPath();
     ctx.fillStyle = "#000501";
     ctx.fillRect(0, 484, 200 - offset * 350, 150);
@@ -533,9 +554,24 @@ timezone. ññDon't run into your past self!`;
   }
 }
 
-function stringFromTime(value: number): string {
-  // return `${value * 2}`; // DEBUG
-  return value.toFixed(2);
+function isPresentOrPastPlayerOnCity(city_id: string, time: number): boolean {
+  // TODO: handle a city changing timezone, not just the machine's global on/off timezone
+  let city = getCity(city_id);
+  return history.some(prev => {
+    if (prev.player_city !== city_id) return false;
+    let present_time = time + (machine.active ? timezones[machine.timezone].offset : city.offset);
+    let past_time = prev.player_time + (prev.machine_active ? timezones[prev.machine_timezone].offset : city.offset);
+    return (present_time === past_time);
+  });
+}
+
+function stringFromTime(value: number, relative: boolean): string {
+  if (!relative) {
+    // value = 12 + value / 2;
+    value = value / 2; // no offset in this case, but there could be
+  } else {
+    value = value / 2;
+  }
   let hours = Math.floor(value);
   let minutes = Math.floor(mod(value, 1) * 60).toString().padStart(2, '0');
   return `${hours}:${minutes}`;
@@ -605,7 +641,7 @@ let _done_once = new Set<string>();
 
 function doIfNotDoneLastFrame(name: string, fn: CallableFunction) {
   if (!_done_last_frame.has(name)) {
-    console.log(`DINDLF ${name}`);
+    // console.log(`DINDLF ${name}`); // DEBUG
     fn();
   }
   _done_this_frame.add(name);
