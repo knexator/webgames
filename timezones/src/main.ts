@@ -44,6 +44,7 @@ let image_elements = [
 ]
 
 // TODO: properly detect paradoxes
+// TODO: be able to turn off the machine
 
 let timezones = [
   { offset: 0, color: "#3C6CEA" },
