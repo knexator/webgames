@@ -28,6 +28,13 @@ export function lerp(a: number, b: number, t: number): number {
     return a * (1 - t) + b * t;
 }
 
+/** t === inverseLerp(a, b, lerp(a, b, t)) */
+export function inverseLerp(a: number, b: number, value: number): number {
+    if (a === b) return 0.5;
+    let t = (value - a) / (b - a);
+    return t;
+}
+
 export function towards(cur: number, target: number, max_delta: number): number {
     if (cur > target) {
         return Math.max(cur - max_delta, target);

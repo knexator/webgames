@@ -15,6 +15,19 @@ export function fromRange<T>(lo: number, hi: number, callback: (index: number) =
     return result;
 }
 
+export function* pairwise<T>(arr: Iterable<T>): Generator<[T, T], void, void> {
+    let iterator = arr[Symbol.iterator]();
+    let a = iterator.next();
+    if (a.done) return; // zero elements
+    let b = iterator.next();
+    if (b.done) return; // one element 
+    while (!b.done) {
+        yield [a.value, b.value];
+        a = b;
+        b = iterator.next();
+    }
+}
+
 export function* zip(...arrays: Iterable<any>[]): Generator<any> {
     let iterators = arrays.map(a => a[Symbol.iterator]());
     while (true) {

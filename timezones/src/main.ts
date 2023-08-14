@@ -1,8 +1,8 @@
 import GUI from "lil-gui"
 
 import { imageFromUrl } from "../../kommon/kanvas"
-import { lerpHexColor } from "../../kommon/kommon"
-import { Vec2, clamp, lerp, mod, towards } from "../../kommon/math"
+import { lerpHexColor, pairwise } from "../../kommon/kommon"
+import { Vec2, clamp, inverseLerp, lerp, mod, towards } from "../../kommon/math"
 
 import map_vanilla_url from "./images/map_vanilla.png?url"
 import face_handler_url from "./images/face_handler.png?url"
@@ -40,14 +40,21 @@ let image_elements = [
   document.querySelector("#nyc") as HTMLImageElement,
 ]
 
-type City = { id: string, screen_pos: Vec2 };
+let timezones = [
+  { offset: 0, color: "#3C6CEA" },
+  { offset: 2, color: "#CF8471" },
+  { offset: 4, color: "#0ACBAE" },
+  { offset: 6, color: "#FCCA43" },
+];
+
+type City = { id: string, screen_pos: Vec2, timezone: number };
 let cities: City[] = [
-  { id: "alamos", screen_pos: new Vec2(300, 350) },
-  { id: "california", screen_pos: new Vec2(130, 320) },
-  { id: "montana", screen_pos: new Vec2(270, 160) },
-  { id: "nowhere", screen_pos: new Vec2(440, 265) },
-  { id: "nyc", screen_pos: new Vec2(645, 230) },
-  { id: "dc", screen_pos: new Vec2(625, 320) },
+  { id: "alamos", screen_pos: new Vec2(300, 350), timezone: 2 },
+  { id: "california", screen_pos: new Vec2(130, 320), timezone: 0 },
+  { id: "montana", screen_pos: new Vec2(270, 160), timezone: 2 },
+  { id: "nowhere", screen_pos: new Vec2(440, 265), timezone: 4 },
+  { id: "nyc", screen_pos: new Vec2(645, 230), timezone: 6 },
+  { id: "dc", screen_pos: new Vec2(625, 320), timezone: 6 },
 ];
 
 // TODO: remove label_offset
@@ -80,14 +87,17 @@ let undo_button = {
 };
 
 let machine = {
-  shown: false,
+  shown: true, // DEBUG: should be false
   active: false,
+  timezone: 0,
   center: new Vec2(68, 317),
   size: new Vec2(40, 40),
   hovering: false,
 };
 
-let history = [{ player_time: player_time, player_city: player_city, machine_active: machine.active }];
+// type HistoryData = { player_city: string, player_time: number, machine_active: boolean, machine_timezone: number }
+// let history: HistoryData[] = [{ player_city: player_city, player_time: player_time, machine_active: machine.active, machine_timezone: machine.timezone }];
+let history = [{ player_city: player_city, player_time: player_time, machine_active: machine.active, machine_timezone: machine.timezone }];
 
 let tutorial_sequence: ReturnType<typeof tutorialSequence> | null = tutorialSequence();
 tutorial_sequence.next();
@@ -126,8 +136,10 @@ document.addEventListener("pointerdown", ev => {
   } else if (machine.shown && !machine.active && machine.hovering) {
     if (player_city === "california") {
       machine.active = true;
-      history.push({ player_time: player_time, player_city: player_city, machine_active: machine.active });
+      history.push({ player_time: player_time, player_city: player_city, machine_active: machine.active, machine_timezone: machine.timezone });
     }
+  } else { // DEBUG
+    console.log(history);
   }
 })
 
@@ -166,7 +178,7 @@ function every_frame(cur_timestamp: number) {
 
     let midpoint = Vec2.lerp(city_a.screen_pos, city_b.screen_pos, .5);
     Vec2.add(midpoint, con.label_offset, midpoint);
-    ctx.fillText(stringFromTime(con.cost / 2), midpoint.x, midpoint.y);
+    ctx.fillText(stringFromTime(con.cost), midpoint.x, midpoint.y);
   })
   ctx.stroke();
 
@@ -242,7 +254,7 @@ function every_frame(cur_timestamp: number) {
       player_time += player_time_anim_offset;
       player_time_anim_offset = 0;
 
-      history.push({ player_city: player_city, player_time: player_time, machine_active: machine.active });
+      history.push({ player_city: player_city, player_time: player_time, machine_active: machine.active, machine_timezone: machine.timezone });
     });
   }
 
@@ -255,29 +267,31 @@ function every_frame(cur_timestamp: number) {
   }
 
   ctx.font = "50px monospace";
-  const colors = ["#3C6CEA", "#CF8471", "#0ACBAE", "#FCCA43"];
-  colors.forEach((color, k) => {
-    let value = k + .5 * (player_time + player_time_anim_offset);
+  timezones.forEach((zone, k) => {
+    let value = zone.offset + (player_time + player_time_anim_offset);
     if (machine.active) {
+      let global_timezone = timezones[machine.timezone];
       let magic_progress = animValue("magic", delta_time, { targetValue: 1, lerpFactor: .005 });
       if (magic_progress > .99) {
         magic_progress = animValue("magic", delta_time, { targetValue: 1, lerpFactor: 1 });
       }
-      value -= k * magic_progress;
+      value = lerp(value,
+        value - zone.offset + global_timezone.offset, // value at new global timezone
+        magic_progress);
       if (magic_progress === 1) {
-        ctx.fillStyle = colors[0];
-        doIfNotDoneLastFrame(`magic_color_${k}`, () => image_elements[k].style.filter = hexToCSSFilter(colors[0]).filter.replace(";", ""));
+        ctx.fillStyle = global_timezone.color;
+        doIfNotDoneLastFrame(`magic_color_${k}`, () => image_elements[k].style.filter = hexToCSSFilter(global_timezone.color).filter.replace(";", ""));
       } else {
-        let lerped_color = lerpHexColor(color, colors[0], magic_progress);
+        let lerped_color = lerpHexColor(zone.color, global_timezone.color, magic_progress);
         ctx.fillStyle = lerped_color;
         image_elements[k].style.filter = hexToCSSFilter(lerped_color).filter.replace(";", "");
       }
     } else {
-      ctx.fillStyle = color;
-      doIfNotDoneLastFrame(`start_color_${k}`, () => image_elements[k].style.filter = hexToCSSFilter(color).filter.replace(";", ""));
+      ctx.fillStyle = zone.color;
+      doIfNotDoneLastFrame(`start_color_${k}`, () => image_elements[k].style.filter = hexToCSSFilter(zone.color).filter.replace(";", ""));
     }
     ctx.fillText(stringFromTime(value), 57 + k * 164, 525);
-  });
+  })
 
   // draw machine
   {
@@ -303,6 +317,79 @@ function every_frame(cur_timestamp: number) {
         ctx.fillStyle = "#052713";
         rectFromCenter(machine.center, Vec2.scale(machine.size, .8 * shown * hovered));
         ctx.fill();
+      }
+    }
+  }
+
+  // draw past players
+  {
+    if (animating_connection === null) {
+      history.forEach((prev, k) => {
+        // skip present player
+        if (k + 1 === history.length) return;
+        // skip if same city (happens when activating machine, since that counts as a turn)
+        if (prev.player_city === player_city) return;
+
+        // TODO: handle a city changing timezone, not just the machine's global on/off timezone
+        let city = getCity(prev.player_city);
+        let present_time = player_time + (machine.active ? timezones[machine.timezone].offset : city.timezone);
+        let past_time = prev.player_time + (prev.machine_active ? timezones[prev.machine_timezone].offset : city.timezone);
+
+        if (present_time === past_time) {
+          ctx.beginPath();
+          ctx.fillStyle = "#c08282";
+          ctx.arc(city.screen_pos.x, city.screen_pos.y, 14, 0, 2 * Math.PI);
+          ctx.fill();
+        }
+      })
+    } else {
+      // TODO
+      for (let [a, b] of pairwise(history)) {
+        if (a.player_city === b.player_city) continue;
+        // we need to treat the outgoing and arriving players differently, since they could be in different timezones
+        let src_city = getCity(a.player_city);
+        let dst_city = getCity(b.player_city);
+        let connection = getConnection(a.player_city, b.player_city)!;
+        let same_zone = src_city.timezone === dst_city.timezone;
+
+        // first, find out time of arrival and departure for outgoing, always in local coordinates for the src city
+        {
+          let outgoing_start_time = a.player_time + (a.machine_active ? timezones[a.machine_timezone].offset : src_city.timezone);
+          let outgoing_end_time = outgoing_start_time + connection.cost;
+
+          let src_present_time = player_time + player_time_anim_offset + (machine.active ? timezones[machine.timezone].offset : src_city.timezone);
+          if (outgoing_start_time < src_present_time && src_present_time < outgoing_end_time) {
+            let travel_t = inverseLerp(outgoing_start_time, outgoing_end_time, src_present_time);
+            // TODO: this .5 should be the exact point where the path changes timezones, which depends on each path
+            if (same_zone || travel_t <= .5) {
+              ctx.beginPath();
+              ctx.fillStyle = "#c08282";
+              let pos = Vec2.lerp(src_city.screen_pos, dst_city.screen_pos, travel_t);
+              ctx.arc(pos.x, pos.y, 4, 0, 2 * Math.PI);
+              ctx.fill();
+            }
+          }
+        }
+
+        // same, for the outgoing travel
+        if (!same_zone) {
+          let incoming_end_time = b.player_time + (b.machine_active ? timezones[b.machine_timezone].offset : dst_city.timezone);
+          let incoming_start_time = incoming_end_time - connection.cost;
+          console.log(`start at ${incoming_start_time} and end at ${incoming_end_time}`)
+
+          let dst_present_time = player_time + player_time_anim_offset + (machine.active ? timezones[machine.timezone].offset : dst_city.timezone);
+          if (incoming_start_time < dst_present_time && dst_present_time < incoming_end_time) {
+            let travel_t = inverseLerp(incoming_start_time, incoming_end_time, dst_present_time);
+            // TODO: this .5 should be the exact point where the path changes timezones, which depends on each path
+            if (travel_t > .5) {
+              ctx.beginPath();
+              ctx.fillStyle = "#c08282";
+              let pos = Vec2.lerp(src_city.screen_pos, dst_city.screen_pos, travel_t);
+              ctx.arc(pos.x, pos.y, 4, 0, 2 * Math.PI);
+              ctx.fill();
+            }
+          }
+        }
       }
     }
   }
@@ -388,9 +475,9 @@ function* tutorialSequence(): Generator<void, void, number> {
     }
   }
   n_show_chars = 0;
-  const text_twist = `AGENT T: did I say 5:40? I meant 5:40, NYC time
+  const text_twist = `AGENT T: did I say 5:40? I meant 5:40, NYC time.
 ññNo way to get there fast enoughñ.ñ.ñ.ññññ unlessñ.ñ.ñ.ñññññ
-Undo back to the start, and go to Californiaññ
+Undo back to the start, and go to California.ññ
 We have a useful device there.`;
   let clock_unhide_anim_t = 0;
   while (true) {
@@ -412,8 +499,8 @@ We have a useful device there.`;
   }
   // machine has been activated!
   n_show_chars = 0;
-  const text_good_job = `AGENT T: Good job! Now the whole USA is on the same timezone.
-ññDon't run into your past self!`;
+  const text_good_job = `AGENT T: Good job! Now the whole USA is on the same
+timezone. ññDon't run into your past self!`;
   while (true) {
     handlerFace();
     let in_pause = text_good_job.charAt(Math.floor(n_show_chars)) === 'ñ';
@@ -425,6 +512,7 @@ We have a useful device there.`;
   return;
 
   function handlerText(text: string) {
+    ctx.beginPath();
     ctx.font = "20px monospace";
     ctx.fillStyle = "#22f24c";
     text = text.replace(/ñ/g, '')
@@ -434,11 +522,13 @@ We have a useful device there.`;
     })
   }
   function handlerFace(offset: number = 0) {
+    ctx.beginPath();
     ctx.fillStyle = "#052713";
     ctx.fillRect(0, 0, canvas.width, (1 - (offset * offset)) * textures.face_handler.height);
     ctx.drawImage(textures.face_handler, 0, -(offset * offset) * textures.face_handler.height);
   }
   function hideClocks(offset: number = 0) {
+    ctx.beginPath();
     ctx.fillStyle = "#000501";
     ctx.fillRect(0, 484, 200 - offset * 350, 150);
     ctx.fillRect(350 + offset * 350, 484, 400, 150);
@@ -446,10 +536,23 @@ We have a useful device there.`;
 }
 
 function stringFromTime(value: number): string {
+  // return `${value * 2}`; // DEBUG
+  return value.toFixed(2);
   let hours = Math.floor(value);
   let minutes = Math.floor(mod(value, 1) * 60).toString().padStart(2, '0');
   return `${hours}:${minutes}`;
 }
+
+// function getLocalTime(city_id: string, player_time: number, machine_active: boolean): number {
+//   switch (city_id) {
+//     case "california":
+
+//       break;
+
+//     default:
+//       break;
+//   }
+// }
 
 function getCity(target_id: string): City {
   let result = cities.find(({ id }) => id === target_id);
