@@ -45,6 +45,7 @@ let image_elements = [
 
 // TODO: properly detect paradoxes
 // TODO: be able to turn off the machine
+// TODO: remove times after 25:00
 
 let timezones = [
   { offset: 0, color: "#3C6CEA" },
@@ -511,7 +512,8 @@ And get to NYC before 5:40!`;
     n_show_chars = towards(n_show_chars, text_good_job.length, (in_pause ? .05 : 1) * dt / .02);
     let shown_text = text_good_job.slice(0, Math.floor(n_show_chars));
     handlerText(shown_text);
-    if (player_city === "nyc" && player_time <= 11) {
+    // TODO: ideally, this would be 'player_local_time <= 11'
+    if (player_city === "nyc" && player_time <= 11 && machine.active) {
       break;
     }
     dt = yield;
