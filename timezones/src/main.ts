@@ -47,26 +47,26 @@ let timezones = [
   { offset: 6, color: "#FCCA43" },
 ];
 
-type City = { id: string, screen_pos: Vec2, timezone: number };
+type City = { id: string, screen_pos: Vec2, offset: number };
 let cities: City[] = [
-  { id: "alamos", screen_pos: new Vec2(300, 350), timezone: 2 },
-  { id: "california", screen_pos: new Vec2(130, 320), timezone: 0 },
-  { id: "montana", screen_pos: new Vec2(270, 160), timezone: 2 },
-  { id: "nowhere", screen_pos: new Vec2(440, 265), timezone: 4 },
-  { id: "nyc", screen_pos: new Vec2(645, 230), timezone: 6 },
-  { id: "dc", screen_pos: new Vec2(625, 320), timezone: 6 },
+  { id: "alamos", screen_pos: new Vec2(300, 350), offset: 2 },
+  { id: "california", screen_pos: new Vec2(130, 320), offset: 0 },
+  { id: "montana", screen_pos: new Vec2(270, 160), offset: 2 },
+  { id: "nowhere", screen_pos: new Vec2(440, 265), offset: 4 },
+  { id: "nyc", screen_pos: new Vec2(645, 230), offset: 6 },
+  { id: "dc", screen_pos: new Vec2(625, 320), offset: 6 },
 ];
 
 // TODO: remove label_offset
-type Connection = { a: string, b: string, cost: number, label_offset: Vec2 };
+type Connection = { id_a: string, id_b: string, cost: number, label_offset: Vec2, cross_points: { delta_offset: number, t: number }[] };
 let connections: Connection[] = [
-  { a: "alamos", b: "nowhere", cost: 2, label_offset: new Vec2(-10, -10) },
-  { a: "alamos", b: "dc", cost: 3, label_offset: new Vec2(0, 25) },
-  { a: "alamos", b: "california", cost: 2, label_offset: new Vec2(1, -2) },
-  { a: "montana", b: "california", cost: 3, label_offset: new Vec2(0, -20) },
-  { a: "montana", b: "nyc", cost: 4, label_offset: new Vec2(-75, -15) },
-  { a: "nowhere", b: "nyc", cost: 2, label_offset: new Vec2(-30, 25) },
-  { a: "dc", b: "nyc", cost: 1, label_offset: new Vec2(5, 15) },
+  { id_a: "alamos", id_b: "nowhere", cost: 2, label_offset: new Vec2(-10, -10), cross_points: [{ delta_offset: 2, t: .3 }] },
+  { id_a: "alamos", id_b: "dc", cost: 3, label_offset: new Vec2(0, 25), cross_points: [{ delta_offset: 2, t: .15 }, { delta_offset: 2, t: .7 }] },
+  { id_a: "alamos", id_b: "california", cost: 2, label_offset: new Vec2(1, -2), cross_points: [{ delta_offset: -2, t: .6 }] },
+  { id_a: "montana", id_b: "california", cost: 3, label_offset: new Vec2(0, -20), cross_points: [{ delta_offset: -2, t: .4 }] },
+  { id_a: "montana", id_b: "nyc", cost: 4, label_offset: new Vec2(-75, -15), cross_points: [{ delta_offset: 2, t: .2 }, { delta_offset: 2, t: .6 }] },
+  { id_a: "nowhere", id_b: "nyc", cost: 2, label_offset: new Vec2(-30, 25), cross_points: [{ delta_offset: 2, t: .4 }] },
+  { id_a: "dc", id_b: "nyc", cost: 1, label_offset: new Vec2(5, 15), cross_points: [] },
 ];
 
 let player_time = 2.0;
@@ -116,13 +116,13 @@ document.addEventListener("pointerdown", ev => {
   if (player_city !== null && hovering_city !== null) {
     let connection = getConnection(player_city, hovering_city);
     if (connection !== null) {
-      animating_connection = { a: player_city, b: hovering_city, cost: connection.cost, label_offset: Vec2.zero };
+      animating_connection = { id_a: player_city, id_b: hovering_city, cost: connection.cost, label_offset: Vec2.zero, cross_points: [] };
       player_city = null;
     }
   } else if (undo_button.hovering) {
     if (animating_connection !== null) {
       // special case: just cancel the animation
-      player_city = animating_connection.a;
+      player_city = animating_connection.id_a;
       player_time_anim_offset = 0;
       animating_connection = null;
       cancelSequentialAnimation("shrink_travel_grow");
@@ -171,8 +171,8 @@ function every_frame(cur_timestamp: number) {
   ctx.beginPath();
   ctx.strokeStyle = "white";
   connections.forEach(con => {
-    let city_a = cities.find(({ id }) => id === con.a)!;
-    let city_b = cities.find(({ id }) => id === con.b)!;
+    let city_a = cities.find(({ id }) => id === con.id_a)!;
+    let city_b = cities.find(({ id }) => id === con.id_b)!;
     ctx.moveTo(city_a.screen_pos.x, city_a.screen_pos.y);
     ctx.lineTo(city_b.screen_pos.x, city_b.screen_pos.y);
 
@@ -214,7 +214,7 @@ function every_frame(cur_timestamp: number) {
       {
         duration: .2,
         onUpdate: (t: number) => {
-          let src_city = getCity(animating_connection!.a);
+          let src_city = getCity(animating_connection!.id_a);
           ctx.fillStyle = "red";
           ctx.beginPath();
           ctx.arc(src_city.screen_pos.x, src_city.screen_pos.y, 15 - t * 10, 0, 2 * Math.PI);
@@ -227,8 +227,8 @@ function every_frame(cur_timestamp: number) {
           player_time_anim_offset = t * animating_connection!.cost;
 
           let lerp_pos = Vec2.lerp(
-            getCity(animating_connection!.a).screen_pos,
-            getCity(animating_connection!.b).screen_pos,
+            getCity(animating_connection!.id_a).screen_pos,
+            getCity(animating_connection!.id_b).screen_pos,
             t
           );
           ctx.fillStyle = "red";
@@ -240,7 +240,7 @@ function every_frame(cur_timestamp: number) {
       {
         duration: .2,
         onUpdate: (t: number) => {
-          let dst_city = getCity(animating_connection!.b);
+          let dst_city = getCity(animating_connection!.id_b);
           ctx.fillStyle = "red";
           ctx.beginPath();
           ctx.arc(dst_city.screen_pos.x, dst_city.screen_pos.y, 5 + t * 10, 0, 2 * Math.PI);
@@ -248,7 +248,7 @@ function every_frame(cur_timestamp: number) {
         }
       }
     ], () => {
-      player_city = animating_connection!.b;
+      player_city = animating_connection!.id_b;
       animating_connection = null;
 
       player_time += player_time_anim_offset;
@@ -323,6 +323,7 @@ function every_frame(cur_timestamp: number) {
 
   // draw past players
   {
+    // static past players
     if (animating_connection === null) {
       history.forEach((prev, k) => {
         // skip present player
@@ -332,8 +333,8 @@ function every_frame(cur_timestamp: number) {
 
         // TODO: handle a city changing timezone, not just the machine's global on/off timezone
         let city = getCity(prev.player_city);
-        let present_time = player_time + (machine.active ? timezones[machine.timezone].offset : city.timezone);
-        let past_time = prev.player_time + (prev.machine_active ? timezones[prev.machine_timezone].offset : city.timezone);
+        let present_time = player_time + (machine.active ? timezones[machine.timezone].offset : city.offset);
+        let past_time = prev.player_time + (prev.machine_active ? timezones[prev.machine_timezone].offset : city.offset);
 
         if (present_time === past_time) {
           ctx.beginPath();
@@ -342,54 +343,35 @@ function every_frame(cur_timestamp: number) {
           ctx.fill();
         }
       })
-    } else {
-      // TODO
+    }
+    // travelling past players
+    {
       for (let [a, b] of pairwise(history)) {
         if (a.player_city === b.player_city) continue;
-        // we need to treat the outgoing and arriving players differently, since they could be in different timezones
-        let src_city = getCity(a.player_city);
+        // TODO: handle this case:
+        if (a.machine_active || b.machine_active) continue;
+
         let dst_city = getCity(b.player_city);
-        let connection = getConnection(a.player_city, b.player_city)!;
-        let same_zone = src_city.timezone === dst_city.timezone;
+        let src_city = getCity(a.player_city);
+        let connection = getDirectedConnection(a.player_city, b.player_city)!;
 
-        // first, find out time of arrival and departure for outgoing, always in local coordinates for the src city
-        {
-          let outgoing_start_time = a.player_time + (a.machine_active ? timezones[a.machine_timezone].offset : src_city.timezone);
-          let outgoing_end_time = outgoing_start_time + connection.cost;
+        let segments = segmentsFromConnection(connection, src_city.offset);
+        let true_start_time = a.player_time;
+        let true_end_time = b.player_time; // same as: true_start_time + connection.cost;
 
-          let src_present_time = player_time + player_time_anim_offset + (machine.active ? timezones[machine.timezone].offset : src_city.timezone);
-          if (outgoing_start_time < src_present_time && src_present_time < outgoing_end_time) {
-            let travel_t = inverseLerp(outgoing_start_time, outgoing_end_time, src_present_time);
-            // TODO: this .5 should be the exact point where the path changes timezones, which depends on each path
-            if (same_zone || travel_t <= .5) {
-              ctx.beginPath();
-              ctx.fillStyle = "#c08282";
-              let pos = Vec2.lerp(src_city.screen_pos, dst_city.screen_pos, travel_t);
-              ctx.arc(pos.x, pos.y, 4, 0, 2 * Math.PI);
-              ctx.fill();
-            }
+        segments.forEach(segment => {
+          let local_start_time = true_start_time + segment.offset;
+          let local_end_time = true_end_time + segment.offset;
+          let local_present_time = player_time + player_time_anim_offset + (machine.active ? timezones[machine.timezone].offset : segment.offset);
+          let travel_t = inverseLerp(local_start_time, local_end_time, local_present_time);
+          if (segment.start_t < travel_t && travel_t < segment.end_t) {
+            ctx.beginPath();
+            ctx.fillStyle = "#c08282";
+            let pos = Vec2.lerp(src_city.screen_pos, dst_city.screen_pos, travel_t);
+            ctx.arc(pos.x, pos.y, 4, 0, 2 * Math.PI);
+            ctx.fill();
           }
-        }
-
-        // same, for the outgoing travel
-        if (!same_zone) {
-          let incoming_end_time = b.player_time + (b.machine_active ? timezones[b.machine_timezone].offset : dst_city.timezone);
-          let incoming_start_time = incoming_end_time - connection.cost;
-          console.log(`start at ${incoming_start_time} and end at ${incoming_end_time}`)
-
-          let dst_present_time = player_time + player_time_anim_offset + (machine.active ? timezones[machine.timezone].offset : dst_city.timezone);
-          if (incoming_start_time < dst_present_time && dst_present_time < incoming_end_time) {
-            let travel_t = inverseLerp(incoming_start_time, incoming_end_time, dst_present_time);
-            // TODO: this .5 should be the exact point where the path changes timezones, which depends on each path
-            if (travel_t > .5) {
-              ctx.beginPath();
-              ctx.fillStyle = "#c08282";
-              let pos = Vec2.lerp(src_city.screen_pos, dst_city.screen_pos, travel_t);
-              ctx.arc(pos.x, pos.y, 4, 0, 2 * Math.PI);
-              ctx.fill();
-            }
-          }
-        }
+        });
       }
     }
   }
@@ -410,6 +392,21 @@ function every_frame(cur_timestamp: number) {
     ctx.font = "20px monospace";
     ctx.fillStyle = "#22f24c";
     ctx.fillText("undo", undo_button.top_left.x + 9, undo_button.top_left.y + 21);
+  }
+
+  // DEBUG
+  if (false) {
+    connections.forEach(con => {
+      let src_city = getCity(con.id_a);
+      let dst_city = getCity(con.id_b);
+      con.cross_points.forEach(({ t }) => {
+        let screen_pos = Vec2.lerp(src_city.screen_pos, dst_city.screen_pos, t);
+        ctx.beginPath();
+        ctx.fillStyle = "magenta";
+        ctx.arc(screen_pos.x, screen_pos.y, 4, 0, 2 * Math.PI);
+        ctx.fill();
+      })
+    })
   }
 
   DINDLF_endFrame();
@@ -528,6 +525,7 @@ timezone. ññDon't run into your past self!`;
     ctx.drawImage(textures.face_handler, 0, -(offset * offset) * textures.face_handler.height);
   }
   function hideClocks(offset: number = 0) {
+    return; // DEBUG
     ctx.beginPath();
     ctx.fillStyle = "#000501";
     ctx.fillRect(0, 484, 200 - offset * 350, 150);
@@ -543,17 +541,6 @@ function stringFromTime(value: number): string {
   return `${hours}:${minutes}`;
 }
 
-// function getLocalTime(city_id: string, player_time: number, machine_active: boolean): number {
-//   switch (city_id) {
-//     case "california":
-
-//       break;
-
-//     default:
-//       break;
-//   }
-// }
-
 function getCity(target_id: string): City {
   let result = cities.find(({ id }) => id === target_id);
   if (result === undefined) throw new Error(`no city with id ${target_id}`);
@@ -561,9 +548,40 @@ function getCity(target_id: string): City {
 }
 
 function getConnection(id_a: string, id_b: string): Connection | null {
-  return connections.find(({ a, b }) => {
+  return connections.find(({ id_a: a, id_b: b }) => {
     return (id_a === a && id_b === b) || (id_b === a && id_a === b);
   }) || null;
+}
+
+function getDirectedConnection(id_a: string, id_b: string): Connection {
+  for (const con of connections) {
+    if (con.id_a === id_a && con.id_b === id_b) return con;
+    if (con.id_b === id_a && con.id_a === id_b) {
+      return { id_a: id_a, id_b: id_b, cost: con.cost, label_offset: con.label_offset, cross_points: con.cross_points.map(p => ({ delta_offset: -p.delta_offset, t: 1 - p.t })).reverse() };
+    }
+  }
+  throw new Error(`no connection between ${id_a} and ${id_b}`);
+}
+
+function segmentsFromConnection(connection: Connection, src_offset: number) {
+  let cur_t = 0.0;
+  let cur_offset = src_offset;
+  let result: { start_t: number, end_t: number, offset: number }[] = [];
+  connection.cross_points.forEach(cross_point => {
+    result.push({
+      start_t: cur_t,
+      end_t: cross_point.t,
+      offset: cur_offset,
+    });
+    cur_t = cross_point.t;
+    cur_offset += cross_point.delta_offset;
+  });
+  result.push({
+    start_t: cur_t,
+    end_t: 1,
+    offset: cur_offset,
+  });
+  return result;
 }
 
 ///////////////////////////////////
