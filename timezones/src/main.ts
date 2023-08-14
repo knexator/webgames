@@ -115,7 +115,7 @@ document.addEventListener("pointermove", ev => {
   machine.hovering = machine.shown && Vec2.isInsideBox(mouse_pos, machine.center, machine.size);
 });
 
-document.addEventListener("pointerdown", ev => {
+document.addEventListener("pointerdown", _ev => {
   // TODO: won't work on mobile
   if (player_city !== null && hovering_city !== null) {
     let connection = getConnection(player_city, hovering_city);
@@ -663,7 +663,7 @@ type AnimValueOptions = {
   targetValue: number;
   lerpFactor: number;
 }
-function animValue(name: string, dt: number, options: AnimValueOptions) {
+function animValue(name: string, _dt: number, options: AnimValueOptions) {
   if (!_anim_vals.has(name)) {
     _anim_vals.set(name, options.targetValue);
   } else {
