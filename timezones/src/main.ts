@@ -108,7 +108,7 @@ let machine = {
 let history = [{ player_city: player_city, player_time: player_time, machine_active: machine.active, machine_timezone: machine.timezone }];
 
 let tutorial_sequence: ReturnType<typeof tutorialSequence> | null = tutorialSequence();
-tutorial_sequence.next();
+// tutorial_sequence.next();
 
 let last_timestamp: number | null = null;
 
@@ -423,10 +423,24 @@ function every_frame(cur_timestamp: number) {
   requestAnimationFrame(every_frame);
 }
 
-function* tutorialSequence(): Generator<void, void, number> {
+function* gradualText(text: string): Generator<string, never, number> {
+  let n_show_chars = 0;
+  let dt = yield "";
+  while (n_show_chars < text.length) {
+    let in_pause = text.charAt(Math.floor(n_show_chars)) === 'ñ';
+    n_show_chars = towards(n_show_chars, text.length, (in_pause ? .05 : 1) * dt / .02);
+    dt = yield text.slice(0, Math.floor(n_show_chars));
+  }
+  while (true) {
+    yield text;
+  }
+}
+
+function* tutorialSequence(): Generator<void, never, number> {
   // initialization
   // let stuff = ...;
-  let dt = yield;
+  // let dt = yield;
+  let dt = 0;
 
   // We must get to NYC at 5:30!
   // drop down
@@ -438,16 +452,7 @@ function* tutorialSequence(): Generator<void, void, number> {
     dt = yield;
   }
   // write text
-  const text_intro = "AGENT T: Hey there kiddo, get to NYC before 5:40";
-  let n_show_chars = 0;
-  while (n_show_chars < text_intro.length) {
-    hideClocks();
-    handlerFace();
-    n_show_chars = towards(n_show_chars, text_intro.length, dt / .02);
-    handlerText(text_intro.slice(0, Math.floor(n_show_chars)));
-    // TODO (big): if yield also gave user input state, we could "press to skip"
-    dt = yield;
-  }
+  let text_intro = gradualText("AGENT T: Hey there kiddo, get to NYC before 5:40");
   let success = false;
   while (true) {
     if (player_time > 9) {
@@ -462,38 +467,33 @@ function* tutorialSequence(): Generator<void, void, number> {
     } else {
       hideClocks();
       handlerFace();
-      handlerText(text_intro);
+      handlerText(text_intro.next(dt).value);
       dt = yield;
     }
   }
 
   if (!success) {
-    const text_dissapointed = "AGENT T: come on, this is no game. Undo and try again.\nñWe really need you in NYC before 5:40";
-    n_show_chars = 0;
+    let text_dissapointed = gradualText("AGENT T: come on, this is no game. Undo and try again.\nñWe really need you in NYC before 5:40");
     while (true) {
       hideClocks();
       handlerFace();
-      n_show_chars = towards(n_show_chars, text_dissapointed.length, dt / .02);
-      handlerText(text_dissapointed.slice(0, Math.floor(n_show_chars)));
+      handlerText(text_dissapointed.next(dt).value);
       if (player_city === "nyc" && player_time <= 9) {
         break;
       }
       dt = yield;
     }
   }
-  n_show_chars = 0;
-  const text_twist = `AGENT T: did I say 5:40? I meant 5:40, NYC time.
+  let text_twist = gradualText(`AGENT T: did I say 5:40? I meant 5:40, NYC time.
 ññNo way to get there fast enoughñ.ñ.ñ.ññññ unlessñ.ñ.ñ.ñññññ
 Undo back to the start, and go to California.ññ
-We have a useful device there.`;
+We have a useful device there.`);
   let clock_unhide_anim_t = 0;
   while (true) {
     clock_unhide_anim_t = towards(clock_unhide_anim_t, 1, dt / 1);
     hideClocks(clock_unhide_anim_t);
     handlerFace();
-    let in_pause = text_twist.charAt(Math.floor(n_show_chars)) === 'ñ';
-    n_show_chars = towards(n_show_chars, text_twist.length, (in_pause ? .05 : 1) * dt / .02);
-    let shown_text = text_twist.slice(0, Math.floor(n_show_chars));
+    let shown_text = text_twist.next(dt).value;
     handlerText(shown_text);
     if (!machine.shown && shown_text.includes("California")) {
       machine.shown = true;
@@ -504,16 +504,12 @@ We have a useful device there.`;
     dt = yield;
   }
   // machine has been activated!
-  n_show_chars = 0;
-  const text_good_job = `AGENT T: Good job! Now the whole USA is on the same
+  const text_good_job = gradualText(`AGENT T: Good job! Now the whole USA is on the same
 timezone. ññDon't run into your past self!
-And get to NYC before 5:40!`;
+And get to NYC before 5:40!`);
   while (true) {
     handlerFace();
-    let in_pause = text_good_job.charAt(Math.floor(n_show_chars)) === 'ñ';
-    n_show_chars = towards(n_show_chars, text_good_job.length, (in_pause ? .05 : 1) * dt / .02);
-    let shown_text = text_good_job.slice(0, Math.floor(n_show_chars));
-    handlerText(shown_text);
+    handlerText(text_good_job.next(dt).value);
     // TODO: ideally, this would be 'player_local_time <= 11'
     if (player_city === "nyc" && player_time <= 11 && machine.active) {
       break;
@@ -521,19 +517,14 @@ And get to NYC before 5:40!`;
     dt = yield;
   }
   // won!
-  n_show_chars = 0;
-  const text_ending = `AGENT T: oh yeah baby you've saved AñMñEñRñIñCñAñ!
+  const text_ending = gradualText(`AGENT T: oh yeah baby you've saved AñMñEñRñIñCñAñ!
 ñNo further instructions for now, you've earned a rest
-ñ.ñ.ñ.until your next mission.`;
+ñ.ñ.ñ.until your next mission.`);
   while (true) {
     handlerFace();
-    let in_pause = text_ending.charAt(Math.floor(n_show_chars)) === 'ñ';
-    n_show_chars = towards(n_show_chars, text_ending.length, (in_pause ? .2 : 1) * dt / .02);
-    let shown_text = text_ending.slice(0, Math.floor(n_show_chars));
-    handlerText(shown_text);
+    handlerText(text_ending.next(dt).value);
     dt = yield;
   }
-  return;
 
   function handlerText(text: string) {
     ctx.beginPath();
