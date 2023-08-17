@@ -3,6 +3,7 @@ import GUI from "lil-gui"
 import { imageFromUrl } from "../../kommon/kanvas"
 import { lerpHexColor, pairwise } from "../../kommon/kommon"
 import { Vec2, clamp, inverseLerp, lerp, mod, towards } from "../../kommon/math"
+import { Input, MouseListener } from "../../kommon/input"
 
 import map_vanilla_url from "./images/map_vanilla.png?url"
 import face_handler_url from "./images/face_handler.png?url"
@@ -41,7 +42,9 @@ let image_elements = [
   document.querySelector("#alamos") as HTMLImageElement,
   document.querySelector("#nowhere") as HTMLImageElement,
   document.querySelector("#nyc") as HTMLImageElement,
-]
+];
+
+let input = new Input();
 
 // TODO: properly detect paradoxes
 // TODO: be able to turn off the machine
@@ -107,51 +110,8 @@ let history = [{ player_city: player_city, player_time: player_time, machine_act
 let tutorial_sequence: ReturnType<typeof tutorialSequence> | null = tutorialSequence();
 tutorial_sequence.next();
 
-document.addEventListener("pointermove", ev => {
-  let mouse_pos = new Vec2(ev.clientX, ev.clientY);
-  hovering_city = cities.find(({ screen_pos }) => {
-    return (20 * 20) > Vec2.magSq(Vec2.sub(mouse_pos, screen_pos));
-  })?.id || null;
-  undo_button.hovering = Vec2.inBounds(Vec2.sub(mouse_pos, undo_button.top_left), undo_button.size);
-  machine.hovering = machine.shown && Vec2.isInsideBox(mouse_pos, machine.center, machine.size);
-});
-
-document.addEventListener("pointerdown", _ev => {
-  // TODO: won't work on mobile
-  if (player_city !== null && hovering_city !== null) {
-    let connection = getConnection(player_city, hovering_city);
-    if (connection !== null) {
-      // TODO: proper handling of past players
-      if (!isPresentOrPastPlayerOnCity(hovering_city, player_time)) {
-        animating_connection = { id_a: player_city, id_b: hovering_city, cost: connection.cost, label_offset: Vec2.zero, cross_points: [] };
-        player_city = null;
-      }
-    }
-  } else if (undo_button.hovering) {
-    if (animating_connection !== null) {
-      // special case: just cancel the animation
-      player_city = animating_connection.id_a;
-      player_time_anim_offset = 0;
-      animating_connection = null;
-      cancelSequentialAnimation("shrink_travel_grow");
-    } else if (history.length > 1) {
-      history.pop();
-      let prev = history[history.length - 1];
-      player_city = prev.player_city;
-      player_time = prev.player_time;
-      machine.active = prev.machine_active;
-    }
-  } else if (machine.shown && !machine.active && machine.hovering) {
-    if (player_city === "california") {
-      machine.active = true;
-      history.push({ player_time: player_time, player_city: player_city, machine_active: machine.active, machine_timezone: machine.timezone });
-    }
-  } /* else { // DEBUG
-    console.log(history);
-  }*/
-})
-
 let last_timestamp: number | null = null;
+
 // main loop; game logic lives here
 function every_frame(cur_timestamp: number) {
   if (last_timestamp === null) {
@@ -163,11 +123,52 @@ function every_frame(cur_timestamp: number) {
     return;
   }
 
+  input.startFrame();
+
   // in seconds
   let delta_time = (cur_timestamp - last_timestamp) / 1000;
   last_timestamp = cur_timestamp;
 
   // update
+  let mouse_pos = new Vec2(input.mouse.clientX, input.mouse.clientY);
+
+  hovering_city = cities.find(({ screen_pos }) => {
+    return (20 * 20) > Vec2.magSq(Vec2.sub(mouse_pos, screen_pos));
+  })?.id || null;
+  undo_button.hovering = Vec2.inBounds(Vec2.sub(mouse_pos, undo_button.top_left), undo_button.size);
+  machine.hovering = machine.shown && Vec2.isInsideBox(mouse_pos, machine.center, machine.size);
+
+  if (input.mouse.left && !input.prev_mouse.left) {
+    if (player_city !== null && hovering_city !== null) {
+      let connection = getConnection(player_city, hovering_city);
+      if (connection !== null) {
+        // TODO: proper handling of past players
+        if (!isPresentOrPastPlayerOnCity(hovering_city, player_time)) {
+          animating_connection = { id_a: player_city, id_b: hovering_city, cost: connection.cost, label_offset: Vec2.zero, cross_points: [] };
+          player_city = null;
+        }
+      }
+    } else if (undo_button.hovering) {
+      if (animating_connection !== null) {
+        // special case: just cancel the animation
+        player_city = animating_connection.id_a;
+        player_time_anim_offset = 0;
+        animating_connection = null;
+        cancelSequentialAnimation("shrink_travel_grow");
+      } else if (history.length > 1) {
+        history.pop();
+        let prev = history[history.length - 1];
+        player_city = prev.player_city;
+        player_time = prev.player_time;
+        machine.active = prev.machine_active;
+      }
+    } else if (machine.shown && !machine.active && machine.hovering) {
+      if (player_city === "california") {
+        machine.active = true;
+        history.push({ player_time: player_time, player_city: player_city, machine_active: machine.active, machine_timezone: machine.timezone });
+      }
+    }
+  }
 
   // draw
   // ctx.drawImage(textures.map_vanilla, 0, 0);
@@ -417,6 +418,7 @@ function every_frame(cur_timestamp: number) {
     })
   }
 
+  input.endFrame();
   DINDLF_endFrame();
   requestAnimationFrame(every_frame);
 }
