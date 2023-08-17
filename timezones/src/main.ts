@@ -428,6 +428,7 @@ function* gradualText(text: string): Generator<string, never, number> {
   let dt = yield "";
   while (n_show_chars < text.length) {
     let in_pause = text.charAt(Math.floor(n_show_chars)) === 'ñ';
+    // if (input.mouse.left) break; // skip text animation
     n_show_chars = towards(n_show_chars, text.length, (in_pause ? .05 : 1) * dt / .02);
     dt = yield text.slice(0, Math.floor(n_show_chars));
   }
@@ -435,6 +436,16 @@ function* gradualText(text: string): Generator<string, never, number> {
     yield text;
   }
 }
+
+// Not needed for now
+// function* zeroToOne(duration: number): Generator<number, void, number> {
+//   let dt = 0;
+//   let cur = 0;
+//   while (cur < 1) {
+//     cur = towards(cur, 1, dt / duration);
+//     dt = yield cur;
+//   }
+// }
 
 function* tutorialSequence(): Generator<void, never, number> {
   // initialization
@@ -444,13 +455,14 @@ function* tutorialSequence(): Generator<void, never, number> {
 
   // We must get to NYC at 5:30!
   // drop down
-  let offset = 1;
-  while (offset > 0) {
-    offset = towards(offset, 0, dt / .5);
+  for (let offset = 1; offset > 0; offset -= dt / .5) {
     hideClocks();
     handlerFace(offset);
     dt = yield;
   }
+  // maybe better? would need dt to be a global
+  // for (const offset of zeroToOne(.5)) {
+
   // write text
   let text_intro = gradualText("AGENT T: Hey there kiddo, get to NYC before 5:40");
   let success = false;
