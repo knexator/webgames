@@ -2,7 +2,7 @@ import GUI from "lil-gui"
 
 import { imageFromUrl } from "../../kommon/kanvas"
 import { lerpHexColor, pairwise } from "../../kommon/kommon"
-import { Vec2, clamp, inverseLerp, lerp, mod, towards } from "../../kommon/math"
+import { Vec2, clamp, inverseLerp, lerp, mod, remap, towards } from "../../kommon/math"
 import { Input, MouseListener } from "../../kommon/input"
 
 import map_vanilla_url from "./images/map_vanilla.png?url"
@@ -223,6 +223,8 @@ function every_frame(cur_timestamp: number) {
       {
         duration: .2,
         onUpdate: (t: number) => {
+          player_time_anim_offset = t * .4;
+
           let src_city = getCity(animating_connection!.id_a);
           ctx.fillStyle = "red";
           ctx.beginPath();
@@ -231,9 +233,9 @@ function every_frame(cur_timestamp: number) {
         }
       },
       {
-        duration: .5 * animating_connection.cost,
+        duration: .5 * animating_connection.cost - .4,
         onUpdate: (t: number) => {
-          player_time_anim_offset = t * animating_connection!.cost;
+          player_time_anim_offset = lerp(.4, animating_connection!.cost - .4, t);
 
           let lerp_pos = Vec2.lerp(
             getCity(animating_connection!.id_a).screen_pos,
@@ -249,6 +251,8 @@ function every_frame(cur_timestamp: number) {
       {
         duration: .2,
         onUpdate: (t: number) => {
+          player_time_anim_offset = animating_connection!.cost - .4 + t * .4;
+
           let dst_city = getCity(animating_connection!.id_b);
           ctx.fillStyle = "red";
           ctx.beginPath();
