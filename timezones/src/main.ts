@@ -49,7 +49,7 @@ let image_elements = [
 let input = new Input();
 
 // TODO: properly detect paradoxes
-// TODO: be able to turn off the machine
+// TODO: be able to move the machine
 // TODO: remove times after 25:00
 
 let timezones = [
@@ -102,6 +102,7 @@ let machine = {
   shown: false, // DEBUG: true
   active: false,
   timezone: 0,
+  city_id: "california",
   center: new Vec2(68, 317),
   size: new Vec2(40, 40),
   hovering: false,
@@ -110,7 +111,6 @@ let machine = {
 let history = [{ player_city: player_city, player_time: player_time, machine_active: machine.active, machine_timezone: machine.timezone }];
 
 let tutorial_sequence: ReturnType<typeof tutorialSequence> | null = tutorialSequence();
-// tutorial_sequence.next();
 
 let last_timestamp: number | null = null;
 
@@ -164,11 +164,9 @@ function every_frame(cur_timestamp: number) {
         player_time = prev.player_time;
         machine.active = prev.machine_active;
       }
-    } else if (machine.shown && !machine.active && machine.hovering) {
-      if (player_city === "california") {
-        machine.active = true;
-        history.push({ player_time: player_time, player_city: player_city, machine_active: machine.active, machine_timezone: machine.timezone });
-      }
+    } else if (machine.shown && machine.hovering && player_city === machine.city_id) {
+      machine.active = !machine.active;
+      history.push({ player_time: player_time, player_city: player_city, machine_active: machine.active, machine_timezone: machine.timezone });
     }
   }
 
@@ -312,7 +310,7 @@ function every_frame(cur_timestamp: number) {
   {
     if (machine.shown) {
       if (machine.active) {
-        let remaining = animValue("machine_hovered", delta_time, { targetValue: 0, lerpFactor: .2 });
+        let remaining = animValue("machine_hovered", delta_time, { targetValue: machine.hovering ? (player_city === machine.city_id ? .3 : .1) : 0, lerpFactor: .2 });
         ctx.beginPath();
         ctx.fillStyle = "#22f24c";
         rectFromCenter(machine.center, machine.size);
@@ -323,7 +321,7 @@ function every_frame(cur_timestamp: number) {
         ctx.fill();
       } else {
         let shown = animValue("machine_shown", delta_time, { targetValue: 1, lerpFactor: .04 });
-        let hovered = animValue("machine_hovered", delta_time, { targetValue: machine.hovering ? (player_city === "california" ? .6 : .9) : 1, lerpFactor: .2 });
+        let hovered = animValue("machine_hovered", delta_time, { targetValue: machine.hovering ? (player_city === machine.city_id ? .7 : .9) : 1, lerpFactor: .2 });
         ctx.beginPath();
         ctx.fillStyle = "#22f24c";
         rectFromCenter(machine.center, Vec2.scale(machine.size, shown));
