@@ -49,6 +49,7 @@ let image_elements = [
 let input = new Input();
 
 // TODO: properly detect paradoxes
+// TODO: generalize, stop with all the (machine.active ? a : b)
 // TODO: be able to move the machine
 // TODO: remove times after 25:00
 
@@ -99,10 +100,10 @@ let undo_button = {
 };
 
 let machine = {
-  shown: false, // DEBUG: true
+  shown: false, // DEBUG: false
   active: false,
-  timezone: 0,
-  city_id: "california",
+  timezone: 0, // DEBUG: 0
+  city_id: "california", // DEBUG: california 
   center: new Vec2(68, 317),
   size: new Vec2(40, 40),
   hovering: false,
@@ -362,7 +363,7 @@ function every_frame(cur_timestamp: number) {
       for (let [a, b] of pairwise(history)) {
         if (a.player_city === b.player_city) continue;
         // TODO: handle this case:
-        if (a.machine_active || b.machine_active) continue;
+        if (a.machine_active !== b.machine_active) throw new Error("on a single turn, player moved & machine changed");
 
         let dst_city = getCity(b.player_city);
         let src_city = getCity(a.player_city);
@@ -374,8 +375,8 @@ function every_frame(cur_timestamp: number) {
 
         // initial shrink
         {
-          let shrink_start_time = true_start_time + segments[0].offset;
-          let shrink_end_time = true_end_time + segments[0].offset;
+          let shrink_start_time = true_start_time + (a.machine_active ? timezones[machine.timezone].offset : segments[0].offset);
+          let shrink_end_time = true_end_time + (a.machine_active ? timezones[machine.timezone].offset : segments[0].offset);
           let shrink_present_time = player_time + player_time_anim_offset + (machine.active ? timezones[machine.timezone].offset : segments[0].offset);
           let shrink_t = inverseLerp(shrink_start_time, shrink_end_time, shrink_present_time);
           if (0 < shrink_t && shrink_t < .2) {
@@ -387,8 +388,8 @@ function every_frame(cur_timestamp: number) {
         }
 
         segments.forEach(segment => {
-          let local_start_time = true_start_time + segment.offset;
-          let local_end_time = true_end_time + segment.offset;
+          let local_start_time = true_start_time + (a.machine_active ? timezones[machine.timezone].offset : segment.offset);
+          let local_end_time = true_end_time + (a.machine_active ? timezones[machine.timezone].offset : segment.offset);
           let local_present_time = player_time + player_time_anim_offset + (machine.active ? timezones[machine.timezone].offset : segment.offset);
           let travel_t = inverseLerp(local_start_time, local_end_time, local_present_time);
           travel_t = remap(travel_t, .2, .8, 0, 1);
@@ -403,7 +404,7 @@ function every_frame(cur_timestamp: number) {
 
         // final grow
         {
-          let last_segment_offset = segments[segments.length - 1].offset;
+          let last_segment_offset = b.machine_active ? timezones[machine.timezone].offset : segments[segments.length - 1].offset;
           let grow_start_time = true_start_time + last_segment_offset;
           let grow_end_time = true_end_time + last_segment_offset;
           let grow_present_time = player_time + player_time_anim_offset + (machine.active ? timezones[machine.timezone].offset : last_segment_offset);
