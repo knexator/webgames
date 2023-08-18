@@ -10,22 +10,24 @@ import face_handler_url from "./images/face_handler.png?url"
 import { hexToCSSFilter } from "hex-to-css-filter"
 
 const CONFIG = {
+  tmp1: 1.0,
   tmp50: 50,
   tmp250: 250,
   tmp500: 500,
   color: "#000000",
 };
 
-/*
-// DEBUG
-const gui = new GUI();
-gui.add(CONFIG, "tmp50", 0, 100);
-gui.add(CONFIG, "tmp250", 0, 500);
-gui.add(CONFIG, "tmp500", 0, 1000);
-gui.addColor(CONFIG, "color");
-gui.domElement.style.bottom = "0px";
-gui.domElement.style.top = "auto";
-*/
+if (false) {
+  // DEBUG
+  const gui = new GUI();
+  gui.add(CONFIG, "tmp1", 0, 2);
+  gui.add(CONFIG, "tmp50", 0, 100);
+  gui.add(CONFIG, "tmp250", 0, 500);
+  gui.add(CONFIG, "tmp500", 0, 1000);
+  gui.addColor(CONFIG, "color");
+  gui.domElement.style.bottom = "0px";
+  gui.domElement.style.top = "auto";
+}
 
 const canvas = document.querySelector<HTMLCanvasElement>("#game_canvas")!;
 const ctx = canvas.getContext("2d")!;
@@ -97,7 +99,7 @@ let undo_button = {
 };
 
 let machine = {
-  shown: false,
+  shown: false, // DEBUG: true
   active: false,
   timezone: 0,
   center: new Vec2(68, 317),
@@ -126,7 +128,7 @@ function every_frame(cur_timestamp: number) {
   input.startFrame();
 
   // in seconds
-  let delta_time = (cur_timestamp - last_timestamp) / 1000;
+  let delta_time = CONFIG.tmp1 * (cur_timestamp - last_timestamp) / 1000;
   last_timestamp = cur_timestamp;
 
   // update
@@ -372,11 +374,26 @@ function every_frame(cur_timestamp: number) {
         let true_start_time = a.player_time;
         let true_end_time = b.player_time; // same as: true_start_time + connection.cost;
 
+        // initial shrink
+        {
+          let shrink_start_time = true_start_time + segments[0].offset;
+          let shrink_end_time = true_end_time + segments[0].offset;
+          let shrink_present_time = player_time + player_time_anim_offset + (machine.active ? timezones[machine.timezone].offset : segments[0].offset);
+          let shrink_t = inverseLerp(shrink_start_time, shrink_end_time, shrink_present_time);
+          if (0 < shrink_t && shrink_t < .2) {
+            ctx.beginPath();
+            ctx.fillStyle = "#c08282";
+            ctx.arc(src_city.screen_pos.x, src_city.screen_pos.y, remap(shrink_t, 0, .2, 14, 4), 0, 2 * Math.PI);
+            ctx.fill();
+          }
+        }
+
         segments.forEach(segment => {
           let local_start_time = true_start_time + segment.offset;
           let local_end_time = true_end_time + segment.offset;
           let local_present_time = player_time + player_time_anim_offset + (machine.active ? timezones[machine.timezone].offset : segment.offset);
           let travel_t = inverseLerp(local_start_time, local_end_time, local_present_time);
+          travel_t = remap(travel_t, .2, .8, 0, 1);
           if (segment.start_t < travel_t && travel_t < segment.end_t) {
             ctx.beginPath();
             ctx.fillStyle = "#c08282";
@@ -385,6 +402,21 @@ function every_frame(cur_timestamp: number) {
             ctx.fill();
           }
         });
+
+        // final grow
+        {
+          let last_segment_offset = segments[segments.length - 1].offset;
+          let grow_start_time = true_start_time + last_segment_offset;
+          let grow_end_time = true_end_time + last_segment_offset;
+          let grow_present_time = player_time + player_time_anim_offset + (machine.active ? timezones[machine.timezone].offset : last_segment_offset);
+          let grow_t = inverseLerp(grow_start_time, grow_end_time, grow_present_time);
+          if (0.8 < grow_t && grow_t < 1) {
+            ctx.beginPath();
+            ctx.fillStyle = "#c08282";
+            ctx.arc(dst_city.screen_pos.x, dst_city.screen_pos.y, remap(grow_t, .8, 1, 4, 14), 0, 2 * Math.PI);
+            ctx.fill();
+          }
+        }
       }
     }
   }
