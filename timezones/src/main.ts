@@ -362,7 +362,6 @@ function every_frame(cur_timestamp: number) {
     {
       for (let [a, b] of pairwise(history)) {
         if (a.player_city === b.player_city) continue;
-        // TODO: handle this case:
         if (a.machine_active !== b.machine_active) throw new Error("on a single turn, player moved & machine changed");
 
         let dst_city = getCity(b.player_city);
