@@ -5,7 +5,6 @@ import { lerpHexColor, pairwise } from "../../kommon/kommon"
 import { Vec2, clamp, inverseLerp, lerp, mod, remap, towards } from "../../kommon/math"
 import { Input, MouseListener } from "../../kommon/input"
 
-import map_vanilla_url from "./images/map_vanilla.png?url"
 import face_handler_url from "./images/face_handler.png?url"
 import { hexToCSSFilter } from "hex-to-css-filter"
 
@@ -35,7 +34,6 @@ canvas.width = 800;
 canvas.height = 600;
 
 let textures = {
-  map_vanilla: await imageFromUrl(map_vanilla_url),
   face_handler: await imageFromUrl(face_handler_url),
 };
 

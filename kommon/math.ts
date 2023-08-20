@@ -54,13 +54,6 @@ export function remap(value: number, old_a: number, old_b: number, new_a: number
     return t * (new_b - new_a) + new_a;
 }
 
-export function randomChoice<T>(arr: T[]) {
-    if (arr.length === 0) {
-        throw new Error("can't choose out of an empty array");
-    }
-    return arr[Math.floor(Math.random() * arr.length)];
-}
-
 export function smoothstep(toZero: number, toOne: number, value: number) {
     let x = Math.max(0, Math.min(1, (value - toZero) / (toOne - toZero)));
     return x * x * (3 - 2 * x);
@@ -93,6 +86,17 @@ export function shuffle<T>(array: T[]) {
     return array;
 }
 
+export function randomChoice<T>(arr: T[]) {
+    if (arr.length === 0) {
+        throw new Error("can't choose out of an empty array");
+    }
+    return arr[Math.floor(Math.random() * arr.length)];
+}
+
+/** random float between -.5 & .5 */
+export function rand05(): number {
+    return Math.random() - .5;
+}
 
 // Use objects instead of arrays: https://jsben.ch/FgKVi
 export class Vec4 {
@@ -204,6 +208,16 @@ export class Vec2 {
         return out;
     }
 
+    static rotate(v: Vec2, radians: number, out?: Vec2): Vec2 {
+        out = out || new Vec2();
+        let c = Math.cos(radians);
+        let s = Math.sin(radians);
+        let x = v.x * c - v.y * s;
+        out.y = v.x * s + v.y * c;
+        out.x = x;
+        return out;
+    }
+
     static lerp(a: Vec2, b: Vec2, t: number, out?: Vec2): Vec2 {
         out = out || new Vec2();
         out.x = a.x * (1 - t) + b.x * t;
@@ -251,6 +265,24 @@ export class Vec2 {
         out = out || new Vec2();
         out.x = fn(a.x, b.x);
         out.y = fn(a.y, b.y);
+        return out;
+    }
+
+    static randint(max_exclusive: Vec2, out?: Vec2): Vec2 {
+        out = out || new Vec2();
+        out.x = Math.floor(Math.random() * max_exclusive.x);
+        out.y = Math.floor(Math.random() * max_exclusive.y);
+        return out;
+    }
+
+    static randunit(out?: Vec2): Vec2 {
+        return Vec2.fromRadians(Math.random() * Math.PI * 2, out);
+    }
+
+    static fromRadians(radians: number, out?: Vec2): Vec2 {
+        out = out || new Vec2();
+        out.x = Math.cos(radians);
+        out.y = Math.sin(radians);
         return out;
     }
 

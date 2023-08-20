@@ -14,6 +14,6 @@
     "typescript": "^4.7.4"
   },
   "dependencies": {
-    "shaku": "file:../Shaku"
+    "twgl.js": "^5.5.1"
   }
 }
