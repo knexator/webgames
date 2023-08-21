@@ -84,3 +84,8 @@ export function lerpHexColor(a: string, b: string, t: number): string {
 
     return `#${((rr << 16) + (rg << 8) + (rb | 0)).toString(16).padStart(6, '0').slice(-6)}`
 }
+
+/** Only for Vite, and only for reference! you must paste it into your script :( */
+// export function absoluteUrl(url: string): string {
+//     return new URL(url, import.meta.url).href;
+// }

@@ -1,8 +1,10 @@
 import GUI from "lil-gui"
 
-import { imageFromUrl } from "../../kommon/kanvas"
+import * as twgl from "twgl.js"
+
+import { NaiveSpriteGraphics, imageFromUrl } from "../../kommon/kanvas"
 import { lerpHexColor, pairwise } from "../../kommon/kommon"
-import { Vec2, clamp, inverseLerp, lerp, mod, remap, towards } from "../../kommon/math"
+import { Rectangle, Vec2, clamp, inverseLerp, lerp, mod, remap, towards } from "../../kommon/math"
 import { Input, MouseListener } from "../../kommon/input"
 
 import face_handler_url from "./images/face_handler.png?url"
@@ -29,9 +31,24 @@ if (false) {
 }
 
 const canvas = document.querySelector<HTMLCanvasElement>("#game_canvas")!;
-const ctx = canvas.getContext("2d")!;
 canvas.width = 800;
 canvas.height = 600;
+const ctx = canvas.getContext("2d")!;
+
+const canvas_gl = canvas.cloneNode() as HTMLCanvasElement;
+canvas.parentNode!.append(canvas_gl);
+// const gl = canvas_gl.getContext("webgl2", { alpha: false })!;
+const gl = canvas_gl.getContext("webgl2")!;
+gl.enable(gl.BLEND);
+gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+gl.clearColor(0, 0, 0, 0);
+gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
+
+const gfx = new NaiveSpriteGraphics(gl);
+
+let texture_alamos = twgl.createTexture(gl, {
+  src: new URL("./images/map_alamos.png", import.meta.url).href,
+});
 
 let textures = {
   face_handler: await imageFromUrl(face_handler_url),
@@ -170,7 +187,6 @@ function every_frame(cur_timestamp: number) {
   }
 
   // draw
-  // ctx.drawImage(textures.map_vanilla, 0, 0);
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   ctx.font = "30px monospace";
@@ -434,6 +450,13 @@ function every_frame(cur_timestamp: number) {
     ctx.fillStyle = "#22f24c";
     ctx.fillText("undo", undo_button.top_left.x + 9, undo_button.top_left.y + 21);
   }
+
+  gl.clear(gl.COLOR_BUFFER_BIT);
+
+  gfx.draw("texture_color", {
+    u_texture: texture_alamos,
+    u_color: [.2, .1, .9, .5],
+  }, new Vec2(canvas.width * .5, canvas.height * .5), new Vec2(canvas.width, canvas.height), 0, Rectangle.unit);
 
   // DEBUG
   if (false) {

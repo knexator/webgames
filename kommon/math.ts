@@ -143,8 +143,8 @@ export class Vec2 {
     static tmp2 = new Vec2(0, 0);
     static tmp3 = new Vec2(0, 0);
 
-    static zero = new Vec2(0, 0);
-    static one = new Vec2(1, 1);
+    static readonly zero = new Vec2(0, 0);
+    static readonly one = new Vec2(1, 1);
 
     static set(v: Vec2, x: number, y: number): Vec2 {
         v.x = x;
@@ -313,6 +313,8 @@ export class Rectangle {
     constructor(
         public topLeft: Vec2,
         public size: Vec2) { }
+
+    static readonly unit = new Rectangle(Vec2.zero, Vec2.one);
 
     static fromParams(params: {
         topLeft?: Vec2,
