@@ -132,12 +132,13 @@ export class NaiveSpriteGraphics {
                 in vec2 v_uv;
                 
                 uniform vec4 u_color;
-                uniform float u_outer_perc;
 
                 out vec4 out_color;
                 void main() {
                     float dist = sqrt(dot(v_uv, v_uv));
-                    out_color = vec4(u_color.rgb, mix(u_color.a, .0, smoothstep(u_outer_perc, .5, dist)));
+                    float delta = fwidth(dist);
+                    // extra 25% for delta since i want a bit of extra aliasing
+                    out_color = vec4(u_color.rgb, mix(u_color.a, .0, smoothstep(.5 - delta * 1.25, .5, dist)));
                 }
             `]),
             "stroke_circle": twgl.createProgramInfo(gl, [`#version 300 es
@@ -220,7 +221,7 @@ export class NaiveSpriteGraphics {
     fillCircle(center: Vec2, radius: number, fill_color: Array4) {
         // actual quad drawn is 1.5px wider than 2 * outer_radius,
         // the outermost 1.5 pixels are used for the gradient to transparency
-        this.draw("fill_circle", { u_color: fill_color, u_outer_perc: .5 * radius / (radius + 1.5) }, center, new Vec2(radius * 2 + 1.5, radius * 2 + 1.5), 0, Rectangle.unit);
+        this.draw("fill_circle", { u_color: fill_color }, center, new Vec2(radius * 2 + 1.5, radius * 2 + 1.5), 0, Rectangle.unit);
     }
 
     strokeCircle(center: Vec2, radius: number, stroke_color: Array4, width: number) {
