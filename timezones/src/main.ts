@@ -4,7 +4,7 @@ import * as twgl from "twgl.js"
 
 import { NaiveSpriteGraphics, imageFromUrl } from "../../kommon/kanvas"
 import { lerpHexColor, pairwise } from "../../kommon/kommon"
-import { Rectangle, Vec2, clamp, inverseLerp, lerp, mod, remap, towards } from "../../kommon/math"
+import { Rectangle, Vec2, Vec4, clamp, inverseLerp, lerp, mod, remap, towards } from "../../kommon/math"
 import { Input, MouseListener } from "../../kommon/input"
 
 import face_handler_url from "./images/face_handler.png?url"
@@ -30,6 +30,10 @@ if (false) {
   gui.domElement.style.top = "auto";
 }
 
+function absoluteUrl(url: string): string {
+  return new URL(url, import.meta.url).href;
+}
+
 const canvas = document.querySelector<HTMLCanvasElement>("#game_canvas")!;
 canvas.width = 800;
 canvas.height = 600;
@@ -37,29 +41,26 @@ const ctx = canvas.getContext("2d")!;
 
 const canvas_gl = canvas.cloneNode() as HTMLCanvasElement;
 canvas.parentNode!.append(canvas_gl);
+canvas_gl.style.zIndex = "-2";
 // const gl = canvas_gl.getContext("webgl2", { alpha: false })!;
 const gl = canvas_gl.getContext("webgl2")!;
 gl.enable(gl.BLEND);
 gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-gl.clearColor(0, 0, 0, 0);
+gl.clearColor(0, 5 / 255, 1 / 255, 1);
 gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
 
 const gfx = new NaiveSpriteGraphics(gl);
 
-let texture_alamos = twgl.createTexture(gl, {
-  src: new URL("./images/map_alamos.png", import.meta.url).href,
+let textures_gl = twgl.createTextures(gl, {
+  california: { src: absoluteUrl("./images/map_california.png") },
+  alamos: { src: absoluteUrl("./images/map_alamos.png") },
+  nowhere: { src: absoluteUrl("./images/map_nowhere.png") },
+  nyc: { src: absoluteUrl("./images/map_nyc.png") },
 });
 
 let textures = {
   face_handler: await imageFromUrl(face_handler_url),
 };
-
-let image_elements = [
-  document.querySelector("#california") as HTMLImageElement,
-  document.querySelector("#alamos") as HTMLImageElement,
-  document.querySelector("#nowhere") as HTMLImageElement,
-  document.querySelector("#nyc") as HTMLImageElement,
-];
 
 let input = new Input();
 
@@ -69,10 +70,10 @@ let input = new Input();
 // TODO: remove times after 25:00
 
 let timezones = [
-  { offset: 0, color: "#3C6CEA" },
-  { offset: 2, color: "#CF8471" },
-  { offset: 4, color: "#0ACBAE" },
-  { offset: 6, color: "#FCCA43" },
+  { offset: 0, color: "#3C6CEA", texture: textures_gl.california },
+  { offset: 2, color: "#CF8471", texture: textures_gl.alamos },
+  { offset: 4, color: "#0ACBAE", texture: textures_gl.nowhere },
+  { offset: 6, color: "#FCCA43", texture: textures_gl.nyc },
 ];
 
 type City = { id: string, screen_pos: Vec2, offset: number };
@@ -188,6 +189,7 @@ function every_frame(cur_timestamp: number) {
 
   // draw
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+  gl.clear(gl.COLOR_BUFFER_BIT);
 
   ctx.font = "30px monospace";
   ctx.fillStyle = "white";
@@ -307,16 +309,25 @@ function every_frame(cur_timestamp: number) {
         value - zone.offset + global_timezone.offset, // value at new global timezone
         magic_progress);
       if (magic_progress === 1) {
+        gfx.draw("texture_color", {
+          u_texture: zone.texture,
+          u_color: Vec4.scale(Vec4.intcolorFromHex(global_timezone.color), 1 / 255).toArray(),
+        }, new Vec2(canvas.width * .5, canvas.height * .5), new Vec2(canvas.width, canvas.height), 0, Rectangle.unit);
         ctx.fillStyle = global_timezone.color;
-        doIfNotDoneLastFrame(`magic_color_${k}`, () => image_elements[k].style.filter = hexToCSSFilter(global_timezone.color).filter.replace(";", ""));
       } else {
         let lerped_color = lerpHexColor(zone.color, global_timezone.color, magic_progress);
+        gfx.draw("texture_color", {
+          u_texture: zone.texture,
+          u_color: Vec4.scale(Vec4.intcolorFromHex(lerped_color), 1 / 255).toArray(),
+        }, new Vec2(canvas.width * .5, canvas.height * .5), new Vec2(canvas.width, canvas.height), 0, Rectangle.unit);
         ctx.fillStyle = lerped_color;
-        image_elements[k].style.filter = hexToCSSFilter(lerped_color).filter.replace(";", "");
       }
     } else {
+      gfx.draw("texture_color", {
+        u_texture: zone.texture,
+        u_color: Vec4.scale(Vec4.intcolorFromHex(zone.color), 1 / 255).toArray(),
+      }, new Vec2(canvas.width * .5, canvas.height * .5), new Vec2(canvas.width, canvas.height), 0, Rectangle.unit);
       ctx.fillStyle = zone.color;
-      doIfNotDoneLastFrame(`start_color_${k}`, () => image_elements[k].style.filter = hexToCSSFilter(zone.color).filter.replace(";", ""));
     }
     ctx.fillText(stringFromTime(value, false), 57 + k * 164, 525);
   })
@@ -450,13 +461,6 @@ function every_frame(cur_timestamp: number) {
     ctx.fillStyle = "#22f24c";
     ctx.fillText("undo", undo_button.top_left.x + 9, undo_button.top_left.y + 21);
   }
-
-  gl.clear(gl.COLOR_BUFFER_BIT);
-
-  gfx.draw("texture_color", {
-    u_texture: texture_alamos,
-    u_color: [.2, .1, .9, .5],
-  }, new Vec2(canvas.width * .5, canvas.height * .5), new Vec2(canvas.width, canvas.height), 0, Rectangle.unit);
 
   // DEBUG
   if (false) {
