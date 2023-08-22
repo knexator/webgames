@@ -43,7 +43,7 @@ const canvas_gl = canvas.cloneNode() as HTMLCanvasElement;
 canvas.parentNode!.append(canvas_gl);
 canvas_gl.style.zIndex = "-2";
 // const gl = canvas_gl.getContext("webgl2", { alpha: false })!;
-const gl = canvas_gl.getContext("webgl2")!;
+const gl = canvas_gl.getContext("webgl2", { "antialias": true, alpha: false })!;
 gl.enable(gl.BLEND);
 gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 gl.clearColor(0, 5 / 255, 1 / 255, 1);
@@ -239,16 +239,17 @@ function every_frame(cur_timestamp: number) {
     ctx.fillText(stringFromTime(con.cost, true), midpoint.x, midpoint.y);
   })
 
-  ctx.lineWidth = 2;
-  ctx.strokeStyle = "white";
-  ctx.fillStyle = "cyan";
+  // ctx.fillStyle = "cyan";
   cities.forEach(({ screen_pos }) => {
-    ctx.fillStyle = "cyan";
-    ctx.beginPath();
-    ctx.arc(screen_pos.x, screen_pos.y, 10, 0, 2 * Math.PI);
-    ctx.fill();
+    // ctx.fillStyle = "cyan";
+    // ctx.beginPath();
+    // ctx.arc(screen_pos.x, screen_pos.y, 10, 0, 2 * Math.PI);
+    // ctx.fill();
+    gfx.fillCircle(screen_pos, 10, [0, 1, 1, 1]);
   });
 
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = "white";
   if (player_city !== null) {
     cities.forEach(({ id, screen_pos }) => {
       if (id === player_city) {

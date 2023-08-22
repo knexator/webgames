@@ -39,6 +39,7 @@ export function imageFromUrl(url: string) {
     });
 }
 
+type Array4 = [number, number, number, number];
 export class NaiveSpriteGraphics {
     shaders: Map<string, twgl.ProgramInfo>;
     vao_info: twgl.VertexArrayInfo;
@@ -115,6 +116,31 @@ export class NaiveSpriteGraphics {
                     out_color = u_color * texture(u_texture, v_uv);
                 }
             `]),
+            "circle": twgl.createProgramInfo(gl, [`#version 300 es
+                // [0,1]^2
+                in vec2 a_quad;
+                uniform mat3 u_pos;
+                uniform vec4 u_uvs;
+                out vec2 v_uv;
+                
+                void main() {
+                    gl_Position = vec4((u_pos * vec3(a_quad, 1)).xy, 0, 1);
+                    v_uv = u_uvs.xy + a_quad * u_uvs.zw;
+                }
+                `, `#version 300 es
+                precision highp float;
+                in vec2 v_uv;
+                
+                uniform vec4 u_color;
+                uniform float u_stroke_perc;
+                uniform float u_outer_perc;
+
+                out vec4 out_color;
+                void main() {
+                    float dist = sqrt(dot(v_uv, v_uv));
+                    out_color = vec4(u_color.rgb, mix(u_color.a, .0, smoothstep(u_outer_perc, .5, dist)));
+                }
+            `]),
         }));
 
         const buffer_info = twgl.createBufferInfoFromArrays(gl, {
@@ -161,9 +187,15 @@ export class NaiveSpriteGraphics {
     }
 
     // TODO: doesn't look as good as ctx, investigate better antialiasing
-    drawLine(a: Vec2, b: Vec2, width: number, color: [number, number, number, number]) {
+    drawLine(a: Vec2, b: Vec2, width: number, color: Array4) {
         let delta = Vec2.sub(b, a);
         let dist = Vec2.mag(delta);
         this.draw("color", { u_color: color }, Vec2.lerp(a, b, .5), new Vec2(dist, width), -Vec2.radians(delta), Rectangle.unit);
+    }
+
+    fillCircle(center: Vec2, outer_radius: number, fill_color: Array4) {
+        // actual quad drawn is 1.5px wider than 2 * outer_radius,
+        // the outermost 1.5 pixels are used for the gradient to transparency
+        this.draw("circle", { u_color: fill_color, u_outer_perc: .5 * outer_radius / (outer_radius + 1.5) }, center, new Vec2(outer_radius * 2 + 1.5, outer_radius * 2 + 1.5), 0, Rectangle.unit);
     }
 }
