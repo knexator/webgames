@@ -207,21 +207,21 @@ function every_frame(cur_timestamp: number) {
       if (magic_progress === 1) {
         gfx.draw("texture_color", {
           u_texture: zone.texture,
-          u_color: Vec4.scale(Vec4.intcolorFromHex(global_timezone.color), 1 / 255).toArray(),
+          u_color: Vec4.floatcolorFromHex(global_timezone.color).toArray(),
         }, new Vec2(canvas.width * .5, canvas.height * .5), new Vec2(canvas.width, canvas.height), 0, Rectangle.unit);
         ctx.fillStyle = global_timezone.color;
       } else {
         let lerped_color = lerpHexColor(zone.color, global_timezone.color, magic_progress);
         gfx.draw("texture_color", {
           u_texture: zone.texture,
-          u_color: Vec4.scale(Vec4.intcolorFromHex(lerped_color), 1 / 255).toArray(),
+          u_color: Vec4.floatcolorFromHex(lerped_color).toArray(),
         }, new Vec2(canvas.width * .5, canvas.height * .5), new Vec2(canvas.width, canvas.height), 0, Rectangle.unit);
         ctx.fillStyle = lerped_color;
       }
     } else {
       gfx.draw("texture_color", {
         u_texture: zone.texture,
-        u_color: Vec4.scale(Vec4.intcolorFromHex(zone.color), 1 / 255).toArray(),
+        u_color: Vec4.floatcolorFromHex(zone.color).toArray(),
       }, new Vec2(canvas.width * .5, canvas.height * .5), new Vec2(canvas.width, canvas.height), 0, Rectangle.unit);
       ctx.fillStyle = zone.color;
     }
@@ -268,10 +268,7 @@ function every_frame(cur_timestamp: number) {
           player_time_anim_offset = t * .4;
 
           let src_city = getCity(animating_connection!.id_a);
-          ctx.fillStyle = "red";
-          ctx.beginPath();
-          ctx.arc(src_city.screen_pos.x, src_city.screen_pos.y, 15 - t * 10, 0, 2 * Math.PI);
-          ctx.fill();
+          gfx.fillCircle(src_city.screen_pos, 15 - t * 10, [1, 0, 0, 1]);
         }
       },
       {
@@ -284,10 +281,7 @@ function every_frame(cur_timestamp: number) {
             getCity(animating_connection!.id_b).screen_pos,
             t
           );
-          ctx.fillStyle = "red";
-          ctx.beginPath();
-          ctx.arc(lerp_pos.x, lerp_pos.y, 5, 0, 2 * Math.PI);
-          ctx.fill();
+          gfx.fillCircle(lerp_pos, 5, [1, 0, 0, 1]);
         }
       },
       {
@@ -296,10 +290,7 @@ function every_frame(cur_timestamp: number) {
           player_time_anim_offset = animating_connection!.cost - .4 + t * .4;
 
           let dst_city = getCity(animating_connection!.id_b);
-          ctx.fillStyle = "red";
-          ctx.beginPath();
-          ctx.arc(dst_city.screen_pos.x, dst_city.screen_pos.y, 5 + t * 10, 0, 2 * Math.PI);
-          ctx.fill();
+          gfx.fillCircle(dst_city.screen_pos, 5 + t * 10, [1, 0, 0, 1]);
         }
       }
     ], () => {
@@ -313,14 +304,7 @@ function every_frame(cur_timestamp: number) {
     });
   }
 
-  {
-    let goal_pos = getCity("nyc").screen_pos;
-    ctx.beginPath();
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = "red";
-    ctx.arc(goal_pos.x, goal_pos.y, 35 + Math.sin(cur_timestamp * .008) * 1.5, 0, 2 * Math.PI);
-    ctx.stroke();
-  }
+  gfx.strokeCircle(getCity("nyc").screen_pos, 35 + Math.sin(cur_timestamp * .008) * 1.5, [1, 0, 0, 1], 2);
 
   // draw machine
   {
@@ -366,10 +350,7 @@ function every_frame(cur_timestamp: number) {
         let past_time = prev.player_time + (prev.machine_active ? timezones[prev.machine_timezone].offset : city.offset);
 
         if (present_time === past_time) {
-          ctx.beginPath();
-          ctx.fillStyle = "#c08282";
-          ctx.arc(city.screen_pos.x, city.screen_pos.y, 14, 0, 2 * Math.PI);
-          ctx.fill();
+          gfx.fillCircle(city.screen_pos, 14, Vec4.floatcolorFromHex("#c08282").toArray());
         }
       })
     }
@@ -394,10 +375,7 @@ function every_frame(cur_timestamp: number) {
           let shrink_present_time = player_time + player_time_anim_offset + (machine.active ? timezones[machine.timezone].offset : segments[0].offset);
           let shrink_t = inverseLerp(shrink_start_time, shrink_end_time, shrink_present_time);
           if (0 < shrink_t && shrink_t < .2) {
-            ctx.beginPath();
-            ctx.fillStyle = "#c08282";
-            ctx.arc(src_city.screen_pos.x, src_city.screen_pos.y, remap(shrink_t, 0, .2, 14, 4), 0, 2 * Math.PI);
-            ctx.fill();
+            gfx.fillCircle(src_city.screen_pos, remap(shrink_t, 0, .2, 14, 4), Vec4.floatcolorFromHex("#c08282").toArray());
           }
         }
 
@@ -408,11 +386,8 @@ function every_frame(cur_timestamp: number) {
           let travel_t = inverseLerp(local_start_time, local_end_time, local_present_time);
           travel_t = remap(travel_t, .2, .8, 0, 1);
           if (segment.start_t < travel_t && travel_t < segment.end_t) {
-            ctx.beginPath();
-            ctx.fillStyle = "#c08282";
             let pos = Vec2.lerp(src_city.screen_pos, dst_city.screen_pos, travel_t);
-            ctx.arc(pos.x, pos.y, 4, 0, 2 * Math.PI);
-            ctx.fill();
+            gfx.fillCircle(pos, 4, Vec4.floatcolorFromHex("#c08282").toArray());
           }
         });
 
@@ -424,10 +399,7 @@ function every_frame(cur_timestamp: number) {
           let grow_present_time = player_time + player_time_anim_offset + (machine.active ? timezones[machine.timezone].offset : last_segment_offset);
           let grow_t = inverseLerp(grow_start_time, grow_end_time, grow_present_time);
           if (0.8 < grow_t && grow_t < 1) {
-            ctx.beginPath();
-            ctx.fillStyle = "#c08282";
-            ctx.arc(dst_city.screen_pos.x, dst_city.screen_pos.y, remap(grow_t, .8, 1, 4, 14), 0, 2 * Math.PI);
-            ctx.fill();
+            gfx.fillCircle(dst_city.screen_pos, remap(grow_t, .8, 1, 4, 14), Vec4.floatcolorFromHex("#c08282").toArray());
           }
         }
       }
@@ -459,10 +431,7 @@ function every_frame(cur_timestamp: number) {
       let dst_city = getCity(con.id_b);
       con.cross_points.forEach(({ t }) => {
         let screen_pos = Vec2.lerp(src_city.screen_pos, dst_city.screen_pos, t);
-        ctx.beginPath();
-        ctx.fillStyle = "magenta";
-        ctx.arc(screen_pos.x, screen_pos.y, 4, 0, 2 * Math.PI);
-        ctx.fill();
+        gfx.fillCircle(screen_pos, 4, [1, 0, 1, 1]);
       })
     })
   }

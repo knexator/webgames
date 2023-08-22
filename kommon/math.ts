@@ -107,24 +107,21 @@ export class Vec4 {
         public w: number = 0.0,
     ) { }
 
-    static intcolorFromHex(hex_str: string): Vec4 {
-        // // from https://stackoverflow.com/a/5624139
-        // var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex_str);
-        // if (result === null) {
-        //     throw new Error(`can't parse hex: ${hex_str}`);
-        // }
-        // return new Vec4(
-        //     parseInt(result[1], 16),
-        //     parseInt(result[2], 16),
-        //     parseInt(result[3], 16),
-        //     255,
-        // );
-        // new approach
+    static floatcolorFromHex(hex_str: string, out?: Vec4): Vec4 {
+        out = out || new Vec4();
+        Vec4.intcolorFromHex(hex_str, out);
+        Vec4.scale(out, 1 / 255, out);
+        return out;
+    }
+
+    static intcolorFromHex(hex_str: string, out?: Vec4): Vec4 {
+        out = out || new Vec4();
         let hex_number = Number(hex_str.replace('#', '0x'));
-        let r = hex_number >> 16;
-        let g = hex_number >> 8 & 0xff;
-        let b = hex_number & 0xff;
-        return new Vec4(r, g, b, 255);
+        out.x = hex_number >> 16;
+        out.y = hex_number >> 8 & 0xff;
+        out.z = hex_number & 0xff;
+        out.w = 255;
+        return out;
     }
 
     static scale(v: Vec4, s: number, out?: Vec4): Vec4 {
