@@ -139,7 +139,8 @@ export class NaiveSpriteGraphics {
         this._matrix = new Float32Array(9);
     }
 
-    draw(shader_name: string, params: Record<string, any>, center: Vec2, size: Vec2, radians: number, uvs: Rectangle) {
+    /** The core function: draw a quad */
+    draw(shader_name: string, params: Record<string, any>, center: Vec2, size: Vec2, radians_ccw: number, uvs: Rectangle) {
         let programinfo = this.shaders.get(shader_name);
         if (programinfo === undefined) throw new Error(`no shader with name ${shader_name}`);
         this.gl.useProgram(programinfo.program!);
@@ -148,7 +149,7 @@ export class NaiveSpriteGraphics {
         let canvas = this.gl.canvas as HTMLCanvasElement;
         m3.projection(canvas.clientWidth, canvas.clientHeight, this._matrix);
         m3.translate(this._matrix, center.x, center.y, this._matrix);
-        m3.rotate(this._matrix, radians, this._matrix);
+        m3.rotate(this._matrix, radians_ccw, this._matrix);
         m3.scale(this._matrix, size.x, size.y, this._matrix);
 
         twgl.setUniformsAndBindTextures(programinfo, {
@@ -158,35 +159,11 @@ export class NaiveSpriteGraphics {
         twgl.setUniformsAndBindTextures(programinfo, params);
         twgl.drawBufferInfo(this.gl, this.vao_info);
     }
+
+    // TODO: doesn't look as good as ctx, investigate better antialiasing
+    drawLine(a: Vec2, b: Vec2, width: number, color: [number, number, number, number]) {
+        let delta = Vec2.sub(b, a);
+        let dist = Vec2.mag(delta);
+        this.draw("color", { u_color: color }, Vec2.lerp(a, b, .5), new Vec2(dist, width), -Vec2.radians(delta), Rectangle.unit);
+    }
 }
-
-// const naive_programinfo = twgl.createProgramInfo(gl, [`#version 300 es
-// in vec2 a_position;
-// in vec2 a_texcoord;
-
-// // global data
-// // sprites drawn at 0,0 will end in this clipspace position
-// uniform vec2 u_origin;
-// // sprites drawn at 1,1 will end in u_origin plus this clipspace position
-// uniform vec2 u_basis;
-
-// out vec2 v_texcoord;
-
-// void main() {
-//   gl_Position = vec4(u_origin + a_position * u_basis, 0.0, 1.0);
-//   v_texcoord = a_texcoord;
-// }
-// `, `#version 300 es
-// precision highp float;
-// in vec2 v_texcoord;
-// // uniform sampler2D u_texture;
-// // uniform vec3 u_tint;
-// out vec4 out_color;
-// void main() {
-//     // out_color = vec4(v_col * u_tint, 1);
-//     out_color = vec4(v_texcoord, 0.5, 1);
-// }
-// `]);
-// export function naiveQuad(top_left: Vec2, size: Vec2, uv_top_left: Vec2, uv_size: Vec2) {
-
-// }

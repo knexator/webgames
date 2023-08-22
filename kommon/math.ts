@@ -265,6 +265,14 @@ export class Vec2 {
         return v.x * v.x + v.y * v.y;
     }
 
+    static mag(v: Vec2): number {
+        return Math.sqrt(Vec2.magSq(v));
+    }
+
+    static radians(v: Vec2): number {
+        return Math.atan2(v.y, v.x);
+    }
+
     static taxicab(v: Vec2): number {
         return Math.abs(v.x) + Math.abs(v.y);
     }

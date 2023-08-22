@@ -191,23 +191,56 @@ function every_frame(cur_timestamp: number) {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   gl.clear(gl.COLOR_BUFFER_BIT);
 
+  // map & timezones
+  ctx.font = "50px monospace";
+  timezones.forEach((zone, k) => {
+    let value = zone.offset + (player_time + player_time_anim_offset);
+    if (machine.active) {
+      let global_timezone = timezones[machine.timezone];
+      let magic_progress = animValue("magic", delta_time, { targetValue: 1, lerpFactor: .005 });
+      if (magic_progress > .99) {
+        magic_progress = animValue("magic", delta_time, { targetValue: 1, lerpFactor: 1 });
+      }
+      value = lerp(value,
+        value - zone.offset + global_timezone.offset, // value at new global timezone
+        magic_progress);
+      if (magic_progress === 1) {
+        gfx.draw("texture_color", {
+          u_texture: zone.texture,
+          u_color: Vec4.scale(Vec4.intcolorFromHex(global_timezone.color), 1 / 255).toArray(),
+        }, new Vec2(canvas.width * .5, canvas.height * .5), new Vec2(canvas.width, canvas.height), 0, Rectangle.unit);
+        ctx.fillStyle = global_timezone.color;
+      } else {
+        let lerped_color = lerpHexColor(zone.color, global_timezone.color, magic_progress);
+        gfx.draw("texture_color", {
+          u_texture: zone.texture,
+          u_color: Vec4.scale(Vec4.intcolorFromHex(lerped_color), 1 / 255).toArray(),
+        }, new Vec2(canvas.width * .5, canvas.height * .5), new Vec2(canvas.width, canvas.height), 0, Rectangle.unit);
+        ctx.fillStyle = lerped_color;
+      }
+    } else {
+      gfx.draw("texture_color", {
+        u_texture: zone.texture,
+        u_color: Vec4.scale(Vec4.intcolorFromHex(zone.color), 1 / 255).toArray(),
+      }, new Vec2(canvas.width * .5, canvas.height * .5), new Vec2(canvas.width, canvas.height), 0, Rectangle.unit);
+      ctx.fillStyle = zone.color;
+    }
+    ctx.fillText(stringFromTime(value, false), 57 + k * 164, 525);
+  })
+
   ctx.font = "30px monospace";
   ctx.fillStyle = "white";
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.strokeStyle = "white";
   connections.forEach(con => {
     let city_a = cities.find(({ id }) => id === con.id_a)!;
     let city_b = cities.find(({ id }) => id === con.id_b)!;
-    ctx.moveTo(city_a.screen_pos.x, city_a.screen_pos.y);
-    ctx.lineTo(city_b.screen_pos.x, city_b.screen_pos.y);
-
+    gfx.drawLine(city_a.screen_pos, city_b.screen_pos, 2, [1, 1, 1, 1]);
     let midpoint = Vec2.lerp(city_a.screen_pos, city_b.screen_pos, .5);
     Vec2.add(midpoint, con.label_offset, midpoint);
     ctx.fillText(stringFromTime(con.cost, true), midpoint.x, midpoint.y);
   })
-  ctx.stroke();
 
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = "white";
   ctx.fillStyle = "cyan";
   cities.forEach(({ screen_pos }) => {
     ctx.fillStyle = "cyan";
@@ -295,42 +328,6 @@ function every_frame(cur_timestamp: number) {
     ctx.arc(goal_pos.x, goal_pos.y, 35 + Math.sin(cur_timestamp * .008) * 1.5, 0, 2 * Math.PI);
     ctx.stroke();
   }
-
-  ctx.font = "50px monospace";
-  timezones.forEach((zone, k) => {
-    let value = zone.offset + (player_time + player_time_anim_offset);
-    if (machine.active) {
-      let global_timezone = timezones[machine.timezone];
-      let magic_progress = animValue("magic", delta_time, { targetValue: 1, lerpFactor: .005 });
-      if (magic_progress > .99) {
-        magic_progress = animValue("magic", delta_time, { targetValue: 1, lerpFactor: 1 });
-      }
-      value = lerp(value,
-        value - zone.offset + global_timezone.offset, // value at new global timezone
-        magic_progress);
-      if (magic_progress === 1) {
-        gfx.draw("texture_color", {
-          u_texture: zone.texture,
-          u_color: Vec4.scale(Vec4.intcolorFromHex(global_timezone.color), 1 / 255).toArray(),
-        }, new Vec2(canvas.width * .5, canvas.height * .5), new Vec2(canvas.width, canvas.height), 0, Rectangle.unit);
-        ctx.fillStyle = global_timezone.color;
-      } else {
-        let lerped_color = lerpHexColor(zone.color, global_timezone.color, magic_progress);
-        gfx.draw("texture_color", {
-          u_texture: zone.texture,
-          u_color: Vec4.scale(Vec4.intcolorFromHex(lerped_color), 1 / 255).toArray(),
-        }, new Vec2(canvas.width * .5, canvas.height * .5), new Vec2(canvas.width, canvas.height), 0, Rectangle.unit);
-        ctx.fillStyle = lerped_color;
-      }
-    } else {
-      gfx.draw("texture_color", {
-        u_texture: zone.texture,
-        u_color: Vec4.scale(Vec4.intcolorFromHex(zone.color), 1 / 255).toArray(),
-      }, new Vec2(canvas.width * .5, canvas.height * .5), new Vec2(canvas.width, canvas.height), 0, Rectangle.unit);
-      ctx.fillStyle = zone.color;
-    }
-    ctx.fillText(stringFromTime(value, false), 57 + k * 164, 525);
-  })
 
   // draw machine
   {
