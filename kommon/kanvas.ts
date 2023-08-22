@@ -136,9 +136,9 @@ export class NaiveSpriteGraphics {
                 out vec4 out_color;
                 void main() {
                     float dist = sqrt(dot(v_uv, v_uv));
-                    float delta = fwidth(dist);
                     // extra 25% for delta since i want a bit of extra aliasing
-                    out_color = vec4(u_color.rgb, mix(u_color.a, .0, smoothstep(.5 - delta * 1.25, .5, dist)));
+                    float delta = fwidth(dist) * 1.25;
+                    out_color = vec4(u_color.rgb, mix(u_color.a, .0, smoothstep(.5 - delta, .5, dist)));
                 }
             `]),
             "stroke_circle": twgl.createProgramInfo(gl, [`#version 300 es
@@ -157,13 +157,15 @@ export class NaiveSpriteGraphics {
                 in vec2 v_uv;
                 
                 uniform vec4 u_color;
-                uniform float u_inner_perc;
-                uniform float u_alias_perc;
+                uniform float u_radius_perc;
+                uniform float u_width_perc;
 
                 out vec4 out_color;
                 void main() {
                     float dist = sqrt(dot(v_uv, v_uv));
-                    out_color = vec4(u_color.rgb, mix(.0, mix(u_color.a, .0, smoothstep(.5 - u_alias_perc, .5, dist)), smoothstep(u_inner_perc - u_alias_perc, u_inner_perc, dist)));
+                    float dist_to_radius = abs(u_radius_perc - dist);
+                    float delta = fwidth(dist);
+                    out_color = vec4(u_color.rgb, mix(u_color.a, .0, smoothstep(u_width_perc - delta, u_width_perc, dist_to_radius)));
                 }
             `]),
         }));
@@ -225,11 +227,12 @@ export class NaiveSpriteGraphics {
     }
 
     strokeCircle(center: Vec2, radius: number, stroke_color: Array4, width: number) {
+        width += 1.5; // weird hack to be consistent with the width from drawLine
         let quad_side = radius * 2 + width + 1.5
         this.draw("stroke_circle", {
             u_color: stroke_color,
-            u_inner_perc: .5 * (radius - width / 2) / (radius + width / 2 + 1.5),
-            u_alias_perc: .5 * 1.5 / (radius + width / 2 + 1.5)
+            u_radius_perc: radius / (2 * radius + width + 1.5),
+            u_width_perc: .5 * width / (2 * radius + width + 1.5),
         }, center, new Vec2(quad_side, quad_side), 0, Rectangle.unit);
     }
 }

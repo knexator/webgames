@@ -255,7 +255,7 @@ function every_frame(cur_timestamp: number) {
           targetValue: (id === hovering_city) ? (isPresentOrPastPlayerOnCity(hovering_city, player_time) ? .2 : 1) : 0,
           lerpFactor: .2,
         });
-        gfx.strokeCircle(screen_pos, 15 + hover_anim_value * 5, [1, 1, 1, 1], 1);
+        gfx.strokeCircle(screen_pos, 15 + hover_anim_value * 5, [1, 1, 1, 1], 2);
       }
     });
   } else {
