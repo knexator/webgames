@@ -116,7 +116,7 @@ export class NaiveSpriteGraphics {
                     out_color = u_color * texture(u_texture, v_uv);
                 }
             `]),
-            "circle": twgl.createProgramInfo(gl, [`#version 300 es
+            "fill_circle": twgl.createProgramInfo(gl, [`#version 300 es
                 // [0,1]^2
                 in vec2 a_quad;
                 uniform mat3 u_pos;
@@ -132,13 +132,37 @@ export class NaiveSpriteGraphics {
                 in vec2 v_uv;
                 
                 uniform vec4 u_color;
-                uniform float u_stroke_perc;
                 uniform float u_outer_perc;
 
                 out vec4 out_color;
                 void main() {
                     float dist = sqrt(dot(v_uv, v_uv));
                     out_color = vec4(u_color.rgb, mix(u_color.a, .0, smoothstep(u_outer_perc, .5, dist)));
+                }
+            `]),
+            "stroke_circle": twgl.createProgramInfo(gl, [`#version 300 es
+                // [0,1]^2
+                in vec2 a_quad;
+                uniform mat3 u_pos;
+                uniform vec4 u_uvs;
+                out vec2 v_uv;
+                
+                void main() {
+                    gl_Position = vec4((u_pos * vec3(a_quad, 1)).xy, 0, 1);
+                    v_uv = u_uvs.xy + a_quad * u_uvs.zw;
+                }
+                `, `#version 300 es
+                precision highp float;
+                in vec2 v_uv;
+                
+                uniform vec4 u_color;
+                uniform float u_inner_perc;
+                uniform float u_alias_perc;
+
+                out vec4 out_color;
+                void main() {
+                    float dist = sqrt(dot(v_uv, v_uv));
+                    out_color = vec4(u_color.rgb, mix(.0, mix(u_color.a, .0, smoothstep(.5 - u_alias_perc, .5, dist)), smoothstep(u_inner_perc - u_alias_perc, u_inner_perc, dist)));
                 }
             `]),
         }));
@@ -193,9 +217,18 @@ export class NaiveSpriteGraphics {
         this.draw("color", { u_color: color }, Vec2.lerp(a, b, .5), new Vec2(dist, width), -Vec2.radians(delta), Rectangle.unit);
     }
 
-    fillCircle(center: Vec2, outer_radius: number, fill_color: Array4) {
+    fillCircle(center: Vec2, radius: number, fill_color: Array4) {
         // actual quad drawn is 1.5px wider than 2 * outer_radius,
         // the outermost 1.5 pixels are used for the gradient to transparency
-        this.draw("circle", { u_color: fill_color, u_outer_perc: .5 * outer_radius / (outer_radius + 1.5) }, center, new Vec2(outer_radius * 2 + 1.5, outer_radius * 2 + 1.5), 0, Rectangle.unit);
+        this.draw("fill_circle", { u_color: fill_color, u_outer_perc: .5 * radius / (radius + 1.5) }, center, new Vec2(radius * 2 + 1.5, radius * 2 + 1.5), 0, Rectangle.unit);
+    }
+
+    strokeCircle(center: Vec2, radius: number, stroke_color: Array4, width: number) {
+        let quad_side = radius * 2 + width + 1.5
+        this.draw("stroke_circle", {
+            u_color: stroke_color,
+            u_inner_perc: .5 * (radius - width / 2) / (radius + width / 2 + 1.5),
+            u_alias_perc: .5 * 1.5 / (radius + width / 2 + 1.5)
+        }, center, new Vec2(quad_side, quad_side), 0, Rectangle.unit);
     }
 }

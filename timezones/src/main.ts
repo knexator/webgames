@@ -239,12 +239,8 @@ function every_frame(cur_timestamp: number) {
     ctx.fillText(stringFromTime(con.cost, true), midpoint.x, midpoint.y);
   })
 
-  // ctx.fillStyle = "cyan";
   cities.forEach(({ screen_pos }) => {
-    // ctx.fillStyle = "cyan";
-    // ctx.beginPath();
-    // ctx.arc(screen_pos.x, screen_pos.y, 10, 0, 2 * Math.PI);
-    // ctx.fill();
+    // cyan
     gfx.fillCircle(screen_pos, 10, [0, 1, 1, 1]);
   });
 
@@ -253,18 +249,13 @@ function every_frame(cur_timestamp: number) {
   if (player_city !== null) {
     cities.forEach(({ id, screen_pos }) => {
       if (id === player_city) {
-        ctx.fillStyle = "red";
-        ctx.beginPath();
-        ctx.arc(screen_pos.x, screen_pos.y, 15, 0, 2 * Math.PI);
-        ctx.fill();
+        gfx.fillCircle(screen_pos, 15, [1, 0, 0, 1]);
       } else if (getConnection(id, player_city!) !== null) {
-        ctx.beginPath();
         let hover_anim_value = animValue(`hover_${id}`, delta_time, {
           targetValue: (id === hovering_city) ? (isPresentOrPastPlayerOnCity(hovering_city, player_time) ? .2 : 1) : 0,
           lerpFactor: .2,
         });
-        ctx.arc(screen_pos.x, screen_pos.y, 15 + hover_anim_value * 5, 0, 2 * Math.PI);
-        ctx.stroke();
+        gfx.strokeCircle(screen_pos, 15 + hover_anim_value * 5, [1, 1, 1, 1], 1);
       }
     });
   } else {
@@ -325,6 +316,7 @@ function every_frame(cur_timestamp: number) {
   {
     let goal_pos = getCity("nyc").screen_pos;
     ctx.beginPath();
+    ctx.lineWidth = 2;
     ctx.strokeStyle = "red";
     ctx.arc(goal_pos.x, goal_pos.y, 35 + Math.sin(cur_timestamp * .008) * 1.5, 0, 2 * Math.PI);
     ctx.stroke();
