@@ -235,4 +235,8 @@ export class NaiveSpriteGraphics {
             u_width_perc: .5 * width / (2 * radius + width + 1.5),
         }, center, new Vec2(quad_side, quad_side), 0, Rectangle.unit);
     }
+
+    fillRect(center: Vec2, size: Vec2, fill_color: Array4) {
+        this.draw("color", { u_color: fill_color }, center, size, 0, Rectangle.unit);
+    }
 }

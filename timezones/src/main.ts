@@ -18,7 +18,7 @@ const CONFIG = {
   color: "#000000",
 };
 
-if (false) {
+if (true) {
   // DEBUG
   const gui = new GUI();
   gui.add(CONFIG, "tmp1", 0, 2);
@@ -110,7 +110,7 @@ let animating_connection: Connection | null = null;
 let hovering_city: string | null = null;
 
 let undo_button = {
-  top_left: new Vec2(20, 550),
+  center: new Vec2(50, 565),
   size: new Vec2(60, 30),
   hovering: false,
 };
@@ -154,7 +154,7 @@ function every_frame(cur_timestamp: number) {
   hovering_city = cities.find(({ screen_pos }) => {
     return (20 * 20) > Vec2.magSq(Vec2.sub(mouse_pos, screen_pos));
   })?.id || null;
-  undo_button.hovering = Vec2.inBounds(Vec2.sub(mouse_pos, undo_button.top_left), undo_button.size);
+  undo_button.hovering = Vec2.isInsideBox(mouse_pos, undo_button.center, undo_button.size);
   machine.hovering = machine.shown && Vec2.isInsideBox(mouse_pos, machine.center, machine.size);
 
   if (input.mouse.left && !input.prev_mouse.left) {
@@ -311,25 +311,13 @@ function every_frame(cur_timestamp: number) {
     if (machine.shown) {
       if (machine.active) {
         let remaining = animValue("machine_hovered", delta_time, { targetValue: machine.hovering ? (player_city === machine.city_id ? .3 : .1) : 0, lerpFactor: .2 });
-        ctx.beginPath();
-        ctx.fillStyle = "#22f24c";
-        rectFromCenter(machine.center, machine.size);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.fillStyle = "#052713";
-        rectFromCenter(machine.center, Vec2.scale(machine.size, .8 * remaining));
-        ctx.fill();
+        gfx.fillRect(machine.center, machine.size, Vec4.floatcolorFromHex("#22f24c").toArray());
+        gfx.fillRect(machine.center, Vec2.scale(machine.size, .8 * remaining), Vec4.floatcolorFromHex("#052713").toArray());
       } else {
         let shown = animValue("machine_shown", delta_time, { targetValue: 1, lerpFactor: .04 });
         let hovered = animValue("machine_hovered", delta_time, { targetValue: machine.hovering ? (player_city === machine.city_id ? .7 : .9) : 1, lerpFactor: .2 });
-        ctx.beginPath();
-        ctx.fillStyle = "#22f24c";
-        rectFromCenter(machine.center, Vec2.scale(machine.size, shown));
-        ctx.fill();
-        ctx.beginPath();
-        ctx.fillStyle = "#052713";
-        rectFromCenter(machine.center, Vec2.scale(machine.size, .8 * shown * hovered));
-        ctx.fill();
+        gfx.fillRect(machine.center, Vec2.scale(machine.size, shown), Vec4.floatcolorFromHex("#22f24c").toArray());
+        gfx.fillRect(machine.center, Vec2.scale(machine.size, .8 * shown * hovered), Vec4.floatcolorFromHex("#052713").toArray());
       }
     }
   }
@@ -412,16 +400,19 @@ function every_frame(cur_timestamp: number) {
 
   // draw undo button
   {
-    ctx.beginPath();
     let undo_hover_anim_value = animValue(`hover_undo`, delta_time, {
       targetValue: undo_button.hovering ? 6 : 0,
       lerpFactor: .3,
     });
+    ctx.beginPath();
     ctx.fillStyle = "#052713";
-    ctx.fillRect(undo_button.top_left.x - undo_hover_anim_value, undo_button.top_left.y - undo_hover_anim_value, undo_button.size.x + 2 * undo_hover_anim_value, undo_button.size.y + 2 * undo_hover_anim_value);
+    rectFromCenter(undo_button.center, Vec2.add(undo_button.size, new Vec2(undo_hover_anim_value, undo_hover_anim_value)));
+    ctx.fill();
+    // TODO: after moving text
+    // gfx.fillRect(undo_button.center, Vec2.add(undo_button.size, new Vec2(undo_hover_anim_value, undo_hover_anim_value)), Vec4.floatcolorFromHex("#052713").toArray());
     ctx.font = "20px monospace";
     ctx.fillStyle = "#22f24c";
-    ctx.fillText("undo", undo_button.top_left.x + 9, undo_button.top_left.y + 21);
+    ctx.fillText("undo", undo_button.center.x - undo_button.size.x / 2 + 9, undo_button.center.y - undo_button.size.y / 2 + 21);
   }
 
   // DEBUG
@@ -577,6 +568,12 @@ And get to NYC before 5:40!`);
     ctx.fillStyle = "#000501";
     ctx.fillRect(0, 484, 200 - offset * 350, 150);
     ctx.fillRect(350 + offset * 350, 484, 400, 150);
+    // TODO: will only work after moving text to the gl layer
+    // let background_color = Vec4.floatcolorFromHex("#000501").toArray();
+    // let rect1 = Rectangle.fromParams({ topLeft: new Vec2(0, 484), size: new Vec2(200 - offset * 350, 150) });
+    // gfx.fillRect(rect1.topLeft, rect1.size, background_color);
+    // let rect2 = Rectangle.fromParams({ topLeft: new Vec2(350 + offset * 350, 484), size: new Vec2(400, 150) });
+    // gfx.fillRect(rect2.topLeft, rect2.size, background_color);
   }
 }
 
