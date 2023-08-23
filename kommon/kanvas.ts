@@ -1,6 +1,6 @@
 // knexator's canvas
 
-import * as twgl from "TWGL.js";
+import * as twgl from "twgl.js";
 import { Rectangle, Vec2 } from "./math";
 import * as m3 from "./m3"
 

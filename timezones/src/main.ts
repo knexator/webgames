@@ -1,6 +1,6 @@
 import GUI from "lil-gui"
 
-import * as twgl from "TWGL.js"
+import * as twgl from "twgl.js"
 
 import { NaiveSpriteGraphics, imageFromUrl } from "../../kommon/kanvas"
 import { lerpHexColor, pairwise } from "../../kommon/kommon"
