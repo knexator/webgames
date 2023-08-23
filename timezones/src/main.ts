@@ -30,8 +30,13 @@ if (false) {
   gui.domElement.style.top = "auto";
 }
 
-function absoluteUrl(url: string): string {
-  return new URL(url, import.meta.url).href;
+// Sometimes works, sometimes doesn't; for now, better to use specific functions.
+// function absoluteUrl(url: string): string {
+//   return new URL(`${url}`, import.meta.url).href;
+// }
+
+function getImageUrl(name: string) {
+  return new URL(`./images/${name}.png`, import.meta.url).href;
 }
 
 const canvas = document.querySelector<HTMLCanvasElement>("#game_canvas")!;
@@ -52,10 +57,10 @@ gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
 const gfx = new NaiveSpriteGraphics(gl);
 
 let textures_gl = twgl.createTextures(gl, {
-  california: { src: absoluteUrl("./images/map_california.png") },
-  alamos: { src: absoluteUrl("./images/map_alamos.png") },
-  nowhere: { src: absoluteUrl("./images/map_nowhere.png") },
-  nyc: { src: absoluteUrl("./images/map_nyc.png") },
+  california: { src: getImageUrl("map_california") },
+  alamos: { src: getImageUrl("map_alamos") },
+  nowhere: { src: getImageUrl("map_nowhere") },
+  nyc: { src: getImageUrl("map_nyc") },
 });
 
 let textures = {
