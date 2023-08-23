@@ -33,6 +33,11 @@ jobs:
         uses: actions/checkout@v3
       - name: Setup Pages
         uses: actions/configure-pages@v3
+      - name: Install local packages
+        run: |
+          cd kommon
+          npm install
+          cd ..
       - name: Build Vite projects
         run: |
           for project in timezones
@@ -40,9 +45,7 @@ jobs:
             echo "Building $project"
             cd "$project"
             # Install project dependencies
-            npm install
-            # temp hack to see if it works
-            npm install twgl.js
+            npm install            
             # Build the project
             npm run build
             cd ..
