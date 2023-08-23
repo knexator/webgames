@@ -18,7 +18,7 @@ const CONFIG = {
   color: "#000000",
 };
 
-if (true) {
+if (false) {
   // DEBUG
   const gui = new GUI();
   gui.add(CONFIG, "tmp1", 0, 2);
