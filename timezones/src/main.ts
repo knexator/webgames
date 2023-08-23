@@ -401,7 +401,7 @@ function every_frame(cur_timestamp: number) {
   // draw undo button
   {
     let undo_hover_anim_value = animValue(`hover_undo`, delta_time, {
-      targetValue: undo_button.hovering ? 6 : 0,
+      targetValue: undo_button.hovering ? 12 : 0,
       lerpFactor: .3,
     });
     ctx.beginPath();
