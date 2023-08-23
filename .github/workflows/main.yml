@@ -40,7 +40,9 @@ jobs:
             echo "Building $project"
             cd "$project"
             # Install project dependencies
-            npm install            
+            npm install
+            # temp hack to see if it works
+            npm install twgl.js
             # Build the project
             npm run build
             cd ..
