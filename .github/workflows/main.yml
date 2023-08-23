@@ -27,20 +27,24 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v3
       - name: Setup Pages
         uses: actions/configure-pages@v3
-      - name: Build Timezones
+      - name: Build Vite projects
         run: |
-          cd "timezones"
-          # Install project dependencies
-          npm install
-          # Build the project
-          npm run build
-          cd ..
+          for project in timezones
+          do
+            echo "Building $project"
+            cd "$project"
+            # Install project dependencies
+            npm install            
+            # Build the project
+            npm run build
+            cd ..
+          done
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v2
         with:
