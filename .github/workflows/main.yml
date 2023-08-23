@@ -33,20 +33,14 @@ jobs:
         uses: actions/checkout@v3
       - name: Setup Pages
         uses: actions/configure-pages@v3
-      - name: Build Vite projects
+      - name: Build Timezones
         run: |
-          for project in timezones
-          do
-            echo "Building $project"
-            cd "$project"
-            # Install project dependencies
-            npm install
-            # temp hack to see if it works
-            npm install twgl.js
-            # Build the project
-            npm run build
-            cd ..
-          done
+          cd "timezones"
+          # Install project dependencies
+          npm install
+          # Build the project
+          npm run build
+          cd ..
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v2
         with:
