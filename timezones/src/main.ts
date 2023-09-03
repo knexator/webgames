@@ -10,6 +10,30 @@ import { Input, MouseListener } from "../../kommon/input"
 import face_handler_url from "./images/face_handler.png?url"
 import { hexToCSSFilter } from "hex-to-css-filter"
 
+import mainfont_atlas_url from "./fonts/consolas.png"
+import mainfont_data from "./fonts/consolas.json"
+
+let mainfont_char_data = new Map(mainfont_data.chars.map(charData => {
+  return [charData.char, {
+    id: charData.id,
+    uvs: new Rectangle(
+      new Vec2(
+        charData.x / mainfont_data.common.scaleW,
+        charData.y / mainfont_data.common.scaleH,
+      ),
+      new Vec2(
+        charData.width / mainfont_data.common.scaleW,
+        charData.height / mainfont_data.common.scaleH,
+      ),
+    ),
+    offset: new Vec2(charData.xoffset / mainfont_data.info.size, charData.yoffset / mainfont_data.info.size),
+    // if font size was 1, how many screen pixels it would look like on screen?
+    screen_size: new Vec2(charData.width / mainfont_data.info.size, charData.height / mainfont_data.info.size),
+    // after drawing this character, how much to move the cursor
+    advance: charData.xadvance / mainfont_data.info.size,
+  }]
+}));
+
 const CONFIG = {
   tmp1: 1.0,
   tmp50: 50,
@@ -61,6 +85,7 @@ let textures_gl = twgl.createTextures(gl, {
   alamos: { src: getImageUrl("map_alamos") },
   nowhere: { src: getImageUrl("map_nowhere") },
   nyc: { src: getImageUrl("map_nyc") },
+  mainfont_atlas: { src: mainfont_atlas_url },
 });
 
 let textures = {
@@ -94,13 +119,13 @@ let cities: City[] = [
 // TODO: remove label_offset
 type Connection = { id_a: string, id_b: string, cost: number, label_offset: Vec2, cross_points: { delta_offset: number, t: number }[] };
 let connections: Connection[] = [
-  { id_a: "alamos", id_b: "nowhere", cost: 2, label_offset: new Vec2(-10, -10), cross_points: [{ delta_offset: 2, t: .3 }] },
-  { id_a: "alamos", id_b: "dc", cost: 3, label_offset: new Vec2(0, 25), cross_points: [{ delta_offset: 2, t: .15 }, { delta_offset: 2, t: .7 }] },
-  { id_a: "alamos", id_b: "california", cost: 2, label_offset: new Vec2(1, -2), cross_points: [{ delta_offset: -2, t: .6 }] },
-  { id_a: "montana", id_b: "california", cost: 3, label_offset: new Vec2(0, -20), cross_points: [{ delta_offset: -2, t: .4 }] },
-  { id_a: "montana", id_b: "nyc", cost: 4, label_offset: new Vec2(-75, -15), cross_points: [{ delta_offset: 2, t: .2 }, { delta_offset: 2, t: .6 }] },
-  { id_a: "nowhere", id_b: "nyc", cost: 2, label_offset: new Vec2(-30, 25), cross_points: [{ delta_offset: 2, t: .4 }] },
-  { id_a: "dc", id_b: "nyc", cost: 1, label_offset: new Vec2(5, 15), cross_points: [] },
+  { id_a: "alamos", id_b: "nowhere", cost: 2, label_offset: new Vec2(-10, -40), cross_points: [{ delta_offset: 2, t: .3 }] },
+  { id_a: "alamos", id_b: "dc", cost: 3, label_offset: new Vec2(0, -5), cross_points: [{ delta_offset: 2, t: .15 }, { delta_offset: 2, t: .7 }] },
+  { id_a: "alamos", id_b: "california", cost: 2, label_offset: new Vec2(1, -32), cross_points: [{ delta_offset: -2, t: .6 }] },
+  { id_a: "montana", id_b: "california", cost: 3, label_offset: new Vec2(0, -50), cross_points: [{ delta_offset: -2, t: .4 }] },
+  { id_a: "montana", id_b: "nyc", cost: 4, label_offset: new Vec2(-75, -45), cross_points: [{ delta_offset: 2, t: .2 }, { delta_offset: 2, t: .6 }] },
+  { id_a: "nowhere", id_b: "nyc", cost: 2, label_offset: new Vec2(-30, -5), cross_points: [{ delta_offset: 2, t: .4 }] },
+  { id_a: "dc", id_b: "nyc", cost: 1, label_offset: new Vec2(5, -15), cross_points: [] },
 ];
 
 let player_time = 2.0;
@@ -241,8 +266,8 @@ function every_frame(cur_timestamp: number) {
     gfx.drawLine(city_a.screen_pos, city_b.screen_pos, 2, [1, 1, 1, 1]);
     let midpoint = Vec2.lerp(city_a.screen_pos, city_b.screen_pos, .5);
     Vec2.add(midpoint, con.label_offset, midpoint);
-    ctx.fillText(stringFromTime(con.cost, true), midpoint.x, midpoint.y);
-  })
+    fillText(stringFromTime(con.cost, true), midpoint, 30, Vec4.one);
+  });
 
   cities.forEach(({ screen_pos }) => {
     // cyan
@@ -435,6 +460,30 @@ function every_frame(cur_timestamp: number) {
   input.endFrame();
   DINDLF_endFrame();
   requestAnimationFrame(every_frame);
+}
+
+function fillText(text: string, top_left: Vec2, font_size: number, color: Vec4) {
+  let color_array = color.toArray();
+
+  let default_char_data = mainfont_char_data.get("?")!;
+
+  let cur_pos = Vec2.copy(top_left);
+  for (let char of text) {
+    if (char === "\\n") {
+      throw new Error("unimplemented line breaks");
+      continue;
+    }
+    if (char === " ") {
+      cur_pos.x += font_size * default_char_data.advance;
+      continue;
+    }
+    let char_data = mainfont_char_data.get(char) || default_char_data;
+    gfx.drawTopLeft("msdf", {
+      u_texture: textures_gl.mainfont_atlas,
+      u_color: color_array,
+    }, Vec2.add(cur_pos, Vec2.scale(char_data.offset, font_size)), Vec2.scale(char_data.screen_size, font_size), 0, char_data.uvs);
+    cur_pos.x += char_data.advance * font_size;
+  }
 }
 
 function* gradualText(text: string): Generator<string, never, number> {

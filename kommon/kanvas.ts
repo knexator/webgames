@@ -58,7 +58,7 @@ export class NaiveSpriteGraphics {
                 
                 void main() {
                     gl_Position = vec4((u_pos * vec3(a_quad, 1)).xy, 0, 1);
-                    v_uv = .5 + u_uvs.xy + a_quad * u_uvs.zw;
+                    v_uv = u_uvs.xy + (a_quad + .5) * u_uvs.zw;
                 }
                 `, `#version 300 es
                 precision highp float;
@@ -80,7 +80,7 @@ export class NaiveSpriteGraphics {
                 
                 void main() {
                     gl_Position = vec4((u_pos * vec3(a_quad, 1)).xy, 0, 1);
-                    v_uv = .5 + u_uvs.xy + a_quad * u_uvs.zw;
+                    v_uv = u_uvs.xy + (a_quad + .5) * u_uvs.zw;
                 }
                 `, `#version 300 es
                 precision highp float;
@@ -102,7 +102,7 @@ export class NaiveSpriteGraphics {
                 
                 void main() {
                     gl_Position = vec4((u_pos * vec3(a_quad, 1)).xy, 0, 1);
-                    v_uv = .5 + u_uvs.xy + a_quad * u_uvs.zw;
+                    v_uv = u_uvs.xy + (a_quad + .5) * u_uvs.zw;
                 }
                 `, `#version 300 es
                 precision highp float;
@@ -168,16 +168,47 @@ export class NaiveSpriteGraphics {
                     out_color = vec4(u_color.rgb, mix(u_color.a, .0, smoothstep(u_width_perc - delta, u_width_perc, dist_to_radius)));
                 }
             `]),
+            "msdf": twgl.createProgramInfo(gl, [`#version 300 es
+                // [0,1]^2
+                in vec2 a_quad;
+                uniform mat3 u_pos;
+                uniform vec4 u_uvs;
+                out vec2 v_uv;
+                
+                void main() {
+                    gl_Position = vec4((u_pos * vec3(a_quad, 1)).xy, 0, 1);
+                    v_uv = u_uvs.xy + (a_quad + .5) * u_uvs.zw;
+                }
+                `, `#version 300 es
+                precision highp float;
+                in vec2 v_uv;
+                
+                uniform sampler2D u_texture;
+                uniform vec4 u_color;
+
+                out vec4 out_color;
+
+                float median(vec3 v) {
+                    return max(min(v.x, v.y), min(max(v.x, v.y), v.z));
+                }
+
+                void main() {
+                    vec3 raw =  texture(u_texture, v_uv).rgb;
+                    float signed_distance = median(raw) - 0.5;
+                    float alpha = clamp(.5 + signed_distance / fwidth(signed_distance), 0.0, 1.0);
+                    out_color = vec4(u_color.rgb, u_color.a * alpha);
+                }
+            `]),
         }));
 
         const buffer_info = twgl.createBufferInfoFromArrays(gl, {
             a_quad: {
                 data: [
-                    // top left
+                    // bottom right
                     0.5, 0.5,
                     -.5, 0.5,
                     0.5, -.5,
-                    // bottom right
+                    // top left
                     -.5, -.5,
                     0.5, -.5,
                     -.5, 0.5,
@@ -211,6 +242,10 @@ export class NaiveSpriteGraphics {
         });
         twgl.setUniformsAndBindTextures(programinfo, params);
         twgl.drawBufferInfo(this.gl, this.vao_info);
+    }
+
+    drawTopLeft(shader_name: string, params: Record<string, any>, top_left: Vec2, size: Vec2, radians_ccw: number, uvs: Rectangle) {
+        this.draw(shader_name, params, Vec2.add(top_left, Vec2.scale(size, .5)), size, radians_ccw, uvs);
     }
 
     // TODO: doesn't look as good as ctx, investigate better antialiasing
