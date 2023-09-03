@@ -203,6 +203,20 @@ export class Vec2 {
         return out;
     }
 
+    static min(a: Vec2, b: Vec2, out?: Vec2): Vec2 {
+        out = out || new Vec2();
+        out.x = Math.min(a.x, b.x);
+        out.y = Math.min(a.y, b.y);
+        return out;
+    }
+
+    static max(a: Vec2, b: Vec2, out?: Vec2): Vec2 {
+        out = out || new Vec2();
+        out.x = Math.max(a.x, b.x);
+        out.y = Math.max(a.y, b.y);
+        return out;
+    }
+
     static round(v: Vec2, out?: Vec2): Vec2 {
         out = out || new Vec2();
         out.x = Math.round(v.x);

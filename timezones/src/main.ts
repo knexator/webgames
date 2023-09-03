@@ -222,9 +222,9 @@ function every_frame(cur_timestamp: number) {
   gl.clear(gl.COLOR_BUFFER_BIT);
 
   // map & timezones
-  ctx.font = "50px monospace";
   timezones.forEach((zone, k) => {
     let value = zone.offset + (player_time + player_time_anim_offset);
+    let cur_color: string;
     if (machine.active) {
       let global_timezone = timezones[machine.timezone];
       let magic_progress = animValue("magic", delta_time, { targetValue: 1, lerpFactor: .005 });
@@ -239,27 +239,25 @@ function every_frame(cur_timestamp: number) {
           u_texture: zone.texture,
           u_color: Vec4.floatcolorFromHex(global_timezone.color).toArray(),
         }, new Vec2(canvas.width * .5, canvas.height * .5), new Vec2(canvas.width, canvas.height), 0, Rectangle.unit);
-        ctx.fillStyle = global_timezone.color;
+        cur_color = global_timezone.color;
       } else {
         let lerped_color = lerpHexColor(zone.color, global_timezone.color, magic_progress);
         gfx.draw("texture_color", {
           u_texture: zone.texture,
           u_color: Vec4.floatcolorFromHex(lerped_color).toArray(),
         }, new Vec2(canvas.width * .5, canvas.height * .5), new Vec2(canvas.width, canvas.height), 0, Rectangle.unit);
-        ctx.fillStyle = lerped_color;
+        cur_color = lerped_color;
       }
     } else {
       gfx.draw("texture_color", {
         u_texture: zone.texture,
         u_color: Vec4.floatcolorFromHex(zone.color).toArray(),
       }, new Vec2(canvas.width * .5, canvas.height * .5), new Vec2(canvas.width, canvas.height), 0, Rectangle.unit);
-      ctx.fillStyle = zone.color;
+      cur_color = zone.color;
     }
-    ctx.fillText(stringFromTime(value, false), 57 + k * 164, 525);
+    fillText(stringFromTime(value, false), new Vec2(57 + k * 164, 480), 50, Vec4.floatcolorFromHex(cur_color));
   })
 
-  ctx.font = "30px monospace";
-  ctx.fillStyle = "white";
   connections.forEach(con => {
     let city_a = cities.find(({ id }) => id === con.id_a)!;
     let city_b = cities.find(({ id }) => id === con.id_b)!;
@@ -274,8 +272,6 @@ function every_frame(cur_timestamp: number) {
     gfx.fillCircle(screen_pos, 10, [0, 1, 1, 1]);
   });
 
-  ctx.lineWidth = 2;
-  ctx.strokeStyle = "white";
   if (player_city !== null) {
     cities.forEach(({ id, screen_pos }) => {
       if (id === player_city) {
@@ -434,15 +430,8 @@ function every_frame(cur_timestamp: number) {
       targetValue: undo_button.hovering ? 12 : 0,
       lerpFactor: .3,
     });
-    ctx.beginPath();
-    ctx.fillStyle = "#052713";
-    rectFromCenter(undo_button.center, Vec2.add(undo_button.size, new Vec2(undo_hover_anim_value, undo_hover_anim_value)));
-    ctx.fill();
-    // TODO: after moving text
-    // gfx.fillRect(undo_button.center, Vec2.add(undo_button.size, new Vec2(undo_hover_anim_value, undo_hover_anim_value)), Vec4.floatcolorFromHex("#052713").toArray());
-    ctx.font = "20px monospace";
-    ctx.fillStyle = "#22f24c";
-    ctx.fillText("undo", undo_button.center.x - undo_button.size.x / 2 + 9, undo_button.center.y - undo_button.size.y / 2 + 21);
+    gfx.fillRect(undo_button.center, Vec2.add(undo_button.size, new Vec2(undo_hover_anim_value, undo_hover_anim_value)), Vec4.floatcolorFromHex("#052713").toArray());
+    fillTextCentered("undo", undo_button.center, 20, Vec4.floatcolorFromHex("#22f24c"));
   }
 
   // DEBUG
@@ -460,6 +449,64 @@ function every_frame(cur_timestamp: number) {
   input.endFrame();
   DINDLF_endFrame();
   requestAnimationFrame(every_frame);
+}
+
+// for now, it assumes a single line
+function fillTextCentered(text: string, center: Vec2, font_size: number, color: Vec4) {
+  let color_array = color.toArray();
+
+  let default_char_data = mainfont_char_data.get("?")!;
+  let pending_draw: {
+    screen: Rectangle,
+    uvs: Rectangle,
+  }[] = [];
+
+  let cur_pos = new Vec2(0, 0);
+  // let max_top_left = new Vec2(0, 0);
+  // let max_bottom_right = new Vec2(0, 0);
+
+  for (let char of text) {
+    if (char === "\\n") {
+      throw new Error("unimplemented line breaks");
+      cur_pos.x = 0;
+      cur_pos.y += mainfont_data.common.lineHeight;
+      continue;
+    }
+    if (char === " ") {
+      cur_pos.x += font_size * default_char_data.advance;
+      continue;
+    }
+    let char_data = mainfont_char_data.get(char) || default_char_data;
+    pending_draw.push({
+      screen: new Rectangle(
+        Vec2.add(cur_pos, Vec2.scale(char_data.offset, font_size)),
+        Vec2.scale(char_data.screen_size, font_size)
+      ),
+      uvs: char_data.uvs
+    });
+    // let cur_top_left = Vec2.add(cur_pos, Vec2.scale(char_data.offset, font_size));
+    // let cur_bottom_right = Vec2.add(cur_top_left, Vec2.scale(char_data.screen_size, font_size));
+    // Vec2.min(max_top_left, cur_top_left, max_top_left);
+    // Vec2.max(max_bottom_right, cur_bottom_right, max_bottom_right);
+
+    cur_pos.x += char_data.advance * font_size;
+  }
+
+  // let bounds = Vec2.sub(max_bottom_right, max_top_left);
+  // console.log(bounds);
+  // let global_offset = Vec2.add(center, Vec2.scale(bounds, -.5));
+  // global_offset.y -= CONFIG.tmp50;
+  // let global_offset = center;
+
+  // assume single line
+  let global_offset = Vec2.sub(center, new Vec2(cur_pos.x / 2, mainfont_data.common.base * (font_size / mainfont_data.info.size) - font_size / 6)); // this 6 is a magic number
+
+  for (let quad of pending_draw) {
+    gfx.drawTopLeft("msdf", {
+      u_texture: textures_gl.mainfont_atlas,
+      u_color: color_array,
+    }, Vec2.add(global_offset, quad.screen.topLeft), quad.screen.size, 0, quad.uvs);
+  }
 }
 
 function fillText(text: string, top_left: Vec2, font_size: number, color: Vec4) {
@@ -618,16 +665,11 @@ And get to NYC before 5:40!`);
     ctx.drawImage(textures.face_handler, 0, -(offset * offset) * textures.face_handler.height);
   }
   function hideClocks(offset: number = 0) {
-    ctx.beginPath();
-    ctx.fillStyle = "#000501";
-    ctx.fillRect(0, 484, 200 - offset * 350, 150);
-    ctx.fillRect(350 + offset * 350, 484, 400, 150);
-    // TODO: will only work after moving text to the gl layer
-    // let background_color = Vec4.floatcolorFromHex("#000501").toArray();
-    // let rect1 = Rectangle.fromParams({ topLeft: new Vec2(0, 484), size: new Vec2(200 - offset * 350, 150) });
-    // gfx.fillRect(rect1.topLeft, rect1.size, background_color);
-    // let rect2 = Rectangle.fromParams({ topLeft: new Vec2(350 + offset * 350, 484), size: new Vec2(400, 150) });
-    // gfx.fillRect(rect2.topLeft, rect2.size, background_color);
+    let background_color = Vec4.floatcolorFromHex("#000501").toArray();
+    let rect1 = Rectangle.fromParams({ topLeft: new Vec2(0, 484), size: new Vec2(200 - offset * 350, 150) });
+    gfx.fillRectTopLeft(rect1.topLeft, rect1.size, background_color);
+    let rect2 = Rectangle.fromParams({ topLeft: new Vec2(350 + offset * 350, 484), size: new Vec2(400, 150) });
+    gfx.fillRectTopLeft(rect2.topLeft, rect2.size, background_color);
   }
 }
 
@@ -695,13 +737,6 @@ function segmentsFromConnection(connection: Connection, src_offset: number) {
     offset: cur_offset,
   });
   return result;
-}
-
-///////////////////////////////////
-
-function rectFromCenter(center: Vec2, size: Vec2) {
-  let top_left = Vec2.sub(center, Vec2.scale(size, .5));
-  ctx.rect(top_left.x, top_left.y, size.x, size.y)
 }
 
 ///////////////////////////////////

@@ -195,7 +195,8 @@ export class NaiveSpriteGraphics {
                 void main() {
                     vec3 raw =  texture(u_texture, v_uv).rgb;
                     float signed_distance = median(raw) - 0.5;
-                    float alpha = clamp(.5 + signed_distance / fwidth(signed_distance), 0.0, 1.0);
+                    // that .7 is a total hack, TODO: revise
+                    float alpha = clamp(.7 + signed_distance / fwidth(signed_distance), 0.0, 1.0);
                     out_color = vec4(u_color.rgb, u_color.a * alpha);
                 }
             `]),
@@ -273,5 +274,9 @@ export class NaiveSpriteGraphics {
 
     fillRect(center: Vec2, size: Vec2, fill_color: Array4) {
         this.draw("color", { u_color: fill_color }, center, size, 0, Rectangle.unit);
+    }
+
+    fillRectTopLeft(top_left: Vec2, size: Vec2, fill_color: Array4) {
+        this.draw("color", { u_color: fill_color }, Vec2.add(top_left, Vec2.scale(size, .5)), size, 0, Rectangle.unit);
     }
 }

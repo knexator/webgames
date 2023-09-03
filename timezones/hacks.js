@@ -6,7 +6,7 @@ generateBMFont(
   './src/fonts/consolas.ttf',
   {
     outputType: 'json',
-    fontSize: 30,
+    fontSize: 20,
     smartSize: true,
     square: true,
     border: 1
