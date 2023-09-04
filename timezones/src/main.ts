@@ -7,9 +7,6 @@ import { lerpHexColor, pairwise } from "../../kommon/kommon"
 import { Rectangle, Vec2, Vec4, clamp, inverseLerp, lerp, mod, remap, towards } from "../../kommon/math"
 import { Input, MouseListener } from "../../kommon/input"
 
-import face_handler_url from "./images/face_handler.png?url"
-import { hexToCSSFilter } from "hex-to-css-filter"
-
 import mainfont_atlas_url from "./fonts/consolas.png"
 import mainfont_data from "./fonts/consolas.json"
 
@@ -66,13 +63,8 @@ function getImageUrl(name: string) {
 const canvas = document.querySelector<HTMLCanvasElement>("#game_canvas")!;
 canvas.width = 800;
 canvas.height = 600;
-const ctx = canvas.getContext("2d")!;
+const gl = canvas.getContext("webgl2", { "antialias": true, alpha: false })!;
 
-const canvas_gl = canvas.cloneNode() as HTMLCanvasElement;
-canvas.parentNode!.append(canvas_gl);
-canvas_gl.style.zIndex = "-2";
-// const gl = canvas_gl.getContext("webgl2", { alpha: false })!;
-const gl = canvas_gl.getContext("webgl2", { "antialias": true, alpha: false })!;
 gl.enable(gl.BLEND);
 gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 gl.clearColor(0, 5 / 255, 1 / 255, 1);
@@ -85,12 +77,9 @@ let textures_gl = twgl.createTextures(gl, {
   alamos: { src: getImageUrl("map_alamos") },
   nowhere: { src: getImageUrl("map_nowhere") },
   nyc: { src: getImageUrl("map_nyc") },
+  face_handler: { src: getImageUrl("face_handler") },
   mainfont_atlas: { src: mainfont_atlas_url },
 });
-
-let textures = {
-  face_handler: await imageFromUrl(face_handler_url),
-};
 
 let input = new Input();
 
@@ -218,7 +207,6 @@ function every_frame(cur_timestamp: number) {
   }
 
   // draw
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
   gl.clear(gl.COLOR_BUFFER_BIT);
 
   // map & timezones
@@ -649,20 +637,18 @@ And get to NYC before 5:40!`);
   }
 
   function handlerText(text: string) {
-    ctx.beginPath();
-    ctx.font = "20px monospace";
-    ctx.fillStyle = "#22f24c";
     text = text.replace(/ñ/g, '')
     let lines = text.split('\n');
     lines.forEach((line, k) => {
-      ctx.fillText(line, textures.face_handler.width + 10, 20 + k * 25);
+      fillText(line, new Vec2(128 + 10, 5 + k * 25), 20, Vec4.floatcolorFromHex("#22f24c"));
     })
   }
   function handlerFace(offset: number = 0) {
-    ctx.beginPath();
-    ctx.fillStyle = "#052713";
-    ctx.fillRect(0, 0, canvas.width, (1 - (offset * offset)) * textures.face_handler.height);
-    ctx.drawImage(textures.face_handler, 0, -(offset * offset) * textures.face_handler.height);
+    textures_gl
+    gfx.fillRectTopLeft(Vec2.zero, new Vec2(canvas.width, (1 - (offset * offset)) * 128), Vec4.floatcolorFromHex("#052713").toArray());
+    gfx.drawTopLeft("texture", {
+      u_texture: textures_gl.face_handler,
+    }, new Vec2(0, - (offset * offset) * 128), new Vec2(128, 128), 0, Rectangle.unit);
   }
   function hideClocks(offset: number = 0) {
     let background_color = Vec4.floatcolorFromHex("#000501").toArray();
