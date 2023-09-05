@@ -63,7 +63,8 @@ function getImageUrl(name: string) {
 const canvas = document.querySelector<HTMLCanvasElement>("#game_canvas")!;
 canvas.width = 800;
 canvas.height = 600;
-const gl = canvas.getContext("webgl2", { "antialias": true, alpha: true })!;
+const canvas_size = new Vec2(canvas.width, canvas.height);
+const gl = canvas.getContext("webgl2", { antialias: false, alpha: true })!;
 
 gl.enable(gl.BLEND);
 gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
@@ -72,6 +73,71 @@ gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
 gl.clearColor(0, 5 / 255, 1 / 255, 1);
 
 const gfx = new NaiveSpriteGraphics(gl);
+// const framebuffer_1 = twgl.createFramebufferInfo(gl, [{ format: gl.RGBA, samples: 8 }], canvas.width, canvas.height);
+
+// https://stackoverflow.com/questions/47934444/webgl-framebuffer-multisampling
+// https://www.realtimerendering.com/blog/webgl-2-new-features/
+
+// create the texture that will get the renderbuffer result
+var targetTexture = gl.createTexture();
+gl.bindTexture(gl.TEXTURE_2D, targetTexture);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, canvas_size.x, canvas_size.y, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+gl.bindTexture(gl.TEXTURE_2D, null);
+
+// Create and bind the framebuffer(s?)
+const framebuffers = {
+  RENDERBUFFER: gl.createFramebuffer(),
+  COLORBUFFER: gl.createFramebuffer(),
+};
+const colorRenderbuffer = gl.createRenderbuffer();
+gl.bindRenderbuffer(gl.RENDERBUFFER, colorRenderbuffer);
+gl.renderbufferStorageMultisample(gl.RENDERBUFFER,
+  gl.getParameter(gl.MAX_SAMPLES),
+  gl.RGBA8,
+  canvas_size.x,
+  canvas_size.y);
+
+gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffers.RENDERBUFFER);
+gl.framebufferRenderbuffer(gl.FRAMEBUFFER,
+  gl.COLOR_ATTACHMENT0,
+  gl.RENDERBUFFER,
+  colorRenderbuffer);
+
+gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffers.COLORBUFFER);
+gl.framebufferTexture2D(gl.FRAMEBUFFER,
+  gl.COLOR_ATTACHMENT0,
+  gl.TEXTURE_2D,
+  targetTexture, 0);
+
+gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+gfx.shaders.set("postprocess", twgl.createProgramInfo(gl, [`#version 300 es
+// [0,1]^2
+in vec2 a_quad;
+uniform mat3 u_pos;
+uniform vec4 u_uvs;
+out vec2 v_uv;
+
+void main() {
+  gl_Position = vec4((u_pos * vec3(a_quad, 1)).xy, 0, 1);
+  v_uv = u_uvs.xy + (a_quad + .5) * u_uvs.zw;
+  v_uv.y = 1.0 - v_uv.y;
+}
+`, `#version 300 es
+precision highp float;
+in vec2 v_uv;
+
+uniform sampler2D u_texture;
+
+out vec4 out_color;
+void main() {
+  // simple post process
+  vec4 original_color = texture(u_texture, v_uv + vec2(.05 * sin(v_uv.y * 15.0), 0));
+  out_color = vec4(1, .2, .2, 1) * original_color;
+}
+`]));
 
 let textures_gl = twgl.createTextures(gl, {
   california: { src: getImageUrl("map_california") },
@@ -163,6 +229,11 @@ function every_frame(cur_timestamp: number) {
   }
 
   input.startFrame();
+  // twgl.bindFramebufferInfo(gl, framebuffer_1);
+
+  // render to our render target by binding the framebuffer
+  gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffers.RENDERBUFFER);
+
 
   // in seconds
   let delta_time = CONFIG.tmp1 * (cur_timestamp - last_timestamp) / 1000;
@@ -434,6 +505,41 @@ function every_frame(cur_timestamp: number) {
       })
     })
   }
+
+  // twgl.bindFramebufferInfo(gl, null);
+  // gfx.draw("postprocess", {
+  //   u_texture: framebuffer_1.attachments[0] as WebGLTexture
+  // }, Vec2.scale(canvas_size, .5), canvas_size, 0, Rectangle.unit);
+
+  if (false) {
+    // option 1: render to the default buffer, which is just canvas
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, framebuffers.RENDERBUFFER);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
+
+    // gl.clearBufferfv(gl.COLOR, 0, [1.0, 1.0, 1.0, 1.0]);
+    gl.blitFramebuffer(
+      0, 0, canvas.width, canvas.height,
+      0, 0, canvas.width, canvas.height,
+      gl.COLOR_BUFFER_BIT, gl.NEAREST);
+  } else {
+    // option 2: render into a texture, and then render that texture
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, framebuffers.RENDERBUFFER);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, framebuffers.COLORBUFFER);
+
+    // gl.clearBufferfv(gl.COLOR, 0, [1.0, 1.0, 1.0, 1.0]);
+    gl.blitFramebuffer(
+      0, 0, canvas.width, canvas.height,
+      0, 0, canvas.width, canvas.height,
+      gl.COLOR_BUFFER_BIT, gl.NEAREST);
+
+    // now, render targetTexture into the screen
+    // twgl.bindFramebufferInfo(gl, null);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gfx.draw("postprocess", {
+      u_texture: targetTexture,
+    }, Vec2.scale(canvas_size, .5), canvas_size, 0, Rectangle.unit);
+  }
+
 
   // Not working!
   // // Set the backbuffer's alpha to 1.0
