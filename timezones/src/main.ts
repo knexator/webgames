@@ -63,12 +63,13 @@ function getImageUrl(name: string) {
 const canvas = document.querySelector<HTMLCanvasElement>("#game_canvas")!;
 canvas.width = 800;
 canvas.height = 600;
-const gl = canvas.getContext("webgl2", { "antialias": true, alpha: false })!;
+const gl = canvas.getContext("webgl2", { "antialias": true, alpha: true })!;
 
 gl.enable(gl.BLEND);
-gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-gl.clearColor(0, 5 / 255, 1 / 255, 1);
+gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
 gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
+gl.clearColor(0, 5 / 255, 1 / 255, 1);
 
 const gfx = new NaiveSpriteGraphics(gl);
 
@@ -433,6 +434,12 @@ function every_frame(cur_timestamp: number) {
       })
     })
   }
+
+  // Not working!
+  // // Set the backbuffer's alpha to 1.0
+  // gl.clearColor(1, 1, 1, 1);
+  // gl.colorMask(false, false, false, true);
+  // gl.clear(gl.COLOR_BUFFER_BIT);
 
   input.endFrame();
   DINDLF_endFrame();

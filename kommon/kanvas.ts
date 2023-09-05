@@ -68,7 +68,9 @@ export class NaiveSpriteGraphics {
 
                 out vec4 out_color;
                 void main() {
-                    out_color = u_color;
+                    // Assume colors are not premultiplied
+                    vec4 color = vec4(u_color.rgb * u_color.a, u_color.a);
+                    out_color = color;
                 }
             `]),
             "texture": twgl.createProgramInfo(gl, [`#version 300 es
@@ -90,6 +92,7 @@ export class NaiveSpriteGraphics {
 
                 out vec4 out_color;
                 void main() {
+                    // Assume textures are premultiplied
                     out_color = texture(u_texture, v_uv);
                 }
             `]),
@@ -113,7 +116,8 @@ export class NaiveSpriteGraphics {
 
                 out vec4 out_color;
                 void main() {
-                    out_color = u_color * texture(u_texture, v_uv);
+                    vec4 color = vec4(u_color.rgb * u_color.a, u_color.a);
+                    out_color = color * texture(u_texture, v_uv);
                 }
             `]),
             "fill_circle": twgl.createProgramInfo(gl, [`#version 300 es
@@ -139,6 +143,7 @@ export class NaiveSpriteGraphics {
                     // extra 25% for delta since i want a bit of extra aliasing
                     float delta = fwidth(dist) * 1.25;
                     out_color = vec4(u_color.rgb, mix(u_color.a, .0, smoothstep(.5 - delta, .5, dist)));
+                    out_color.rgb *= out_color.a;
                 }
             `]),
             "stroke_circle": twgl.createProgramInfo(gl, [`#version 300 es
@@ -166,6 +171,7 @@ export class NaiveSpriteGraphics {
                     float dist_to_radius = abs(u_radius_perc - dist);
                     float delta = fwidth(dist);
                     out_color = vec4(u_color.rgb, mix(u_color.a, .0, smoothstep(u_width_perc - delta, u_width_perc, dist_to_radius)));
+                    out_color.rgb *= out_color.a;
                 }
             `]),
             "msdf": twgl.createProgramInfo(gl, [`#version 300 es
@@ -198,6 +204,7 @@ export class NaiveSpriteGraphics {
                     // that .7 is a total hack, TODO: revise
                     float alpha = clamp(.7 + signed_distance / fwidth(signed_distance), 0.0, 1.0);
                     out_color = vec4(u_color.rgb, u_color.a * alpha);
+                    out_color.rgb *= out_color.a;
                 }
             `]),
         }));
