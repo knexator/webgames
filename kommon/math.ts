@@ -107,20 +107,20 @@ export class Vec4 {
         public w: number = 0.0,
     ) { }
 
-    static floatcolorFromHex(hex_str: string, out?: Vec4): Vec4 {
+    static floatcolorFromHex(hex_str: string, alpha: number = 1, out?: Vec4): Vec4 {
         out = out || new Vec4();
-        Vec4.intcolorFromHex(hex_str, out);
+        Vec4.intcolorFromHex(hex_str, alpha * 255, out);
         Vec4.scale(out, 1 / 255, out);
         return out;
     }
 
-    static intcolorFromHex(hex_str: string, out?: Vec4): Vec4 {
+    static intcolorFromHex(hex_str: string, alpha: number = 255, out?: Vec4): Vec4 {
         out = out || new Vec4();
         let hex_number = Number(hex_str.replace('#', '0x'));
         out.x = hex_number >> 16;
         out.y = hex_number >> 8 & 0xff;
         out.z = hex_number & 0xff;
-        out.w = 255;
+        out.w = alpha;
         return out;
     }
 

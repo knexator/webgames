@@ -79,37 +79,17 @@ const gfx = new NaiveSpriteGraphics(gl);
 // https://www.realtimerendering.com/blog/webgl-2-new-features/
 
 // create the texture that will get the renderbuffer result
-var targetTexture = gl.createTexture();
-gl.bindTexture(gl.TEXTURE_2D, targetTexture);
-gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, canvas_size.x, canvas_size.y, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
-gl.bindTexture(gl.TEXTURE_2D, null);
+let targetTexture = twgl.createTexture(gl, { width: canvas_size.x, height: canvas_size.y, minMag: gl.LINEAR });
 
 // Create and bind the framebuffer(s?)
 const framebuffers = {
-  RENDERBUFFER: gl.createFramebuffer(),
-  COLORBUFFER: gl.createFramebuffer(),
+  RENDERBUFFER: twgl.createFramebufferInfo(gl, [
+    { format: gl.RGBA8, samples: gl.getParameter(gl.MAX_SAMPLES) }
+  ], canvas_size.x, canvas_size.y).framebuffer,
+  COLORBUFFER: twgl.createFramebufferInfo(gl, [
+    { attachment: targetTexture }
+  ], canvas_size.x, canvas_size.y).framebuffer,
 };
-const colorRenderbuffer = gl.createRenderbuffer();
-gl.bindRenderbuffer(gl.RENDERBUFFER, colorRenderbuffer);
-gl.renderbufferStorageMultisample(gl.RENDERBUFFER,
-  gl.getParameter(gl.MAX_SAMPLES),
-  gl.RGBA8,
-  canvas_size.x,
-  canvas_size.y);
-
-gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffers.RENDERBUFFER);
-gl.framebufferRenderbuffer(gl.FRAMEBUFFER,
-  gl.COLOR_ATTACHMENT0,
-  gl.RENDERBUFFER,
-  colorRenderbuffer);
-
-gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffers.COLORBUFFER);
-gl.framebufferTexture2D(gl.FRAMEBUFFER,
-  gl.COLOR_ATTACHMENT0,
-  gl.TEXTURE_2D,
-  targetTexture, 0);
 
 gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
@@ -511,7 +491,7 @@ function every_frame(cur_timestamp: number) {
   //   u_texture: framebuffer_1.attachments[0] as WebGLTexture
   // }, Vec2.scale(canvas_size, .5), canvas_size, 0, Rectangle.unit);
 
-  if (false) {
+  if (true) {
     // option 1: render to the default buffer, which is just canvas
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, framebuffers.RENDERBUFFER);
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
@@ -525,6 +505,7 @@ function every_frame(cur_timestamp: number) {
     // option 2: render into a texture, and then render that texture
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, framebuffers.RENDERBUFFER);
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, framebuffers.COLORBUFFER);
+    // using twgl: twgl.bindFramebufferInfo(gl, framebuffers.RENDERBUFFER, gl.READ_FRAMEBUFFER); etc
 
     // gl.clearBufferfv(gl.COLOR, 0, [1.0, 1.0, 1.0, 1.0]);
     gl.blitFramebuffer(
@@ -573,11 +554,11 @@ function fillTextCentered(text: string, center: Vec2, font_size: number, color: 
       cur_pos.y += mainfont_data.common.lineHeight;
       continue;
     }
+    let char_data = mainfont_char_data.get(char) || default_char_data;
     if (char === " ") {
-      cur_pos.x += font_size * default_char_data.advance;
+      cur_pos.x += font_size * char_data.advance;
       continue;
     }
-    let char_data = mainfont_char_data.get(char) || default_char_data;
     pending_draw.push({
       screen: new Rectangle(
         Vec2.add(cur_pos, Vec2.scale(char_data.offset, font_size)),
@@ -621,11 +602,11 @@ function fillText(text: string, top_left: Vec2, font_size: number, color: Vec4) 
       throw new Error("unimplemented line breaks");
       continue;
     }
+    let char_data = mainfont_char_data.get(char) || default_char_data;
     if (char === " ") {
-      cur_pos.x += font_size * default_char_data.advance;
+      cur_pos.x += font_size * char_data.advance;
       continue;
     }
-    let char_data = mainfont_char_data.get(char) || default_char_data;
     gfx.drawTopLeft("msdf", {
       u_texture: textures_gl.mainfont_atlas,
       u_color: color_array,

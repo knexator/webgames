@@ -39,7 +39,7 @@ export function imageFromUrl(url: string) {
     });
 }
 
-type Array4 = [number, number, number, number];
+export type Color = [number, number, number, number];
 export class NaiveSpriteGraphics {
     shaders: Map<string, twgl.ProgramInfo>;
     vao_info: twgl.VertexArrayInfo;
@@ -257,19 +257,19 @@ export class NaiveSpriteGraphics {
     }
 
     // TODO: doesn't look as good as ctx, investigate better antialiasing
-    drawLine(a: Vec2, b: Vec2, width: number, color: Array4) {
+    drawLine(a: Vec2, b: Vec2, width: number, color: Color) {
         let delta = Vec2.sub(b, a);
         let dist = Vec2.mag(delta);
         this.draw("color", { u_color: color }, Vec2.lerp(a, b, .5), new Vec2(dist, width), -Vec2.radians(delta), Rectangle.unit);
     }
 
-    fillCircle(center: Vec2, radius: number, fill_color: Array4) {
+    fillCircle(center: Vec2, radius: number, fill_color: Color) {
         // actual quad drawn is 1.5px wider than 2 * outer_radius,
         // the outermost 1.5 pixels are used for the gradient to transparency
         this.draw("fill_circle", { u_color: fill_color }, center, new Vec2(radius * 2 + 1.5, radius * 2 + 1.5), 0, Rectangle.unit);
     }
 
-    strokeCircle(center: Vec2, radius: number, stroke_color: Array4, width: number) {
+    strokeCircle(center: Vec2, radius: number, stroke_color: Color, width: number) {
         width += 1.5; // weird hack to be consistent with the width from drawLine
         let quad_side = radius * 2 + width + 1.5
         this.draw("stroke_circle", {
@@ -279,11 +279,11 @@ export class NaiveSpriteGraphics {
         }, center, new Vec2(quad_side, quad_side), 0, Rectangle.unit);
     }
 
-    fillRect(center: Vec2, size: Vec2, fill_color: Array4) {
+    fillRect(center: Vec2, size: Vec2, fill_color: Color) {
         this.draw("color", { u_color: fill_color }, center, size, 0, Rectangle.unit);
     }
 
-    fillRectTopLeft(top_left: Vec2, size: Vec2, fill_color: Array4) {
+    fillRectTopLeft(top_left: Vec2, size: Vec2, fill_color: Color) {
         this.draw("color", { u_color: fill_color }, Vec2.add(top_left, Vec2.scale(size, .5)), size, 0, Rectangle.unit);
     }
 }
