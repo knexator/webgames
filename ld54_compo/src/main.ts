@@ -3,7 +3,7 @@ import * as twgl from "twgl.js"
 
 import { NaiveSpriteGraphics, Color, createFont, Font } from "./kommon/kanvas"
 import { fromCount } from "./kommon/kommon"
-import { Vec2 } from "./kommon/math"
+import { Vec2, lerp } from "./kommon/math"
 import { Input } from "./kommon/input"
 
 const DEBUG = false;
@@ -48,8 +48,10 @@ const gfx = new NaiveSpriteGraphics(gl);
 let input = new Input();
 
 const colors = {
-  potential_interaction: new Color(1, 1, 1).toArray(),
-  hovering_interaction: new Color(1, .5, .5).toArray(),
+  might_pick: new Color(1, 1, 1).toArray(),
+  cant_pick: new Color(.7, .7, .7).toArray(),
+  hovering_might_pick: new Color(1, .5, .5).toArray(),
+  hovering_cant_pick: new Color(.7, .7, .7).toArray(),
   thoughts: new Color(1, 1, 1).toArray(),
 }
 
@@ -133,8 +135,8 @@ function setProp<T>(field_name: keyof T, value: any): (x: T) => T {
   }
 }
 
-type ActionTarget = { pos: Vec2, action: (state: RoomState) => RoomState }
-type Interactable = { pos: Vec2, targets: ActionTarget[], instant?: (state: RoomState) => RoomState };
+type ActionTarget = { pos: Vec2, action: null | ((state: RoomState) => RoomState), message?: string, fake?: boolean }
+type Interactable = { pos: Vec2, targets: ActionTarget[], instant?: (state: RoomState) => RoomState, message?: string, fake?: boolean };
 const points = {
   nevera: new Vec2(531, 533 - 446),
   silla_baja: new Vec2(456, 533 - 148),
@@ -225,7 +227,9 @@ function getAsdf(room_state: RoomState) {
           textures.push(game_textures[0]);
           interactables.push({
             pos: points.mesa_alta,
-            targets: [
+            targets: room_state.silla_escondida ? [
+              actions.tostadora_a_nevera,
+            ] : [
               actions.tostadora_a_nevera,
               actions.tostadora_a_silla_baja,
             ],
@@ -235,7 +239,9 @@ function getAsdf(room_state: RoomState) {
           // mover tostadora
           interactables.push({
             pos: points.nevera,
-            targets: [
+            targets: room_state.silla_escondida ? [
+              actions.tostadora_a_mesa,
+            ] : [
               actions.tostadora_a_mesa,
               actions.tostadora_a_silla_baja,
             ]
@@ -243,7 +249,7 @@ function getAsdf(room_state: RoomState) {
           // mover cafetera
           interactables.push({
             pos: points.mesa_media,
-            targets: [
+            targets: room_state.silla_escondida ? [] : [
               actions.cafetera_a_silla,
             ]
           })
@@ -340,6 +346,14 @@ function getAsdf(room_state: RoomState) {
           pos: points.fregadero,
           targets: [actions.cubiertos_a_mesa]
         });
+        interactables.push({
+          pos: points.sarten_mesa,
+          targets: [{
+            pos: points.fregadero,
+            action: null,
+            message: "Sink is too full."
+          }]
+        });
       }
     } else {
       if (!room_state.cubiertos_fregadero) {
@@ -422,6 +436,7 @@ function getAsdf(room_state: RoomState) {
       pos: points.armario,
       targets: [],
       instant: setProp("armario_abierto", true),
+      message: "Maybe the tie is here?"
     });
   } else {
     if (!room_state.reloj_armario) {
@@ -435,18 +450,25 @@ function getAsdf(room_state: RoomState) {
         textures.push(game_textures[14]);
       } else {
         textures.push(game_textures[13]);
-        if (room_state.plancha === "fria") {
-          interactables.push({
-            pos: points.plancha,
-            targets: [{pos: points.mesilla, action: setProp("plancha", "mesilla")}],
-          });
-        }
       }
     }
   }
 
-  if (room_state.plancha === "fria") {
+  if (room_state.plancha === "caliente") {
+    interactables.push({
+      pos: points.plancha,
+      targets: [],
+      fake: true,
+      message: "too hot to handle!"
+    })
+  } else if (room_state.plancha === "fria") {
     textures.push(game_textures[22])
+    if (room_state.reloj_armario) {
+      interactables.push({
+        pos: points.plancha,
+        targets: [{pos: points.mesilla, action: setProp("plancha", "mesilla")}],
+      });
+    }
   } else if (room_state.plancha === "mesilla") {
     if (!room_state.tabla_plegada) {
       interactables.push({pos: points.tabla_planchar, targets: [], instant: setProp("tabla_plegada", true)});
@@ -512,57 +534,117 @@ function every_frame(cur_timestamp: number) {
     return;
   }
   
-  const interaction_radius = 50;
+  const might_pick_radius = 40;
+  const cant_pick_radius = 40;
+  const hover_might_pick_radius = 50;
+  const hover_cant_pick_radius = cant_pick_radius + 2;
+  const drop_radius = 45;
+  const hover_drop_radius = hover_might_pick_radius;
+  const cant_drop_radius = cant_pick_radius;
+  const hover_cant_drop_radius = hover_cant_pick_radius;
   if (selected_interactable === null) {
-    let hovering_some = false;
-    asdf.interactables.forEach((value, index) => {
-      if (!hovering_some && mouse_pos.distanceTo(value.pos) < interaction_radius) {
-        hovering_some = true;
-        gfx.strokeCircle(value.pos, interaction_radius, colors.hovering_interaction, 2);
-        if (input.mouse.left && !input.prev_mouse.left) {
-          selected_interactable = index;
+    let hovering: number | null = null;
+    asdf.interactables.forEach((pickable, index) => {
+      if ((hovering === null) && mouse_pos.distanceTo(pickable.pos) < might_pick_radius) {
+        hovering = index;
+        if (pickable.fake) {
+          gfx.strokeCircle(pickable.pos, TARGET(pickable, hover_cant_pick_radius), colors.hovering_cant_pick, 2);
+        } else {
+          gfx.strokeCircle(pickable.pos, TARGET(pickable, hover_might_pick_radius), colors.hovering_might_pick, 2);
+          if (input.mouse.left && !input.prev_mouse.left) {
+            selected_interactable = index;
+          }
+        }
+        if (pickable.message) {
+          gfx.textLineCentered(fonts.thought, pickable.message, new Vec2(948 / 2, 500), 32, colors.thoughts)
         }
       } else {
-        gfx.strokeCircle(value.pos, interaction_radius, colors.potential_interaction, 2);
+        if (pickable.fake) {
+          gfx.strokeCircle(pickable.pos, TARGET(pickable, cant_pick_radius), colors.cant_pick, 2);
+        } else {
+          gfx.strokeCircle(pickable.pos, TARGET(pickable, might_pick_radius), colors.might_pick, 2);
+        }
       }
     });
-  } else if (selected_interactable !== null) {
+  } else  {
+    // only to cancel the move
+    let cur_interactable = asdf.interactables[selected_interactable];
+    if (cur_interactable.instant === undefined) {
+      // cancel the move
+      if (mouse_pos.distanceTo(cur_interactable.pos) < might_pick_radius) {
+        gfx.strokeCircle(cur_interactable.pos, TARGET(cur_interactable, hover_drop_radius), colors.hovering_might_pick, 2);
+        if (input.mouse.left && !input.prev_mouse.left) {
+          selected_interactable = null;
+        }
+      } else {
+        gfx.strokeCircle(cur_interactable.pos, TARGET(cur_interactable, drop_radius), colors.hovering_might_pick, 2);
+      }
+    }
+  }
+  if (selected_interactable !== null) {
     let cur_interactable = asdf.interactables[selected_interactable];
     if (cur_interactable.instant !== undefined) {
       selected_interactable = null;
       cur_room_state = cur_interactable.instant(cur_room_state);
     } else {
-      if (mouse_pos.distanceTo(cur_interactable.pos) < interaction_radius) {
-        gfx.strokeCircle(cur_interactable.pos, interaction_radius, colors.hovering_interaction, 4);
-        if (input.mouse.left && !input.prev_mouse.left) {
-          selected_interactable = null;
-        }
-      } else {
-        gfx.strokeCircle(cur_interactable.pos, interaction_radius, colors.hovering_interaction, 2);
-      }
+      // make a move
       cur_interactable.targets.forEach(target => {
-        if (mouse_pos.distanceTo(target.pos) < interaction_radius) {
-          gfx.strokeCircle(target.pos, interaction_radius, colors.hovering_interaction, 2);
-          if (input.mouse.left && !input.prev_mouse.left) {
-            selected_interactable = null;
-            cur_room_state = target.action(cur_room_state);
+        if (mouse_pos.distanceTo(target.pos) < drop_radius) {
+          if (!target.action) {
+            gfx.strokeCircle(target.pos, TARGET(target, hover_cant_drop_radius), colors.hovering_cant_pick, 2);
+          } else {
+            if (input.mouse.left && !input.prev_mouse.left) {
+              selected_interactable = null;
+              cur_room_state = target.action(cur_room_state);
+            }
+            gfx.strokeCircle(target.pos, TARGET(target, hover_drop_radius), colors.hovering_might_pick, 2);
+          }
+          if (target.message) {
+            gfx.textLineCentered(fonts.thought, target.message, new Vec2(948 / 2, 500), 32, colors.thoughts)
           }
         } else {
-          gfx.strokeCircle(target.pos, interaction_radius, colors.potential_interaction, 2);
+          if (!target.action) {
+            gfx.strokeCircle(target.pos, TARGET(target, cant_drop_radius), colors.cant_pick, 2);
+          } else {
+            gfx.strokeCircle(target.pos, TARGET(target, drop_radius), colors.might_pick, 2);
+          }
         }
       })
     }
   }
 
-  // gfx.fullScreenTexture(game_textures[23]);
-  // gfx.textLineCentered(fonts.thought, "Can't move the iron, it's too hot", new Vec2(948 / 2, 500), 32, colors.thoughts)
-
+  RESETUNSEEN();
 
   input.endFrame();
   requestAnimationFrame(every_frame);
 }
 
+function RESETUNSEEN() {
+  _TARGET_values.forEach((value, key) => {
+    if (!_TARGET_seen_this_frame.has(key)) {
+      _TARGET_values.set(key, -1);
+    }
+  });
+  _TARGET_seen_this_frame.clear();
+}
+
+function TARGET(id: any, target_value: number): number {
+  let name = JSON.stringify(id);
+  let cur_value = _TARGET_values.get(name);
+  if (cur_value === undefined || cur_value < 0) {
+    _TARGET_values.set(name, target_value);
+  } else {
+    _TARGET_values.set(name, lerp(cur_value, target_value, .2));
+  }
+  _TARGET_seen_this_frame.add(name);
+  return _TARGET_values.get(name)!;
+}
+let _TARGET_values = new Map<string, number>();
+let _TARGET_seen_this_frame = new Set<string>();
+
 function* introSequence(): Generator<void, void, void> {
+  let asdf = 0;
+  return;
   if (DEBUG) return;
   const lines = [
     "Everything ready for the job interview.",
