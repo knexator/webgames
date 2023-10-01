@@ -56,11 +56,11 @@ let MatType: typeof Float32Array | typeof Array = Float32Array
  * @param {constructor} Ctor the constructor for the type. Either `Float32Array` or `Array`
  * @return {constructor} previous constructor for Mat3
  */
-function setDefaultType(Ctor: typeof Float32Array | typeof Array) {
-  const OldType = MatType
-  MatType = Ctor
-  return OldType
-}
+// function setDefaultType(Ctor: typeof Float32Array | typeof Array) {
+//   const OldType = MatType
+//   MatType = Ctor
+//   return OldType
+// }
 
 /**
  * Takes two Matrix3s, a and b, and computes the product in the order

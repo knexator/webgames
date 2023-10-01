@@ -1,10 +1,10 @@
 import GUI from "lil-gui"
 import * as twgl from "twgl.js"
 
-import { NaiveSpriteGraphics, imageFromUrl, Color, ColorArray, createFont, Font } from "./kommon/kanvas"
-import { fromCount, lerpHexColor, pairwise } from "./kommon/kommon"
-import { Rectangle, Vec2, clamp, inverseLerp, lerp, mod, randomInt, randomFloat, remap, towards, randomCentered, wrap } from "./kommon/math"
-import { Input, MouseListener } from "./kommon/input"
+import { NaiveSpriteGraphics, Color, createFont, Font } from "./kommon/kanvas"
+import { fromCount } from "./kommon/kommon"
+import { Vec2 } from "./kommon/math"
+import { Input } from "./kommon/input"
 
 const DEBUG = false;
 
@@ -27,9 +27,9 @@ if (DEBUG) {
   gui.domElement.style.top = "auto";
 }
 
-function getUrl(relative_path: string) {
-  return new URL(`${relative_path}`, import.meta.url).href;
-}
+// function getUrl(relative_path: string) {
+//   return new URL(`${relative_path}`, import.meta.url).href;
+// }
 
 const canvas = document.querySelector<HTMLCanvasElement>("#game_canvas")!;
 const display_size = new Vec2(canvas.clientWidth, canvas.clientHeight);
@@ -433,12 +433,14 @@ function getAsdf(room_state: RoomState) {
     } else {
       if (room_state.plancha === "mesilla") {
         textures.push(game_textures[14]);
-      } else if (room_state.plancha === "fria") {
+      } else {
         textures.push(game_textures[13]);
-        interactables.push({
-          pos: points.plancha,
-          targets: [{pos: points.mesilla, action: setProp("plancha", "mesilla")}],
-        });
+        if (room_state.plancha === "fria") {
+          interactables.push({
+            pos: points.plancha,
+            targets: [{pos: points.mesilla, action: setProp("plancha", "mesilla")}],
+          });
+        }
       }
     }
   }
