@@ -219,6 +219,21 @@ const actions = {
     action: null,
     message: "No room."
   } as ActionTarget,
+  falso_silla_alta: {
+    pos: points.silla_alta,
+    action: null,
+    message: "Too unstable."
+  } as ActionTarget,
+  falso_mesa_alta: {
+    pos: points.mesa_alta,
+    action: null,
+    message: "Too unstable."
+  } as ActionTarget,
+  falso_mesa_media: {
+    pos: points.mesa_media,
+    action: null,
+    message: "Too unstable."
+  } as ActionTarget,
 }
 
 function getAsdf(room_state: RoomState) {
@@ -257,8 +272,11 @@ function getAsdf(room_state: RoomState) {
           interactables.push({
             message: "One more coffee cup?",
             pos: points.mesa_media,
-            targets: room_state.silla_escondida ? [] : [
+            targets: room_state.silla_escondida ? [
+              actions.falso_nevera
+            ] : [
               actions.cafetera_a_silla,
+              actions.falso_nevera,
             ]
           })
         } else if (room_state.tostadora === "silla") {
@@ -306,13 +324,14 @@ function getAsdf(room_state: RoomState) {
             pos: points.nevera,
             targets: [
               actions.cafetera_a_mesa,
-              {
-                pos: points.silla_alta,
-                action: null,
-                message: "Too unstable."
-              }
+              actions.falso_silla_alta,
             ]
           });
+          // falso micro
+          interactables.push({
+            pos: points.mesa_baja,
+            targets: [actions.falso_nevera, actions.falso_silla_alta]
+          })
         } else if (room_state.tostadora === "mesa") {
           textures.push(game_textures[26]);
           interactables.push({
@@ -323,7 +342,10 @@ function getAsdf(room_state: RoomState) {
           interactables.push({
               // message: "One more coffee cup?",
             pos: points.nevera,
-            targets: [
+            targets: room_state.silla_escondida ? [
+              actions.falso_mesa_alta,
+            ] : [
+              actions.falso_mesa_alta,
               actions.cafetera_a_silla,
             ]
           });
@@ -337,6 +359,7 @@ function getAsdf(room_state: RoomState) {
             pos: points.mesa_media,
             targets: [
               actions.tostadora_a_silla_alta,
+              actions.tostadora_a_nevera,
             ]
           });
           // mover cafetera
@@ -376,9 +399,7 @@ function getAsdf(room_state: RoomState) {
           // falso mover microondas
           interactables.push({
             pos: points.mesa_baja,
-            message: "Nowhere to place it securely.",
-            targets: [],
-            fake: true,
+            targets: [actions.falso_nevera, actions.falso_silla_alta],
           })
         } else if (room_state.tostadora === "silla") {
           textures.push(game_textures[8]);
@@ -387,7 +408,10 @@ function getAsdf(room_state: RoomState) {
             // message: "My trusty toaster.",
             pos: points.silla_alta,
             targets: [
-              // actions.tostadora_a_mesa, // TODO
+              {
+                pos: points.mesa_media,
+                action: setProp("tostadora", "mesa"),
+              },
               actions.tostadora_a_nevera,
             ]
           });
@@ -407,6 +431,37 @@ function getAsdf(room_state: RoomState) {
         interactables.push({
           pos: points.nevera,
           targets: [actions.microondas_a_mesa]
+        })
+      }
+
+      if (room_state.tostadora === "silla") {
+        // tostadora
+        interactables.push({
+          pos: points.silla_alta,
+          targets: [
+            actions.falso_nevera,
+            {
+              pos: points.mesa_baja,
+              action: setProp("tostadora", "mesa"),
+            }
+          ]
+        })
+      } else if (room_state.tostadora === "mesa") {
+        textures.push(game_textures[25]);
+        // tostadora
+        interactables.push({
+          pos: points.mesa_baja,
+          targets: [actions.tostadora_a_silla_alta, actions.falso_nevera]
+        })
+        // cafetera
+        interactables.push({
+          pos: points.silla_baja,
+          targets: [actions.falso_mesa_media, actions.falso_nevera]
+        })
+        // microondas
+        interactables.push({
+          pos: points.nevera,
+          targets: [actions.falso_mesa_media, actions.falso_silla_alta]
         })
       }
     }
