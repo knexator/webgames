@@ -59,6 +59,18 @@ const game_textures = fromCount(27, k => {
   return twgl.createTexture(gl, { src: (new URL(`./images/${String(k).padStart(4, '0')}.png`, import.meta.url).href) });
 });
 
+
+function getSoundUrl(sound_name: string) {
+  return new URL(`./sfx/${sound_name}.wav`, import.meta.url).href;
+}
+
+const sounds = {
+  intro_text: new Audio(getSoundUrl("text")),
+  hover: new Audio(getSoundUrl("hover")),
+  drop: new Audio(getSoundUrl("drop")),
+  pick: new Audio(getSoundUrl("pick")),
+}
+
 let fonts = (() => {
   const fonts_atlases = import.meta.glob('./fonts/*.png', { eager: true, as: "url" });
   const fonts_data = import.meta.glob('./fonts/*.json', { eager: true });
@@ -155,9 +167,10 @@ const points = {
   mesilla: new Vec2(146, 533 - 153),
   plancha: new Vec2(390, 533 - 288),
   tabla_planchar: new Vec2(270, 533 - 209),
+  tabla_planchar_plegada: new Vec2(430, 533 - 430),
   cama: new Vec2(294, 533 - 404),
-  silla: new Vec2(455, 533 - 115),
-  silla_bajo_mesa: new Vec2(650, 533 - 165),
+  silla: new Vec2(455, 533 - 64),
+  silla_bajo_mesa: new Vec2(650, 533 - 125),
 }
 
 // const actions: Record<string, ActionTarget> = {
@@ -583,8 +596,7 @@ function getAsdf(room_state: RoomState) {
     interactables.push({
       pos: points.mesilla,
       targets: [],
-      message: "Nowhere to place the alarm clock.",
-      fake: true,
+      message: "Good thing I set the alarm early.",
     });
   } else {
     if (!room_state.reloj_armario) {
@@ -615,7 +627,14 @@ function getAsdf(room_state: RoomState) {
     if (room_state.reloj_armario) {
       interactables.push({
         pos: points.plancha,
+        message: "The iron is cool now.",
         targets: [{pos: points.mesilla, action: setProp("plancha", "mesilla")}],
+      });
+    } else {
+      interactables.push({
+        pos: points.plancha,
+        message: "The iron is cool now.",
+        targets: [{pos: points.armario, action: null, message: "The iron is too heavy and the cupboard too high."}],
       });
     }
   } else if (room_state.plancha === "mesilla") {
@@ -623,8 +642,7 @@ function getAsdf(room_state: RoomState) {
       interactables.push({pos: points.tabla_planchar, targets: [], instant: setProp("tabla_plegada", true)});
     } else {
       textures.push(game_textures[15]);
-      // TODO: reabrir tabla
-      // interactables.push({pos: points.tabla_planchar, targets: [], instant: setProp("tabla_plegada", true)});
+      interactables.push({pos: points.tabla_planchar_plegada, targets: [], instant: setProp("tabla_plegada", false)});
     }
   }
 
@@ -632,6 +650,21 @@ function getAsdf(room_state: RoomState) {
     interactables.push({
       pos: points.cama,
       targets: [{pos: points.silla, action: setProp("cama_abierta", true)}],
+    })
+  } else {
+    let message = "Too much stuff in the way.";
+    if (room_state.tabla_plegada) {
+      message = "Stool in the way."
+    }
+    if (room_state.silla_escondida) {
+      message = "Ironing board in the way."
+    }
+
+    interactables.push({
+      fake: true,
+      message: message,
+      pos: points.cama,
+      targets: [],
     })
   }
 
@@ -702,6 +735,7 @@ function every_frame(cur_timestamp: number) {
           gfx.strokeCircle(pickable.pos, TARGET(pickable, hover_might_pick_radius), colors.hovering_might_pick, 2);
           if (input.mouse.left && !input.prev_mouse.left) {
             selected_interactable = index;
+            sounds.pick.play();
           }
         }
         if (pickable.message) {
@@ -724,6 +758,7 @@ function every_frame(cur_timestamp: number) {
         gfx.strokeCircle(cur_interactable.pos, TARGET(cur_interactable, hover_drop_radius), colors.hovering_might_pick, 2);
         if (input.mouse.left && !input.prev_mouse.left) {
           selected_interactable = null;
+          sounds.drop.play();
         }
         if (cur_interactable.message) {
           gfx.textLineCentered(fonts.thought, cur_interactable.message, new Vec2(948 / 2, 500), 32, colors.thoughts)
@@ -748,6 +783,7 @@ function every_frame(cur_timestamp: number) {
             if (input.mouse.left && !input.prev_mouse.left) {
               selected_interactable = null;
               cur_room_state = target.action(cur_room_state);
+              sounds.drop.play();
             }
             gfx.strokeCircle(target.pos, TARGET(target, hover_drop_radius), colors.hovering_might_pick, 2);
           }
@@ -772,7 +808,7 @@ function every_frame(cur_timestamp: number) {
 }
 
 function RESETUNSEEN() {
-  _TARGET_values.forEach((value, key) => {
+  _TARGET_values.forEach((_value, key) => {
     if (!_TARGET_seen_this_frame.has(key)) {
       _TARGET_values.set(key, -1);
     }
@@ -795,8 +831,8 @@ let _TARGET_values = new Map<string, number>();
 let _TARGET_seen_this_frame = new Set<string>();
 
 function* introSequence(): Generator<void, void, void> {
-  let asdf = 0;
-  return;
+  // let asdf = 0;
+  // return;
   if (DEBUG) return;
   const lines = [
     "Everything ready for the job interview.",
@@ -814,6 +850,7 @@ function* introSequence(): Generator<void, void, void> {
     }
     if (input.mouse.left && !input.prev_mouse.left) {
       shown_lines++;
+      sounds.intro_text.play();
     }
     yield;
   }
