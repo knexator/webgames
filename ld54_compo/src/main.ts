@@ -49,9 +49,9 @@ let input = new Input();
 
 const colors = {
   might_pick: new Color(1, 1, 1).toArray(),
-  cant_pick: new Color(.7, .7, .7).toArray(),
+  cant_pick: new Color(.8, .8, .8).toArray(),
   hovering_might_pick: new Color(1, .5, .5).toArray(),
-  hovering_cant_pick: new Color(.7, .7, .7).toArray(),
+  hovering_cant_pick: new Color(.8, .8, .8).toArray(),
   thoughts: new Color(1, 1, 1).toArray(),
 }
 
@@ -69,6 +69,7 @@ const sounds = {
   hover: new Audio(getSoundUrl("hover")),
   drop: new Audio(getSoundUrl("drop")),
   pick: new Audio(getSoundUrl("pick")),
+  win: new Audio(getSoundUrl("win")),
 }
 
 let fonts = (() => {
@@ -117,7 +118,7 @@ let cur_room_state: RoomState = {
   reloj_armario: false,
   tabla_plegada: false,
   cama_abierta: false,
-  silla_escondida: false,
+  silla_escondida: true,
 };
 
 if (DEBUG) {
@@ -347,9 +348,15 @@ function getAsdf(room_state: RoomState) {
           })
         } else if (room_state.tostadora === "mesa") {
           textures.push(game_textures[26]);
+          // move tostadora
           interactables.push({
             pos: points.mesa_media,
-            targets: [actions.tostadora_a_silla_baja],
+            targets: room_state.silla_escondida ? [
+              actions.falso_nevera,
+            ] : [
+              actions.falso_nevera,
+              actions.tostadora_a_silla_baja
+            ],
           });
           // move cafetera
           interactables.push({
@@ -724,6 +731,7 @@ function every_frame(cur_timestamp: number) {
   const hover_drop_radius = hover_might_pick_radius;
   const cant_drop_radius = cant_pick_radius;
   const hover_cant_drop_radius = hover_cant_pick_radius;
+  let pending_message: string | null = null;
   if (selected_interactable === null) {
     let hovering: number | null = null;
     asdf.interactables.forEach((pickable, index) => {
@@ -739,7 +747,7 @@ function every_frame(cur_timestamp: number) {
           }
         }
         if (pickable.message) {
-          gfx.textLineCentered(fonts.thought, pickable.message, new Vec2(948 / 2, 500), 32, colors.thoughts)
+          pending_message = pickable.message;
         }
       } else {
         if (pickable.fake) {
@@ -761,7 +769,7 @@ function every_frame(cur_timestamp: number) {
           sounds.drop.play();
         }
         if (cur_interactable.message) {
-          gfx.textLineCentered(fonts.thought, cur_interactable.message, new Vec2(948 / 2, 500), 32, colors.thoughts)
+          pending_message = cur_interactable.message;
         }
       } else {
         gfx.strokeCircle(cur_interactable.pos, TARGET(cur_interactable, drop_radius), colors.hovering_might_pick, 2);
@@ -788,7 +796,7 @@ function every_frame(cur_timestamp: number) {
             gfx.strokeCircle(target.pos, TARGET(target, hover_drop_radius), colors.hovering_might_pick, 2);
           }
           if (target.message) {
-            gfx.textLineCentered(fonts.thought, target.message, new Vec2(948 / 2, 500), 32, colors.thoughts)
+            pending_message = target.message;
           }
         } else {
           if (!target.action) {
@@ -799,6 +807,9 @@ function every_frame(cur_timestamp: number) {
         }
       })
     }
+  }
+  if (pending_message !== null) {
+    gfx.textLineCentered(fonts.thought, pending_message, new Vec2(948 / 2, 500), 32, colors.thoughts)
   }
 
   RESETUNSEEN();
@@ -846,7 +857,7 @@ function* introSequence(): Generator<void, void, void> {
   let shown_lines = 0;
   while (shown_lines <= lines.length) {
     for (let k = 0; k < shown_lines; k++) {
-      gfx.textLineCentered(fonts.thought, lines[k], new Vec2(948/2, 80 + k * 60), 32, colors.thoughts);
+      gfx.textLineCentered(fonts.thought, lines[k], new Vec2(948/2, 80 + k * 60), 32, [1,1,1,1]);
     }
     if (input.mouse.left && !input.prev_mouse.left) {
       shown_lines++;
@@ -858,6 +869,7 @@ function* introSequence(): Generator<void, void, void> {
 }
 
 function* outroSequence(): Generator<void, never, void> {
+  sounds.win.play();
   yield* sleep(.2);
   for (let t = 0; t < 1; t += delta_time / .8) {
     gfx.textLineCentered(fonts.ending, "You found the", new Vec2(594, 162), 82, [1,1,1,t]);
