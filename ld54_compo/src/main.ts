@@ -55,7 +55,7 @@ const colors = {
   thoughts: new Color(1, 1, 1).toArray(),
 }
 
-const game_textures = fromCount(24, k => {
+const game_textures = fromCount(27, k => {
   return twgl.createTexture(gl, { src: (new URL(`./images/${String(k).padStart(4, '0')}.png`, import.meta.url).href) });
 });
 
@@ -152,7 +152,7 @@ const points = {
   mango_nevera_cerrada: new Vec2(529, 533 - 304),
   mango_nevera_abierta: new Vec2(693, 533 - 308),
   armario: new Vec2(80, 533 - 416),
-  mesilla: new Vec2(146, 533 - 143),
+  mesilla: new Vec2(146, 533 - 153),
   plancha: new Vec2(390, 533 - 288),
   tabla_planchar: new Vec2(270, 533 - 209),
   cama: new Vec2(294, 533 - 404),
@@ -214,6 +214,11 @@ const actions = {
     pos: points.sarten_mesa,
     action: setProp("sarten_fregadero", false),
   } as ActionTarget,
+  falso_nevera: {
+    pos: points.nevera,
+    action: null,
+    message: "No room."
+  } as ActionTarget,
 }
 
 function getAsdf(room_state: RoomState) {
@@ -226,6 +231,7 @@ function getAsdf(room_state: RoomState) {
         if (room_state.tostadora === "mesa") {
           textures.push(game_textures[0]);
           interactables.push({
+            message: "My trusty toaster.",
             pos: points.mesa_alta,
             targets: room_state.silla_escondida ? [
               actions.tostadora_a_nevera,
@@ -238,6 +244,7 @@ function getAsdf(room_state: RoomState) {
           textures.push(game_textures[6]);
           // mover tostadora
           interactables.push({
+            // message: "My trusty toaster.",
             pos: points.nevera,
             targets: room_state.silla_escondida ? [
               actions.tostadora_a_mesa,
@@ -248,6 +255,7 @@ function getAsdf(room_state: RoomState) {
           });
           // mover cafetera
           interactables.push({
+            message: "One more coffee cup?",
             pos: points.mesa_media,
             targets: room_state.silla_escondida ? [] : [
               actions.cafetera_a_silla,
@@ -257,6 +265,7 @@ function getAsdf(room_state: RoomState) {
           textures.push(game_textures[4]);
           // mover tostadora
           interactables.push({
+            // message: "My trusty toaster.",
             pos: points.silla_baja,
             targets: [
               actions.tostadora_a_mesa,
@@ -265,31 +274,68 @@ function getAsdf(room_state: RoomState) {
           });
           // mover cafetera
           interactables.push({
+            message: "One more coffee cup?",
             pos: points.mesa_media,
             targets: [
               actions.cafetera_a_nevera,
+              {
+                pos: points.silla_alta,
+                action: null,
+                message: "Too unstable."
+              }
             ]
           })
         }
       } else if (room_state.cafetera === "nevera") {
         textures.push(game_textures[5]);
-        // move cafetera
-        interactables.push({
-          pos: points.nevera,
-          targets: [
-            actions.cafetera_a_mesa,
-          ]
-        })
-      } else if (room_state.cafetera === "silla") {
-        if (room_state.tostadora === "mesa") {
-          throw new Error("todo");
-        } else if (room_state.tostadora === "nevera") {
-          textures.push(game_textures[7]);
-          // mover tostadora
+        if (room_state.tostadora === "silla") {
+          // move tostadora
           interactables.push({
+            pos: points.silla_baja,
+            targets: [
+              {
+                pos: points.mesa_media,
+                action: setProp("tostadora", "mesa")
+              },
+              actions.falso_nevera,
+            ]
+          });
+          // move cafetera
+          interactables.push({
+              // message: "One more coffee cup?",
             pos: points.nevera,
             targets: [
-              // actions.tostadora_a_mesa, // TODO
+              actions.cafetera_a_mesa,
+              {
+                pos: points.silla_alta,
+                action: null,
+                message: "Too unstable."
+              }
+            ]
+          });
+        } else if (room_state.tostadora === "mesa") {
+          textures.push(game_textures[26]);
+          interactables.push({
+            pos: points.mesa_media,
+            targets: [actions.tostadora_a_silla_baja],
+          });
+          // move cafetera
+          interactables.push({
+              // message: "One more coffee cup?",
+            pos: points.nevera,
+            targets: [
+              actions.cafetera_a_silla,
+            ]
+          });
+        }
+      } else if (room_state.cafetera === "silla") {
+        if (room_state.tostadora === "mesa") {
+          textures.push(game_textures[24]);
+          // mover tostadora
+          interactables.push({
+            // message: "My trusty toaster.",
+            pos: points.mesa_media,
+            targets: [
               actions.tostadora_a_silla_alta,
             ]
           });
@@ -297,13 +343,48 @@ function getAsdf(room_state: RoomState) {
           interactables.push({
             pos: points.silla_baja,
             targets: [
+              actions.cafetera_a_nevera,
+              {
+                pos: points.mesa_alta,
+                action: null,
+                message: "Too unstable."
+              }
+            ],
+          })
+        } else if (room_state.tostadora === "nevera") {
+          textures.push(game_textures[7]);
+          // mover tostadora
+          interactables.push({
+            // message: "My trusty toaster.",
+            pos: points.nevera,
+            targets: [
+              {
+                pos: points.mesa_media,
+                action: setProp("tostadora", "mesa"),
+              },
+              actions.tostadora_a_silla_alta,
+            ]
+          });
+          // mover cafetera
+          interactables.push({
+            // message: "One more coffee cup?",
+            pos: points.silla_baja,
+            targets: [
               actions.cafetera_a_mesa,
             ]
+          }),
+          // falso mover microondas
+          interactables.push({
+            pos: points.mesa_baja,
+            message: "Nowhere to place it securely.",
+            targets: [],
+            fake: true,
           })
         } else if (room_state.tostadora === "silla") {
           textures.push(game_textures[8]);
           // mover tostadora
           interactables.push({
+            // message: "My trusty toaster.",
             pos: points.silla_alta,
             targets: [
               // actions.tostadora_a_mesa, // TODO
@@ -313,6 +394,7 @@ function getAsdf(room_state: RoomState) {
           // mover microondas
           interactables.push({
             pos: points.mesa_baja,
+            message: "*microwave sounds*",
             targets: [
               actions.microondas_a_nevera,
             ]           
@@ -333,10 +415,12 @@ function getAsdf(room_state: RoomState) {
       if (!room_state.cubiertos_fregadero) {
         textures.push(game_textures[21]);
         interactables.push({
+          message: "What a mess... I'll have to clean the table later.",
           pos: points.cubiertos_mesa,
           targets: [actions.cubiertos_a_fregadero]
         });
         interactables.push({
+          message: "What a mess... I'll have to clean the table later.",
           pos: points.sarten_mesa,
           targets: [actions.sarten_a_fregadero]
         });
@@ -348,6 +432,7 @@ function getAsdf(room_state: RoomState) {
         });
         interactables.push({
           pos: points.sarten_mesa,
+          // message: "What a mess... I'll have to clean the table later.",
           targets: [{
             pos: points.fregadero,
             action: null,
@@ -359,6 +444,7 @@ function getAsdf(room_state: RoomState) {
       if (!room_state.cubiertos_fregadero) {
         textures.push(game_textures[2]);
         interactables.push({
+          // message: "What a mess... I'll have to clean the table later.",
           pos: points.cubiertos_mesa,
           targets: [actions.cubiertos_a_fregadero]
         });
@@ -423,6 +509,7 @@ function getAsdf(room_state: RoomState) {
     } else {
       textures.push(game_textures[11]);
       interactables.push({
+        message: "The tie wasn't in there...",
         pos: points.mango_nevera_abierta,
         targets: [],
         instant: setProp("nevera_abierta", false),
@@ -438,10 +525,17 @@ function getAsdf(room_state: RoomState) {
       instant: setProp("armario_abierto", true),
       message: "Maybe the tie is here?"
     });
+    interactables.push({
+      pos: points.mesilla,
+      targets: [],
+      message: "Nowhere to place the alarm clock.",
+      fake: true,
+    });
   } else {
     if (!room_state.reloj_armario) {
       textures.push(game_textures[12]);
       interactables.push({
+        message: "Good thing I set the alarm early.",
         pos: points.mesilla,
         targets: [{pos: points.armario, action: setProp("reloj_armario", true)}],
       });
@@ -575,6 +669,9 @@ function every_frame(cur_timestamp: number) {
         gfx.strokeCircle(cur_interactable.pos, TARGET(cur_interactable, hover_drop_radius), colors.hovering_might_pick, 2);
         if (input.mouse.left && !input.prev_mouse.left) {
           selected_interactable = null;
+        }
+        if (cur_interactable.message) {
+          gfx.textLineCentered(fonts.thought, cur_interactable.message, new Vec2(948 / 2, 500), 32, colors.thoughts)
         }
       } else {
         gfx.strokeCircle(cur_interactable.pos, TARGET(cur_interactable, drop_radius), colors.hovering_might_pick, 2);
