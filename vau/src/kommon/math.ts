@@ -189,6 +189,13 @@ export class Vec2 {
         return out;
     }
 
+    mul(other: Vec2, out?: Vec2): Vec2 {
+        out = out || this;
+        out.x = this.x * other.x;
+        out.y = this.y * other.y;
+        return out;
+    }
+
     scale(factor: number, out?: Vec2): Vec2 {
         out = out || this;
         out.x = this.x * factor;

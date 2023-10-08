@@ -40,6 +40,16 @@ export function imageFromUrl(url: string) {
 }
 
 export type ColorArray = [number, number, number, number];
+
+export type SpriteCall = {
+    shader_name: string,
+    params: Record<string, any>,
+    center: Vec2,
+    size: Vec2,
+    radians_ccw: number,
+    uvs: Rectangle,
+};
+
 export class NaiveSpriteGraphics {
     shaders: Map<string, twgl.ProgramInfo>;
     vao_info: twgl.VertexArrayInfo;
@@ -252,6 +262,10 @@ export class NaiveSpriteGraphics {
         twgl.drawBufferInfo(this.gl, this.vao_info);
     }
 
+    drawFromCall(call: SpriteCall) {
+        this.draw(call.shader_name, call.params, call.center, call.size, call.radians_ccw, call.uvs);
+    }
+
     drawTopLeft(shader_name: string, params: Record<string, any>, top_left: Vec2, size: Vec2, radians_ccw: number, uvs: Rectangle) {
         this.draw(shader_name, params, Vec2.add(top_left, Vec2.scale(size, .5)), size, radians_ccw, uvs);
     }
@@ -267,6 +281,37 @@ export class NaiveSpriteGraphics {
         // actual quad drawn is 1.5px wider than 2 * outer_radius,
         // the outermost 1.5 pixels are used for the gradient to transparency
         this.draw("fill_circle", { u_color: fill_color }, center, new Vec2(radius * 2 + 1.5, radius * 2 + 1.5), 0, Rectangle.unit);
+    }
+
+    genCallForFillCircle(center: Vec2, radius: number, fill_color: ColorArray): SpriteCall {
+        // actual quad drawn is 1.5px wider than 2 * outer_radius,
+        // the outermost 1.5 pixels are used for the gradient to transparency
+        return {
+            shader_name: "fill_circle",
+            params: { u_color: fill_color },
+            center: center,
+            size: new Vec2(radius * 2 + 1.5, radius * 2 + 1.5),
+            radians_ccw: 0,
+            uvs: Rectangle.unit
+        };
+    }
+
+
+    genCallForStrokeCircle(center: Vec2, radius: number, stroke_color: ColorArray, width: number): SpriteCall {
+        width += 1.5; // weird hack to be consistent with the width from drawLine
+        let quad_side = radius * 2 + width + 1.5
+        return {
+            shader_name: "stroke_circle",
+            params: {
+                u_color: stroke_color,
+                u_radius_perc: radius / (2 * radius + width + 1.5),
+                u_width_perc: .5 * width / (2 * radius + width + 1.5),
+            },
+            center: center,
+            size: new Vec2(quad_side, quad_side),
+            radians_ccw: 0,
+            uvs: Rectangle.unit,
+        }
     }
 
     strokeCircle(center: Vec2, radius: number, stroke_color: ColorArray, width: number) {
