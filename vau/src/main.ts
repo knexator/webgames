@@ -96,6 +96,7 @@ let cur_vau: Pair = parseSexpr(`(
 )`) as Pair;
 
 let demo_seq = demoSequence();
+let cur_binding_seq: Generator<unknown, any, unknown> | null = null;
 
 let is_vau_focused: Boolean = false;
 let molecule_focus: SexprAddress = [];
@@ -110,7 +111,7 @@ type Binding = {
 function generateBindings(target: Sexpr, template: Sexpr, address: SexprAddress = []): Binding[] | null {
   if (template.type === "atom") {
     if (template.value[0] === "@") {
-      return [{ name: template.value, address: address, value: target }];
+      return [{ name: template.value, address: address, value: structuredClone(target) }];
     } else if (target.type === "atom" && target.value === template.value) {
       return [];
     } else {
@@ -159,6 +160,31 @@ function atAddress(sexpr: Sexpr, address: SexprAddress): Sexpr | null {
     }
   }
   return sexpr;
+}
+
+function setAtAddress(sexpr: Sexpr, new_val: Sexpr, address: SexprAddress): void {
+  let address_copy = [...address];
+  while (address_copy.length > 0) {
+    if (sexpr.type === "atom") {
+      throw new Error("invalid address");
+    }
+    let cur = address_copy.shift();
+    if (cur === "left") {
+      sexpr = sexpr.left;
+    } else {
+      sexpr = sexpr.right;
+    }
+  }
+  sexpr.type = new_val.type;
+  if (sexpr.type === "atom") {
+    // @ts-ignore
+    sexpr.value = new_val.value;
+  } else {
+    // @ts-ignore
+    sexpr.left = new_val.left;
+    // @ts-ignore
+    sexpr.right = new_val.right;
+  }
 }
 
 function combineAddresses(parent: SexprAddress, child: SexprAddress): SexprAddress {
@@ -211,6 +237,25 @@ function drawSexpr(s: Sexpr, center: Vec2, radius: number): void {
     gfx.draw("fill_circle", { u_color: [.5, .5, .5, .5] }, new Vec2(0, -radius / 2).add(center), new Vec2(radius * 2 + 1.5, radius * 1 + 1.5), 0, new Rectangle(Vec2.zero, new Vec2(1, .5)));
     drawSexpr(s.left, (new Vec2(-radius / 2, 0)).add(center), radius / 2);
     drawSexpr(s.right, (new Vec2(radius / 2, 0)).add(center), radius / 2);
+  }
+}
+
+function drawBindedMolecule(s: Sexpr, progress: number, center: Vec2, radius: number): void {
+  // let center = new Vec2(0, -radius).add(center_center);
+  if (s.type === "atom") {
+    if (s.value === "hole") {} else if (s.value[0] === "@") {
+      let color = colorFromAtom(s.value.slice(1)).clone();
+      color.a = 1 - progress;
+      gfx.strokeCircle(center, radius, color.toArray(), 2);
+    } else {
+      let color = colorFromAtom(s.value).clone();
+      color.a = 1 - progress;
+      gfx.fillCircle(center, radius, color.toArray());
+    }
+  } else {
+    gfx.draw("fill_circle", { u_color: [.5, .5, .5, .5] }, new Vec2(0, -radius / 2).add(center), new Vec2(radius * 2 + 1.5, radius * 1 + 1.5), 0, new Rectangle(Vec2.zero, new Vec2(1, .5)));
+    drawBindedMolecule(s.left, progress, (new Vec2(-radius / 2, 0)).add(center), radius / 2);
+    drawBindedMolecule(s.right, progress, (new Vec2(radius / 2, 0)).add(center), radius / 2);
   }
 }
 
@@ -279,8 +324,25 @@ function every_frame(cur_timestamp: number) {
   delta_time = (cur_timestamp - last_timestamp) / 1000;
   last_timestamp = cur_timestamp;
 
+  if (cur_binding_seq !== null) {
+    if (cur_binding_seq.next().done) {
+      cur_binding_seq = null;
+    }
+    input.endFrame();
+    requestAnimationFrame(every_frame);
+    return;
+  } else if (input.keyboard.wasPressed(KeyCode.KeyC)) {
+    cur_binding_seq = bindSequence();
+    input.endFrame();
+    requestAnimationFrame(every_frame);
+    return;
+  }
+
   // demo_seq.next();
 
+  if (input.keyboard.wasPressed(KeyCode.KeyX)) {
+    is_vau_focused = !is_vau_focused;
+  }
   let new_focus = is_vau_focused ? [...vau_focus] : [...molecule_focus];
   if (input.keyboard.wasPressed(KeyCode.ArrowDown)) {
     new_focus = combineAddresses(new_focus, ["left"]);
@@ -331,6 +393,127 @@ function every_frame(cur_timestamp: number) {
 
   input.endFrame();
   requestAnimationFrame(every_frame);
+}
+
+function* bindSequence(): Generator {
+  // ASSUME IT'S BINDING TO THE WHOLE MOLECULE
+  let bindings = generateBindings(cur_molecule, cur_vau.left);
+  if (bindings === null) throw new Error();
+
+  let binding_targets: Map<string, SexprAddress> = new Map(findVariables(cur_vau.right).map(x => {
+    return [x.name, x.address];
+  }));
+  
+  let molecule_transform: SexprTransform = {radius: 150, center_center: new Vec2(render_size.x / 3, render_size.y / 3)};
+
+  let initial_vau_transform: SexprTransform = {radius: 150, center_center: new Vec2(render_size.x * 2 / 3, render_size.y / 2)};
+  let cur_vau_transform: SexprTransform = {radius: 150, center_center: new Vec2(render_size.x * 2 / 3, render_size.y / 2)};
+
+  // move vau into position
+  for (let t = 0; t < 1; t += delta_time / 1.5) {
+    cur_vau_transform = {
+      radius: lerp(initial_vau_transform.radius, molecule_transform.radius * 2, t),
+      center_center: Vec2.lerp(initial_vau_transform.center_center, molecule_transform.center_center.add(
+        new Vec2(0, molecule_transform.radius), new Vec2()
+      ), t)
+    };
+    drawSexpr(cur_molecule, molecule_transform.center_center, molecule_transform.radius);
+    drawVau(cur_vau, cur_vau_transform);
+    yield;
+  }
+
+  let floating_binds = findVariables(cur_vau.right).map(x => {
+    let source_binding = bindings!.find(b => b.name === x.name);
+    if (source_binding !== undefined) {
+      let top_vau_transform: SexprTransform = {
+        center_center: new Vec2(0, -cur_vau_transform.radius / 2).add(cur_vau_transform.center_center),
+        radius: cur_vau_transform.radius / 2,
+      }
+      let result = {
+        cur_transform: transformFromAddress(top_vau_transform, source_binding.address),
+        start_transform: transformFromAddress(top_vau_transform, source_binding.address),
+        target_transform: transformFromAddress(molecule_transform, x.address),
+        name: x.name,
+        value: structuredClone(source_binding.value),
+      }
+      let asdf = atAddress(cur_molecule, source_binding.address)!;
+      asdf.type = "atom";
+      // @ts-ignore
+      asdf.value = "hole";
+      return result;
+    } else {
+      // return undefined;
+      throw new Error("");
+    }
+  }).filter(x => x !== undefined);
+  
+  let start_new_molecule_transform: SexprTransform = {
+    center_center: cur_vau_transform.center_center.add(new Vec2(0, cur_vau_transform.radius / 2), new Vec2()),
+    radius: cur_vau_transform.radius / 2,
+  };
+  let end_new_molecule_transform: SexprTransform = {
+    center_center: cur_vau_transform.center_center.add(new Vec2(0, -cur_vau_transform.radius / 2), new Vec2()),
+    radius: cur_vau_transform.radius / 2,
+  };
+  let cur_new_molecule_transform: SexprTransform = {
+    center_center: cur_vau_transform.center_center.add(new Vec2(0, cur_vau_transform.radius / 2), new Vec2()),
+    radius: cur_vau_transform.radius / 2,
+  }
+
+  // bindings to neutral
+  for (let t = 0; t <= 1; t += delta_time / 1.5) {
+    t = Math.min(t, 1);
+    for (let k=0; k<floating_binds.length; k++) {
+      let cur_bind = floating_binds[k];
+      cur_bind.cur_transform = {
+        radius: lerp(cur_bind.start_transform.radius, 25, t),
+        center_center: Vec2.lerp(cur_bind.start_transform.center_center, 
+          new Vec2(render_size.x * 2 / 3, render_size.y / 2 + (k - floating_binds.length/2) * 100),
+        t)
+      };
+      drawSexpr(cur_bind.value, cur_bind.cur_transform.center_center, cur_bind.cur_transform.radius);
+      drawSexpr({type: "atom", value: cur_bind.name}, cur_bind.cur_transform.center_center, cur_bind.cur_transform.radius);
+    }
+    cur_new_molecule_transform = {
+      radius: lerp(start_new_molecule_transform.radius, end_new_molecule_transform.radius, t),
+      center_center: Vec2.lerp(
+        start_new_molecule_transform.center_center, 
+        end_new_molecule_transform.center_center, 
+      t)
+    };
+    drawBottomVau(cur_vau.right, cur_new_molecule_transform.center_center, cur_new_molecule_transform.radius);
+    drawBindedMolecule(cur_molecule, t, molecule_transform.center_center, molecule_transform.radius);
+    yield;
+  }
+
+  // neutral to new molecule
+  for (let t = 0; t < 1; t += delta_time / 1.5) {
+    for (let k=0; k<floating_binds.length; k++) {
+      let cur_bind = floating_binds[k];
+      cur_bind.cur_transform = {
+        radius: lerp(25, cur_bind.target_transform.radius, t),
+        center_center: Vec2.lerp(
+          new Vec2(render_size.x * 2 / 3, render_size.y / 2 + (k - floating_binds.length/2) * 100),
+          cur_bind.target_transform.center_center, 
+        t)
+      };
+      drawSexpr(cur_bind.value, cur_bind.cur_transform.center_center, cur_bind.cur_transform.radius);
+      drawSexpr({type: "atom", value: cur_bind.name}, cur_bind.cur_transform.center_center, cur_bind.cur_transform.radius);
+    }
+    drawBottomVau(cur_vau.right, cur_new_molecule_transform.center_center, cur_new_molecule_transform.radius);
+    yield;
+  }
+
+  cur_molecule = structuredClone(cur_vau.right);
+  bindings.forEach(binding => {
+    setAtAddress(cur_molecule, binding.value, binding_targets.get(binding.name)!)    
+  })
+
+  // while (true) {
+  //   drawSexpr(cur_molecule, cur_new_molecule_transform.center_center, cur_new_molecule_transform.radius);
+  //   yield;
+  // }
+
 }
 
 function* demoSequence(): Generator {

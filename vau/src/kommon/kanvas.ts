@@ -462,6 +462,10 @@ export class Color {
         return [this.r, this.g, this.b, this.a];
     }
 
+    clone(): Color {
+        return new Color(this.r, this.g, this.b, this.a);
+    }
+
     static fromHex(hex_str: string, alpha: number = 1): Color {
         let hex_number = Number(hex_str.replace('#', '0x'));
         return Color.fromInt(hex_number, alpha);
