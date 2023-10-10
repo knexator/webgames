@@ -376,6 +376,31 @@ function every_frame(cur_timestamp: number) {
     }
   }
 
+  if (is_vau_focused) {
+
+  } else {
+    const DIGIT_KEYS = [
+      KeyCode.Digit0,
+      KeyCode.Digit1,
+      KeyCode.Digit2,
+      KeyCode.Digit3,
+      KeyCode.Digit4,
+      KeyCode.Digit5,
+      KeyCode.Digit6,
+      KeyCode.Digit7,
+      KeyCode.Digit8,
+      KeyCode.Digit9,
+    ];
+    if (input.keyboard.wasPressed(DIGIT_KEYS[0])) {
+      setAtAddress(cur_molecule, {type: "pair", left: {type: "atom", value: "1"}, right: {type: "atom", value: "1"}}, molecule_focus);
+    }
+    for (let k=1; k<10; k++) {
+      if (input.keyboard.wasPressed(DIGIT_KEYS[k])) {
+        setAtAddress(cur_molecule, {type: "atom", value: k.toString()}, molecule_focus);
+      }
+    }
+  }
+
   let molecule_transform: SexprTransform = {radius: 150, center_center: new Vec2(render_size.x / 3, render_size.y / 3)};
   drawSexpr(cur_molecule, molecule_transform.center_center, molecule_transform.radius);
 
