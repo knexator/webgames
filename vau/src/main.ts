@@ -421,6 +421,12 @@ function* bindSequence(): Generator {
     drawVau(cur_vau, cur_vau_transform);
     yield;
   }
+  
+  for (let t = 0; t <= 1; t += delta_time / 0.25) {
+    drawSexpr(cur_molecule, molecule_transform.center_center, molecule_transform.radius);
+    drawVau(cur_vau, cur_vau_transform);
+    yield;
+  }
 
   let floating_binds = findVariables(cur_vau.right).map(x => {
     let source_binding = bindings!.find(b => b.name === x.name);
@@ -463,6 +469,8 @@ function* bindSequence(): Generator {
   // bindings to neutral
   for (let t = 0; t <= 1; t += delta_time / 1.5) {
     t = Math.min(t, 1);
+    drawBottomVau(cur_vau.right, cur_new_molecule_transform.center_center, cur_new_molecule_transform.radius);
+    drawBindedMolecule(cur_molecule, t, molecule_transform.center_center, molecule_transform.radius);
     for (let k=0; k<floating_binds.length; k++) {
       let cur_bind = floating_binds[k];
       cur_bind.cur_transform = {
@@ -481,13 +489,12 @@ function* bindSequence(): Generator {
         end_new_molecule_transform.center_center, 
       t)
     };
-    drawBottomVau(cur_vau.right, cur_new_molecule_transform.center_center, cur_new_molecule_transform.radius);
-    drawBindedMolecule(cur_molecule, t, molecule_transform.center_center, molecule_transform.radius);
     yield;
   }
 
   // neutral to new molecule
   for (let t = 0; t < 1; t += delta_time / 1.5) {
+    drawBottomVau(cur_vau.right, cur_new_molecule_transform.center_center, cur_new_molecule_transform.radius);
     for (let k=0; k<floating_binds.length; k++) {
       let cur_bind = floating_binds[k];
       cur_bind.cur_transform = {
@@ -500,7 +507,6 @@ function* bindSequence(): Generator {
       drawSexpr(cur_bind.value, cur_bind.cur_transform.center_center, cur_bind.cur_transform.radius);
       drawSexpr({type: "atom", value: cur_bind.name}, cur_bind.cur_transform.center_center, cur_bind.cur_transform.radius);
     }
-    drawBottomVau(cur_vau.right, cur_new_molecule_transform.center_center, cur_new_molecule_transform.radius);
     yield;
   }
 
