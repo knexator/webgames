@@ -553,7 +553,7 @@ function getAsdf(room_state: RoomState) {
     }
 
     // Maybe plegar mesa
-    if (room_state.microondas === "nevera" && room_state.sarten_fregadero && room_state.cubiertos_fregadero) {
+    if (room_state.microondas !== "mesa" && room_state.cafetera !== "mesa" && room_state.tostadora !== "mesa" && room_state.sarten_fregadero && room_state.cubiertos_fregadero) {
       interactables.push({
         pos: points.pata_mesa,
         targets: [],
