@@ -55,9 +55,21 @@ const colors = {
   thoughts: new Color(1, 1, 1).toArray(),
 }
 
-const game_textures = fromCount(27, k => {
-  return twgl.createTexture(gl, { src: (new URL(`./images/${String(k).padStart(4, '0')}.png`, import.meta.url).href) });
-});
+function twglCreateTextureAsync(gl: WebGLRenderingContext, options: twgl.TextureOptions): Promise<WebGLTexture> {
+  return new Promise<WebGLTexture>((resolve, reject) => {
+    twgl.createTexture(gl, options, (err, texture, _src) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(texture);
+      }
+    });
+  });
+}
+
+const game_textures = await Promise.all(fromCount(27, k => {
+  return twglCreateTextureAsync(gl, { src: (new URL(`./images/${String(k).padStart(4, '0')}.png`, import.meta.url).href) });
+}));
 
 
 function getSoundUrl(sound_name: string) {
@@ -72,20 +84,20 @@ const sounds = {
   win: new Audio(getSoundUrl("win")),
 }
 
-let fonts = (() => {
+let fonts = await (async () => {
   const fonts_atlases = import.meta.glob('./fonts/*.png', { eager: true, as: "url" });
   const fonts_data = import.meta.glob('./fonts/*.json', { eager: true });
-  function fontFromName(name: string): Font {
+  async function fontFromName(name: string): Promise<Font> {
     return createFont(
       fonts_data[`./fonts/${name}.json`],
-      twgl.createTexture(gl, { src: fonts_atlases[`./fonts/${name}.png`] }),
+      await twglCreateTextureAsync(gl, { src: fonts_atlases[`./fonts/${name}.png`] }),
     );
   }
 
   return {
     // title: fontFromName("Squarewave"),
-    thought: fontFromName("consolas"),
-    ending: fontFromName("consolas"),
+    thought: await fontFromName("consolas"),
+    ending: await fontFromName("consolas"),
   };
 })();
 
