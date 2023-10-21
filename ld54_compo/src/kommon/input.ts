@@ -1,96 +1,77 @@
-export class MouseState {
-    constructor(
-        public readonly clientX: number = 0,
-        public readonly clientY: number = 0,
-        public readonly buttons: number = 0,
-        public readonly wheel: number = 0,
-    ) { }
+export class RawMouse {
+    public clientX: number = 0;
+    public clientY: number = 0;
+    public buttons: number = 0;
+    public wheel: number = 0;
 
-    public get left(): boolean {
-        return Boolean(this.buttons & 1);
+    constructor() {
+        document.addEventListener("pointermove", this.onPointerEvent.bind(this));
+        document.addEventListener("pointerup", this.onPointerEvent.bind(this));
+        document.addEventListener("pointerdown", this.onPointerEvent.bind(this));
+        document.addEventListener("wheel", this.onWheelEvent.bind(this));
     }
 
-    public get right(): boolean {
-        return Boolean(this.buttons & 2);
+    private onPointerEvent(ev: MouseEvent) {
+        this.buttons = ev.buttons;
+        this.clientX = ev.clientX;
+        this.clientY = ev.clientY;
     }
 
-    public get middle(): boolean {
-        return Boolean(this.buttons & 4);
+    private onWheelEvent(ev: WheelEvent) {
+        this.wheel = ev.deltaY;
     }
 }
 
-export class MouseListener {
-    private _clientX: number = 0;
-    private _clientY: number = 0;
-    private _buttons: number = 0;
-    private _wheel: number = 0;
+export const enum MouseButton {
+    Left = 1,
+    Right = 2,
+    Middle = 4,
+};
 
-    constructor() {
-        document.addEventListener("pointermove", this.onPointerMove.bind(this));
-        document.addEventListener("pointerup", this.onPointerUp.bind(this));
-        document.addEventListener("pointerdown", this.onPointerDown.bind(this));
-        document.addEventListener("wheel", this.onWheel.bind(this));
+export class Mouse {
+    public clientX: number = 0;
+    public clientY: number = 0;
+    public buttons: number = 0;
+
+    public prev_clientX: number = 0;
+    public prev_clientY: number = 0;
+    public prev_buttons: number = 0;
+
+    constructor(
+        private readonly mouse_listener: RawMouse = new RawMouse(),
+    ) {}
+
+    isDown(button: MouseButton): Boolean {
+        return Boolean(this.buttons & button);
     }
 
-    public get state(): MouseState {
-        return new MouseState(this._clientX, this._clientY, this._buttons, this._wheel);
+    wasPressed(button: MouseButton): Boolean {
+        return Boolean(this.buttons & button) && !Boolean(this.prev_buttons & button);
     }
 
-    private onPointerMove(ev: MouseEvent) {
-        this._buttons = ev.buttons;
-        this._clientX = ev.clientX;
-        this._clientY = ev.clientY;
+    wasReleased(button: MouseButton): Boolean {
+        return !Boolean(this.buttons & button) && Boolean(this.prev_buttons & button);
     }
 
-    private onPointerDown(ev: MouseEvent) {
-        this._buttons = ev.buttons;
-        this._clientX = ev.clientX;
-        this._clientY = ev.clientY;
-    }
+    startFrame() {
+        // if (this._between_start_and_end_frame) throw new Error("endFrame wasn't called");
+        // this._between_start_and_end_frame = true;
+        this.prev_clientX = this.clientX;
+        this.prev_clientY = this.clientY;
+        this.prev_buttons = this.buttons;
 
-    private onPointerUp(ev: MouseEvent) {
-        this._buttons = ev.buttons;
-        this._clientX = ev.clientX;
-        this._clientY = ev.clientY;
-    }
-
-    private onWheel(ev: WheelEvent) {
-        this._wheel = ev.deltaY;
+        this.clientX = this.mouse_listener.clientX;
+        this.clientY = this.mouse_listener.clientY;
+        this.buttons = this.mouse_listener.buttons;
     }
 }
 
 export class Input {
-    private _mouse: MouseState;
-    private _prev_mouse: MouseState;
-
-    private _between_start_and_end_frame: boolean = false;
-
     constructor(
-        private readonly mouse_listener: MouseListener = new MouseListener(),
-    ) {
-        this._mouse = mouse_listener.state;
-        this._prev_mouse = mouse_listener.state;
-    }
-
-    public get mouse(): MouseState {
-        if (!this._between_start_and_end_frame) throw new Error("Input can only be read between startFrame() and endFrame()");
-        return this._mouse;
-    }
-
-    public get prev_mouse(): MouseState {
-        if (!this._between_start_and_end_frame) throw new Error("Input can only be read between startFrame() and endFrame()");
-        return this._prev_mouse;
-    }
+        public readonly mouse: Mouse = new Mouse(),
+    ) {}
 
     startFrame() {
-        if (this._between_start_and_end_frame) throw new Error("endFrame wasn't called");
-        this._between_start_and_end_frame = true;
-        this._mouse = this.mouse_listener.state;
-    }
-
-    endFrame() {
-        if (!this._between_start_and_end_frame) throw new Error("startFrame wasn't called");
-        this._between_start_and_end_frame = false;
-        this._prev_mouse = this._mouse;
+        this.mouse.startFrame();
     }
 }

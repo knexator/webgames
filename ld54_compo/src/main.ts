@@ -4,7 +4,7 @@ import * as twgl from "twgl.js"
 import { NaiveSpriteGraphics, Color, createFont, Font } from "./kommon/kanvas"
 import { fromCount } from "./kommon/kommon"
 import { Vec2, lerp } from "./kommon/math"
-import { Input } from "./kommon/input"
+import { Input, MouseButton } from "./kommon/input"
 
 const DEBUG = false;
 
@@ -708,7 +708,6 @@ function every_frame(cur_timestamp: number) {
   last_timestamp = cur_timestamp;
 
   if (intro_sequence !== null && !intro_sequence.next().done) {
-    input.endFrame();
     requestAnimationFrame(every_frame);
     return;
   }
@@ -718,7 +717,6 @@ function every_frame(cur_timestamp: number) {
   
   if (cur_room_state.cama_abierta) {
     outro_sequence.next();
-    input.endFrame();
     requestAnimationFrame(every_frame);
     return;
   }
@@ -741,7 +739,7 @@ function every_frame(cur_timestamp: number) {
           gfx.strokeCircle(pickable.pos, TARGET(pickable, hover_cant_pick_radius), colors.hovering_cant_pick, 2);
         } else {
           gfx.strokeCircle(pickable.pos, TARGET(pickable, hover_might_pick_radius), colors.hovering_might_pick, 2);
-          if (input.mouse.left && !input.prev_mouse.left) {
+          if (input.mouse.wasPressed(MouseButton.Left)) {
             selected_interactable = index;
             sounds.pick.play();
           }
@@ -764,7 +762,7 @@ function every_frame(cur_timestamp: number) {
       // cancel the move
       if (mouse_pos.distanceTo(cur_interactable.pos) < might_pick_radius) {
         gfx.strokeCircle(cur_interactable.pos, TARGET(cur_interactable, hover_drop_radius), colors.hovering_might_pick, 2);
-        if (input.mouse.left && !input.prev_mouse.left) {
+        if (input.mouse.wasPressed(MouseButton.Left)) {
           selected_interactable = null;
           sounds.drop.play();
         }
@@ -788,7 +786,7 @@ function every_frame(cur_timestamp: number) {
           if (!target.action) {
             gfx.strokeCircle(target.pos, TARGET(target, hover_cant_drop_radius), colors.hovering_cant_pick, 2);
           } else {
-            if (input.mouse.left && !input.prev_mouse.left) {
+            if (input.mouse.wasPressed(MouseButton.Left)) {
               selected_interactable = null;
               cur_room_state = target.action(cur_room_state);
               sounds.drop.play();
@@ -813,8 +811,6 @@ function every_frame(cur_timestamp: number) {
   }
 
   RESETUNSEEN();
-
-  input.endFrame();
   requestAnimationFrame(every_frame);
 }
 
@@ -859,7 +855,7 @@ function* introSequence(): Generator<void, void, void> {
     for (let k = 0; k < shown_lines; k++) {
       gfx.textLineCentered(fonts.thought, lines[k], new Vec2(948/2, 80 + k * 60), 32, [1,1,1,1]);
     }
-    if (input.mouse.left && !input.prev_mouse.left) {
+    if (input.mouse.wasPressed(MouseButton.Left)) {
       shown_lines++;
       sounds.intro_text.play();
     }
