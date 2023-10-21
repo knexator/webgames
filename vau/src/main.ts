@@ -328,12 +328,10 @@ function every_frame(cur_timestamp: number) {
     if (cur_binding_seq.next().done) {
       cur_binding_seq = null;
     }
-    input.endFrame();
     requestAnimationFrame(every_frame);
     return;
   } else if (input.keyboard.wasPressed(KeyCode.KeyC)) {
     cur_binding_seq = bindSequence();
-    input.endFrame();
     requestAnimationFrame(every_frame);
     return;
   }
@@ -416,7 +414,6 @@ function every_frame(cur_timestamp: number) {
   // gfx.fillCircle(new Vec2(canvas_size.x * .5, canvas_size.y * .4), 210, Color.fromInt(0x2E2E2E, .5).toArray());
   // gfx.textLineCentered(fonts.title, "Turbulent", Vec2.add(Vec2.scale(canvas_size, .5), new Vec2(0, -120)), 110, [1, 1, 1, 1]);
 
-  input.endFrame();
   requestAnimationFrame(every_frame);
 }
 
