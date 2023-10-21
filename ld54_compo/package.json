@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "update": "tsc && vite build && butler push ./dist nexator/misplaced-tie:html"
+    "update": "tsc && vite build && butler push ./dist knexator/misplaced-tie:html"
   },
   "devDependencies": {
     "msdf-bmfont-xml": "^2.7.0",
