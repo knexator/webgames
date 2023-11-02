@@ -40,7 +40,7 @@ jobs:
           cd ..
       - name: Build Vite projects
         run: |
-          for project in timezones, prime_tower
+          for project in timezones prime_tower
           do
             echo "Building $project"
             cd "$project"
