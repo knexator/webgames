@@ -1,10 +1,10 @@
 // import GUI from "lil-gui"
 
-import { Grid2D } from "./kommon/grid2D";
-import { Input, KeyCode, Mouse, MouseButton } from "./kommon/input";
-import { fromCount, zip2 } from "./kommon/kommon";
+// import { Grid2D } from "./kommon/grid2D";
+import { Input, KeyCode, MouseButton } from "./kommon/input";
+// import { fromCount, zip2 } from "./kommon/kommon";
 import { Vec2, mod, towards } from "./kommon/math";
-import { canvasFromAscii } from "./kommon/spritePS";
+// import { canvasFromAscii } from "./kommon/spritePS";
 
 const EDITOR = true;
 if (EDITOR) {
@@ -267,15 +267,15 @@ function every_frame(cur_timestamp: number) {
 }
 ////// library stuff
 
-function single<T>(arr: T[]) {
-  if (arr.length === 0) {
-    throw new Error("the array was empty");
-  } else if (arr.length > 1) {
-    throw new Error(`the array had more than 1 element: ${arr}`);
-  } else {
-    return arr[0];
-  }
-}
+// function single<T>(arr: T[]) {
+//   if (arr.length === 0) {
+//     throw new Error("the array was empty");
+//   } else if (arr.length > 1) {
+//     throw new Error(`the array had more than 1 element: ${arr}`);
+//   } else {
+//     return arr[0];
+//   }
+// }
 
 function at<T>(arr: T[], index: number): T {
   if (arr.length === 0) throw new Error("can't call 'at' with empty array");

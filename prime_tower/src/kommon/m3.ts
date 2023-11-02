@@ -52,17 +52,6 @@ type Matrix3 = number[] | Float32Array;
 let MatType: typeof Float32Array | typeof Array = Float32Array
 
 /**
- * Sets the type this library creates for a Mat3
- * @param {constructor} Ctor the constructor for the type. Either `Float32Array` or `Array`
- * @return {constructor} previous constructor for Mat3
- */
-function setDefaultType(Ctor: typeof Float32Array | typeof Array) {
-  const OldType = MatType
-  MatType = Ctor
-  return OldType
-}
-
-/**
  * Takes two Matrix3s, a and b, and computes the product in the order
  * that pre-composes b with a.  In other words, the matrix returned will
  * @param {module:webgl-2d-math.Matrix3} a A matrix.
