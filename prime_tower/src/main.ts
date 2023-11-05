@@ -31,9 +31,9 @@ let towers: BlockType[][] = [
   // "=|#◢###◤◥".split('') as BlockType[],
 ];
 
-if (towers[0].length !== 12) throw new Error();
+// if (towers[0].length !== 12) throw new Error();
 
-const n_seen_blocks = 26;
+const n_seen_blocks = 16;
 
 // offset 1 -> ???
 let logic_offsets = towers.map(_ => 0);
@@ -294,8 +294,10 @@ function every_frame(cur_timestamp: number) {
   }
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.translate(0, -block_size.y / 2);
   drawTowers();
   drawLaser();
+  ctx.resetTransform();
 
   requestAnimationFrame(every_frame);
 }
@@ -322,3 +324,46 @@ document.addEventListener("pointerdown", _event => {
   loading_screen_element.style.opacity = "0";
   requestAnimationFrame(every_frame);
 }, { once: true });
+
+text2level(`{"towers":[["◥",".","◣"],[".","◣",".",".","◤"],["◥","◣"],[".","◣",".",".","◥",".","."],["◣",".",".","◥","|",".",".","◢",".","◤"],[".","◥",".",".",".","◢"]],"logic_offsets":[0,1,1,3,4,1]}`)
+
+
+function isSolved() {
+  let cur = new LaserPathStep(-1, Math.floor(n_seen_blocks / 2), "+tower");
+  while (true) {
+    let next = nextPathStep(cur);
+    if (next === null) break;
+    cur = next;
+  }
+  return (cur.source_tower === towers.length - 1) && (cur.source_abs_floor === Math.floor(n_seen_blocks / 2));
+}
+
+function incOffsets(index: number = 0): boolean {
+  logic_offsets[index] += 1;
+  if (logic_offsets[index] >= towers[index].length) {
+    logic_offsets[index] -= towers[index].length;
+    if (index + 1 >= towers.length) {
+      return false;
+    }
+    return incOffsets(index + 1);
+  }
+  return true;
+}
+
+// towers = towers.map(data => data.map(s => {
+//   switch (s) {
+//     case "#":
+//     case "=":
+//     case "|":
+//       return "."
+//     default:
+//       return s;
+//   }
+// }))
+
+logic_offsets = logic_offsets.map(_ => 0);
+do {
+  if (isSolved()) {
+    console.log(`Solution: ${logic_offsets}`);
+  }
+} while (incOffsets());
