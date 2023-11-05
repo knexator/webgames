@@ -9,9 +9,9 @@ import { Vec2, mod, towards } from "./kommon/math";
 const EDITOR = true;
 if (EDITOR) {
   // await new Promise(resolve => navigator.permissions.query({ name: "clipboard-write" }).then(result => resolve(result)));
-    // {
-    // if (result.state === "granted" || result.state === "prompt") {
-      /* write to the clipboard now */
+  // {
+  // if (result.state === "granted" || result.state === "prompt") {
+  /* write to the clipboard now */
   //   }
   // });
   // )
@@ -33,7 +33,7 @@ let towers: BlockType[][] = [
 
 if (towers[0].length !== 12) throw new Error();
 
-const n_seen_blocks = towers[0].length;
+const n_seen_blocks = 26;
 
 // offset 1 -> ???
 let logic_offsets = towers.map(_ => 0);
@@ -59,15 +59,36 @@ class LaserPathStep {
 
 let laser_path = computeLaserPath();
 
+// function computeLaserPath() {
+//   let result: LaserPathStep[] = [];
+//   let cur: LaserPathStep | null = new LaserPathStep(-1, 0, "+tower");
+//   cur = new LaserPathStep(-1, n_seen_blocks - 1, "+tower");
+//   do {
+//     result.push(cur);
+//     cur = nextPathStep(cur);
+//   } while (cur != null);
+//   // do {
+//   //   result.push(cur);
+//   //   cur = nextPathStep(cur);
+//   // } while (cur != null);
+//   return result;
+// }
+
 function computeLaserPath() {
   let result: LaserPathStep[] = [];
-  let cur: LaserPathStep | null = new LaserPathStep(0, 0, "+tower");
+  let cur: LaserPathStep | null = new LaserPathStep(-1, Math.floor(n_seen_blocks / 2), "+tower");
+  do {
+    result.push(cur);
+    cur = nextPathStep(cur);
+  } while (cur != null);
+  cur = new LaserPathStep(towers.length, Math.floor(n_seen_blocks / 2), "-tower");
   do {
     result.push(cur);
     cur = nextPathStep(cur);
   } while (cur != null);
   return result;
 }
+
 
 function nextPathStep(cur: LaserPathStep): LaserPathStep | null {
   let new_tower = cur.source_tower + dir2vec(cur.direction).x;
@@ -210,23 +231,38 @@ function every_frame(cur_timestamp: number) {
     if (mouse_tower >= 0 && mouse_tower < towers.length && mouse_abs_floor >= 0 && mouse_abs_floor < n_seen_blocks) {
       const blocks: BlockType[] = [".", "#", "=", "|", "◢", "◣", "◤", "◥"];
       let cur_block = towers[mouse_tower][mod(mouse_abs_floor - logic_offsets[mouse_tower], towers[mouse_tower].length)];
-      if (input.keyboard.wasPressed(KeyCode.KeyD)) {
+      if (input.keyboard.wasPressed(KeyCode.KeyL)) {
         towers[mouse_tower][mod(mouse_abs_floor - logic_offsets[mouse_tower], towers[mouse_tower].length)] = at(blocks, blocks.indexOf(cur_block) + 1);
-      } else if (input.keyboard.wasPressed(KeyCode.KeyA)) {
+      } else if (input.keyboard.wasPressed(KeyCode.KeyJ)) {
         towers[mouse_tower][mod(mouse_abs_floor - logic_offsets[mouse_tower], towers[mouse_tower].length)] = at(blocks, blocks.indexOf(cur_block) - 1);
-      } else if (input.keyboard.wasPressed(KeyCode.KeyW)) {
-        if (mouse_tower > 0 && towers[mouse_tower].length + 1 < n_seen_blocks) {
+      } else if (input.keyboard.wasPressed(KeyCode.KeyI)) {
+        if (mouse_tower >= 0 && towers[mouse_tower].length + 1 < n_seen_blocks) {
           towers[mouse_tower].push(".");
         }
-      } else if (input.keyboard.wasPressed(KeyCode.KeyS)) {
-        if (mouse_tower > 0 && towers[mouse_tower].length > 2) {
+      } else if (input.keyboard.wasPressed(KeyCode.KeyK)) {
+        if (mouse_tower >= 0 && towers[mouse_tower].length > 2) {
           towers[mouse_tower].pop();
         }
       }
+      const keymap: Record<BlockType, KeyCode> = {
+        "#": KeyCode.KeyA,
+        ".": KeyCode.KeyQ,
+        "=": KeyCode.KeyF,
+        "|": KeyCode.KeyR,
+        "◢": KeyCode.KeyD,
+        "◣": KeyCode.KeyS,
+        "◥": KeyCode.KeyE,
+        "◤": KeyCode.KeyW,
+      }
+      Object.entries(keymap).forEach(([block_type, key]) => {
+        if (input.keyboard.wasPressed(key)) {
+          towers[mouse_tower][mod(mouse_abs_floor - logic_offsets[mouse_tower], towers[mouse_tower].length)] = block_type as BlockType;
+        }
+      });
       laser_path = computeLaserPath();
     }
     if (input.keyboard.wasPressed(KeyCode.KeyC)) {
-      console.log(level2text()); 
+      console.log(level2text());
       navigator.clipboard.writeText(level2text());
     } else if (input.keyboard.wasPressed(KeyCode.KeyV)) {
       console.log("before paste: ", level2text());
@@ -239,9 +275,7 @@ function every_frame(cur_timestamp: number) {
       clicked_tower_index = Math.floor(input.mouse.clientX / block_size.x);
     }
     let delta_offset = (input.mouse.clientY - input.mouse.prev_clientY) / block_size.y;
-    if (clicked_tower_index !== 0) {
-      visual_offsets[clicked_tower_index] += delta_offset;
-    }
+    visual_offsets[clicked_tower_index] += delta_offset;
     if (Math.abs(visual_offsets[clicked_tower_index]) > .5) {
       while (visual_offsets[clicked_tower_index] > .5) {
         visual_offsets[clicked_tower_index] -= 1.0;
