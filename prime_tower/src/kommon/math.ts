@@ -49,7 +49,7 @@ export function inverseLerp(a: number, b: number, value: number): number {
     return t;
 }
 
-export function towards(cur: number, target: number, max_delta: number): number {
+export function approach(cur: number, target: number, max_delta: number): number {
     if (cur > target) {
         return Math.max(cur - max_delta, target);
     } else if (cur < target) {

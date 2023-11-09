@@ -3,7 +3,7 @@
 // import { Grid2D } from "./kommon/grid2D";
 import { Input, KeyCode, MouseButton } from "./kommon/input";
 // import { fromCount, zip2 } from "./kommon/kommon";
-import { Vec2, mod, towards } from "./kommon/math";
+import { Vec2, mod, approach } from "./kommon/math";
 // import { canvasFromAscii } from "./kommon/spritePS";
 
 const EDITOR = true;
@@ -31,13 +31,25 @@ let towers: BlockType[][] = [
   // "=|#◢###◤◥".split('') as BlockType[],
 ];
 
-// if (towers[0].length !== 12) throw new Error();
+const palette = [
+  "#0E0E12",
+  "#1A1A24",
+  "#333346",
+  "#535373",
+  "#8080A4",
+  "#A6A6BF",
+  "#C1C1D2",
+  "#E6E6EC",
+];
 
 const n_seen_blocks = 16;
 
-// offset 1 -> ???
 let logic_offsets = towers.map(_ => 0);
 let visual_offsets = towers.map(_ => 0.0);
+
+text2level(`{"towers":[["◥",".","◣"],[".","◣",".",".","◤"],["◥","◣"],[".","◣",".",".","◥",".","."],["◣",".",".","◥","|",".",".","◢",".","◤"],[".","◥",".",".",".","◢"]],"logic_offsets":[0,1,1,3,4,1]}`)
+
+let colors = towers.map(t => t.map(b => palette[Math.floor(Math.random() * 4)]));
 
 const block_size = new Vec2(50, 50);
 
@@ -45,7 +57,7 @@ const input = new Input();
 const canvas = document.querySelector<HTMLCanvasElement>("#game_canvas")!;
 const ctx = canvas.getContext("2d")!;
 
-canvas.width = block_size.x * towers.length;
+canvas.width = block_size.x * (towers.length + 2);
 canvas.height = block_size.y * n_seen_blocks;
 
 class LaserPathStep {
@@ -162,16 +174,22 @@ function drawTowers() {
     let tower_data = towers[k];
     for (let h = -1; h <= n_seen_blocks; h++) {
       let floor = mod(h - logic_offsets[k], tower_data.length);
-      if (floor === 0) {
-        ctx.fillStyle = "lightgray";
-        ctx.fillRect(k * block_size.x, (h + visual_offsets[k]) * block_size.y, block_size.x, block_size.y);
-        ctx.fillStyle = "black";
-      }
+      ctx.fillStyle = colors[k][floor];
+      ctx.fillRect(k * block_size.x, (h + visual_offsets[k]) * block_size.y, block_size.x, block_size.y);
       let block_type = tower_data[floor];
       ctx.strokeRect(k * block_size.x, (h + visual_offsets[k]) * block_size.y, block_size.x, block_size.y);
-      ctx.fillText(block_type, (k + .5) * block_size.x, (h + visual_offsets[k] + .5) * block_size.y);
+      if (block_type !== ".") {
+        ctx.fillStyle = "cyan";
+        ctx.fillText(block_type, (k + .5) * block_size.x, (h + visual_offsets[k] + .5) * block_size.y);
+      }
     }
   }
+}
+
+function drawInOut() {
+  ctx.fillStyle = "cyan";
+  ctx.fillRect(-1 * block_size.x, (n_seen_blocks / 2) * block_size.y, block_size.x, block_size.y);
+  ctx.fillRect(towers.length * block_size.x, (n_seen_blocks / 2) * block_size.y, block_size.x, block_size.y);
 }
 
 function drawLaser() {
@@ -272,7 +290,7 @@ function every_frame(cur_timestamp: number) {
 
   if (input.mouse.isDown(MouseButton.Left)) {
     if (clicked_tower_index === null) {
-      clicked_tower_index = Math.floor(input.mouse.clientX / block_size.x);
+      clicked_tower_index = Math.floor(input.mouse.clientX / block_size.x) - 1;
     }
     let delta_offset = (input.mouse.clientY - input.mouse.prev_clientY) / block_size.y;
     visual_offsets[clicked_tower_index] += delta_offset;
@@ -289,12 +307,13 @@ function every_frame(cur_timestamp: number) {
       laser_path = computeLaserPath();
     }
   } else {
-    visual_offsets = visual_offsets.map(x => towards(x, 0, delta_time / .5));
+    visual_offsets = visual_offsets.map(x => approach(x, 0, delta_time / .5));
     clicked_tower_index = null;
   }
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.translate(0, -block_size.y / 2);
+  ctx.translate(block_size.x, -block_size.y / 2);
+  drawInOut();
   drawTowers();
   drawLaser();
   ctx.resetTransform();
@@ -325,45 +344,42 @@ document.addEventListener("pointerdown", _event => {
   requestAnimationFrame(every_frame);
 }, { once: true });
 
-text2level(`{"towers":[["◥",".","◣"],[".","◣",".",".","◤"],["◥","◣"],[".","◣",".",".","◥",".","."],["◣",".",".","◥","|",".",".","◢",".","◤"],[".","◥",".",".",".","◢"]],"logic_offsets":[0,1,1,3,4,1]}`)
-
-
-function isSolved() {
-  let cur = new LaserPathStep(-1, Math.floor(n_seen_blocks / 2), "+tower");
-  while (true) {
-    let next = nextPathStep(cur);
-    if (next === null) break;
-    cur = next;
-  }
-  return (cur.source_tower === towers.length - 1) && (cur.source_abs_floor === Math.floor(n_seen_blocks / 2));
-}
-
-function incOffsets(index: number = 0): boolean {
-  logic_offsets[index] += 1;
-  if (logic_offsets[index] >= towers[index].length) {
-    logic_offsets[index] -= towers[index].length;
-    if (index + 1 >= towers.length) {
-      return false;
-    }
-    return incOffsets(index + 1);
-  }
-  return true;
-}
-
-// towers = towers.map(data => data.map(s => {
-//   switch (s) {
-//     case "#":
-//     case "=":
-//     case "|":
-//       return "."
-//     default:
-//       return s;
+// function isSolved() {
+//   let cur = new LaserPathStep(-1, Math.floor(n_seen_blocks / 2), "+tower");
+//   while (true) {
+//     let next = nextPathStep(cur);
+//     if (next === null) break;
+//     cur = next;
 //   }
-// }))
+//   return (cur.source_tower === towers.length - 1) && (cur.source_abs_floor === Math.floor(n_seen_blocks / 2));
+// }
 
-logic_offsets = logic_offsets.map(_ => 0);
-do {
-  if (isSolved()) {
-    console.log(`Solution: ${logic_offsets}`);
-  }
-} while (incOffsets());
+// function incOffsets(index: number = 0): boolean {
+//   logic_offsets[index] += 1;
+//   if (logic_offsets[index] >= towers[index].length) {
+//     logic_offsets[index] -= towers[index].length;
+//     if (index + 1 >= towers.length) {
+//       return false;
+//     }
+//     return incOffsets(index + 1);
+//   }
+//   return true;
+// }
+
+// // towers = towers.map(data => data.map(s => {
+// //   switch (s) {
+// //     case "#":
+// //     case "=":
+// //     case "|":
+// //       return "."
+// //     default:
+// //       return s;
+// //   }
+// // }))
+
+// logic_offsets = logic_offsets.map(_ => 0);
+// do {
+//   if (isSolved()) {
+//     console.log(`Solution: ${logic_offsets}`);
+//   }
+// } while (incOffsets());
