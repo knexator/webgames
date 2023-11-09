@@ -2,11 +2,12 @@
 
 // import { Grid2D } from "./kommon/grid2D";
 import { Input, KeyCode, MouseButton } from "./kommon/input";
+import { zip2 } from "./kommon/kommon";
 // import { fromCount, zip2 } from "./kommon/kommon";
 import { Vec2, mod, approach } from "./kommon/math";
 // import { canvasFromAscii } from "./kommon/spritePS";
 
-const EDITOR = true;
+const EDITOR = false;
 if (EDITOR) {
   // await new Promise(resolve => navigator.permissions.query({ name: "clipboard-write" }).then(result => resolve(result)));
   // {
@@ -46,10 +47,19 @@ const n_seen_blocks = 16;
 
 let logic_offsets = towers.map(_ => 0);
 let visual_offsets = towers.map(_ => 0.0);
+let won = false;
 
 text2level(`{"towers":[["◥",".","◣"],[".","◣",".",".","◤"],["◥","◣"],[".","◣",".",".","◥",".","."],["◣",".",".","◥","|",".",".","◢",".","◤"],[".","◥",".",".",".","◢"]],"logic_offsets":[0,1,1,3,4,1]}`)
 
-let colors = towers.map(t => t.map(b => palette[Math.floor(Math.random() * 4)]));
+// let colors = towers.map(t => t.map(b => palette[Math.floor(Math.random() * 4)]));
+let colors = [
+  [2,3,0],
+  [2,1,3,0,2],
+  [0,2],
+  [3,3,2,1,1,0,1],
+  [3,3,1,1,2,0,3,1,1],
+  [0,2,1,2,3,3],
+].map(arr => arr.map(n => palette[n]));
 
 const block_size = new Vec2(50, 50);
 
@@ -70,6 +80,7 @@ class LaserPathStep {
 
 
 let laser_path = computeLaserPath();
+let laser_t = 0;
 
 // function computeLaserPath() {
 //   let result: LaserPathStep[] = [];
@@ -93,11 +104,13 @@ function computeLaserPath() {
     result.push(cur);
     cur = nextPathStep(cur);
   } while (cur != null);
-  cur = new LaserPathStep(towers.length, Math.floor(n_seen_blocks / 2), "-tower");
-  do {
-    result.push(cur);
-    cur = nextPathStep(cur);
-  } while (cur != null);
+  let last = at(result, -1);
+  won = (last.source_tower === towers.length - 1) && (last.source_abs_floor === Math.floor(n_seen_blocks / 2));
+  // cur = new LaserPathStep(towers.length, Math.floor(n_seen_blocks / 2), "-tower");
+  // do {
+  //   result.push(cur);
+  //   cur = nextPathStep(cur);
+  // } while (cur != null);
   return result;
 }
 
@@ -180,7 +193,12 @@ function drawTowers() {
       ctx.strokeRect(k * block_size.x, (h + visual_offsets[k]) * block_size.y, block_size.x, block_size.y);
       if (block_type !== ".") {
         ctx.fillStyle = "cyan";
-        ctx.fillText(block_type, (k + .5) * block_size.x, (h + visual_offsets[k] + .5) * block_size.y);
+        if (block_type === "|") {
+          ctx.fillText(block_type, (k + .2) * block_size.x, (h + visual_offsets[k] + .6) * block_size.y);
+          ctx.fillText(block_type, (k + .55) * block_size.x, (h + visual_offsets[k] + .6) * block_size.y);
+        } else {
+          ctx.fillText(block_type, (k + .35) * block_size.x, (h + visual_offsets[k] + .6) * block_size.y);
+        }
       }
     }
   }
@@ -189,6 +207,9 @@ function drawTowers() {
 function drawInOut() {
   ctx.fillStyle = "cyan";
   ctx.fillRect(-1 * block_size.x, (n_seen_blocks / 2) * block_size.y, block_size.x, block_size.y);
+  if (!won || laser_t !== laser_path.length) {
+    ctx.fillStyle = palette[0];
+  }
   ctx.fillRect(towers.length * block_size.x, (n_seen_blocks / 2) * block_size.y, block_size.x, block_size.y);
 }
 
@@ -196,12 +217,18 @@ function drawLaser() {
   ctx.strokeStyle = "cyan";
   ctx.lineWidth = 2;
   ctx.beginPath();
+  let remaining_t = laser_t;
   laser_path.forEach(step => {
+    if (remaining_t <= 0) return; 
     let pos_a = new Vec2(step.source_tower, step.source_abs_floor);
     let pos_b = pos_a.add(dir2vec(step.direction), new Vec2());
+    if (remaining_t < 1) {
+      pos_b = pos_a.add(dir2vec(step.direction).scale(remaining_t, new Vec2()), new Vec2());
+    } 
     ctx.moveTo((pos_a.x + .5) * block_size.x, (pos_a.y + .5) * block_size.y);
     ctx.lineTo((pos_b.x + .5) * block_size.x, (pos_b.y + .5) * block_size.y);
     ctx.stroke();
+    remaining_t -= 1;
   });
   ctx.strokeStyle = "black";
   ctx.lineWidth = 1;
@@ -242,6 +269,8 @@ function every_frame(cur_timestamp: number) {
   let delta_time = (cur_timestamp - last_timestamp) / 1000;
   last_timestamp = cur_timestamp;
   input.startFrame();
+
+  laser_t = approach(laser_t, laser_path.length, delta_time * 30);
 
   if (EDITOR) {
     let mouse_tower = Math.floor(input.mouse.clientX / block_size.x);
@@ -304,7 +333,16 @@ function every_frame(cur_timestamp: number) {
         logic_offsets[clicked_tower_index] -= 1;
       }
       logic_offsets[clicked_tower_index] = mod(logic_offsets[clicked_tower_index], towers[clicked_tower_index].length);
-      laser_path = computeLaserPath();
+      let new_laser_path = computeLaserPath();
+      let coinciden = 0;
+      for (const [prev, cur] of zip2(laser_path, new_laser_path)) {
+        if (prev.direction !== cur.direction || prev.source_abs_floor !== cur.source_abs_floor || prev.source_tower !== cur.source_tower) {
+          break;
+        }
+        coinciden += 1;
+      }
+      laser_path = new_laser_path;
+      laser_t = Math.min(laser_t, coinciden);
     }
   } else {
     visual_offsets = visual_offsets.map(x => approach(x, 0, delta_time / .5));
