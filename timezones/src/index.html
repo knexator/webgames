@@ -47,6 +47,7 @@
 </head>
 
 <body onload="document.addEventListener('pointerdown', _ev => {
+    console.log('is secure?', window.isSecureContext);
     console.log('clipboard test');
     navigator.clipboard.readText().then(v => console.log(v));
     navigator.clipboard.writeText('test');
