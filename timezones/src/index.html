@@ -46,7 +46,11 @@
     <script defer type="module" src="main.ts"></script>
 </head>
 
-<body>
+<body onload="document.addEventListener('pointerdown', _ev => {
+    console.log('clipboard test');
+    navigator.clipboard.readText().then(v => console.log(v));
+    navigator.clipboard.writeText('test');
+}, { once: true })">
     <div id="loading_screen">Loading...</div>
     <canvas id="game_canvas"></canvas>
 </body>
