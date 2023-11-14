@@ -53,12 +53,12 @@ text2level(`{"towers":[["◥",".","◣"],[".","◣",".",".","◤"],["◥","◣"]
 
 // let colors = towers.map(t => t.map(b => palette[Math.floor(Math.random() * 4)]));
 let colors = [
-  [2,3,0],
-  [2,1,3,0,2],
-  [0,2],
-  [3,3,2,1,1,0,1],
-  [3,3,1,1,2,0,3,1,1],
-  [0,2,1,2,3,3],
+  [2, 3, 0],
+  [2, 1, 3, 0, 2],
+  [0, 2],
+  [3, 3, 2, 1, 1, 0, 1],
+  [3, 3, 1, 1, 2, 0, 3, 1, 1],
+  [0, 2, 1, 2, 3, 3],
 ].map(arr => arr.map(n => palette[n]));
 
 const block_size = new Vec2(50, 50);
@@ -181,23 +181,79 @@ function nextPathStep(cur: LaserPathStep): LaserPathStep | null {
   return null;
 }
 
+function moveTo({ x, y }: Vec2) {
+  ctx.moveTo(x, y);
+}
+function lineTo({ x, y }: Vec2) {
+  ctx.lineTo(x, y);
+}
+
+function drawTri(top_left: Vec2, points: Vec2[]) {
+  points = points.map(v => v.map1(x => approach(x, .5, .1)));
+  moveTo(top_left.add(points[0]).mul(block_size));
+  for (let k = 1; k < points.length; k++) {
+    lineTo(top_left.add(points[k]).mul(block_size));
+  }
+  ctx.fill();
+}
+
+const triShapes: Partial<Record<BlockType, Vec2[]>> = {
+  "◢": [
+    new Vec2(1, 0),
+    new Vec2(0, 1),
+    new Vec2(1, 1),
+  ],
+  "◣": [
+    new Vec2(0, 0),
+    new Vec2(0, 1),
+    new Vec2(1, 1),
+  ],
+  "◤": [
+    new Vec2(0, 0),
+    new Vec2(1, 0),
+    new Vec2(0, 1),
+  ],
+  "◥": [
+    new Vec2(0, 0),
+    new Vec2(1, 0),
+    new Vec2(1, 1),
+  ],
+}
+
 function drawTowers() {
   ctx.font = "24px monospace"
   for (let k = 0; k < towers.length; k++) {
     let tower_data = towers[k];
     for (let h = -1; h <= n_seen_blocks; h++) {
       let floor = mod(h - logic_offsets[k], tower_data.length);
-      ctx.fillStyle = colors[k][floor];
-      ctx.fillRect(k * block_size.x, (h + visual_offsets[k]) * block_size.y, block_size.x, block_size.y);
+      // ctx.fillStyle = colors[k][floor];
+      if (laser_path.some((p, i) => i < laser_t && p.source_tower === k && p.source_abs_floor === h)) {
+        // if (false) {
+        ctx.fillStyle = palette[3];
+        ctx.fillRect(k * block_size.x, (h + visual_offsets[k]) * block_size.y, block_size.x, block_size.y);
+        ctx.fillStyle = palette[4];
+      } else {
+        ctx.fillStyle = palette[2];
+        ctx.fillRect(k * block_size.x, (h + visual_offsets[k]) * block_size.y, block_size.x, block_size.y);
+        ctx.fillStyle = palette[3];
+      }
       let block_type = tower_data[floor];
       ctx.strokeRect(k * block_size.x, (h + visual_offsets[k]) * block_size.y, block_size.x, block_size.y);
       if (block_type !== ".") {
-        ctx.fillStyle = "cyan";
-        if (block_type === "|") {
-          ctx.fillText(block_type, (k + .2) * block_size.x, (h + visual_offsets[k] + .6) * block_size.y);
-          ctx.fillText(block_type, (k + .55) * block_size.x, (h + visual_offsets[k] + .6) * block_size.y);
-        } else {
-          ctx.fillText(block_type, (k + .35) * block_size.x, (h + visual_offsets[k] + .6) * block_size.y);
+        ctx.beginPath();
+        switch (block_type) {
+          case "#":
+          case "=":
+            throw new Error("");
+          case "|":
+
+            break;
+          case "◢":
+          case "◣":
+          case "◤":
+          case "◥":
+            drawTri(new Vec2(k, h + visual_offsets[k]), triShapes[block_type]!);
+            break
         }
       }
     }
@@ -207,7 +263,7 @@ function drawTowers() {
 function drawInOut() {
   ctx.fillStyle = "cyan";
   ctx.fillRect(-1 * block_size.x, (n_seen_blocks / 2) * block_size.y, block_size.x, block_size.y);
-  if (!won || laser_t !== laser_path.length) {
+  if (!won || laser_t <= laser_path.length - .501) {
     ctx.fillStyle = palette[0];
   }
   ctx.fillRect(towers.length * block_size.x, (n_seen_blocks / 2) * block_size.y, block_size.x, block_size.y);
@@ -219,12 +275,12 @@ function drawLaser() {
   ctx.beginPath();
   let remaining_t = laser_t;
   laser_path.forEach(step => {
-    if (remaining_t <= 0) return; 
+    if (remaining_t <= 0) return;
     let pos_a = new Vec2(step.source_tower, step.source_abs_floor);
-    let pos_b = pos_a.add(dir2vec(step.direction), new Vec2());
+    let pos_b = pos_a.add(dir2vec(step.direction));
     if (remaining_t < 1) {
-      pos_b = pos_a.add(dir2vec(step.direction).scale(remaining_t, new Vec2()), new Vec2());
-    } 
+      pos_b = pos_a.add(dir2vec(step.direction).scale(remaining_t));
+    }
     ctx.moveTo((pos_a.x + .5) * block_size.x, (pos_a.y + .5) * block_size.y);
     ctx.lineTo((pos_b.x + .5) * block_size.x, (pos_b.y + .5) * block_size.y);
     ctx.stroke();
@@ -270,7 +326,7 @@ function every_frame(cur_timestamp: number) {
   last_timestamp = cur_timestamp;
   input.startFrame();
 
-  laser_t = approach(laser_t, laser_path.length, delta_time * 30);
+  laser_t = approach(laser_t, laser_path.length - .5, delta_time * 30);
 
   if (EDITOR) {
     let mouse_tower = Math.floor(input.mouse.clientX / block_size.x);
@@ -375,12 +431,16 @@ function at<T>(arr: T[], index: number): T {
   return arr[mod(index, arr.length)];
 }
 
-const loading_screen_element = document.querySelector<HTMLDivElement>("#loading_screen")!;
-loading_screen_element.innerText = "Press to start!";
-document.addEventListener("pointerdown", _event => {
-  loading_screen_element.style.opacity = "0";
+const loading_screen_element = document.querySelector<HTMLDivElement>("#loading_screen");
+if (loading_screen_element) {
+  loading_screen_element.innerText = "Press to start!";
+  document.addEventListener("pointerdown", _event => {
+    loading_screen_element.style.opacity = "0";
+    requestAnimationFrame(every_frame);
+  }, { once: true });
+} else {
   requestAnimationFrame(every_frame);
-}, { once: true });
+}
 
 // function isSolved() {
 //   let cur = new LaserPathStep(-1, Math.floor(n_seen_blocks / 2), "+tower");
