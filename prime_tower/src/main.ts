@@ -229,6 +229,20 @@ function drawTowers() {
       // ctx.fillStyle = colors[k][floor];
       if (laser_path.some((p, i) => i < laser_t && p.source_tower === k && p.source_abs_floor === h)) {
         // if (false) {
+        if (laser_path.some((p, i) => i < laser_t && p.source_tower === k && p.source_abs_floor === h && (p.direction === "+floor" || p.direction === "-floor"))) {
+          ctx.fillStyle = palette[2];
+          ctx.fillRect(k * block_size.x, (h + visual_offsets[k]) * block_size.y, block_size.x, block_size.y);
+          ctx.fillStyle = palette[3];
+          ctx.fillRect((k+.25) * block_size.x, (h + visual_offsets[k]) * block_size.y, .5 * block_size.x, block_size.y);
+          ctx.fillStyle = palette[4];
+        } else {
+          ctx.fillStyle = palette[2];
+          ctx.fillRect(k * block_size.x, (h + visual_offsets[k]) * block_size.y, block_size.x, block_size.y);
+          ctx.fillStyle = palette[3];
+          ctx.fillRect(k * block_size.x, (h + .25 + visual_offsets[k]) * block_size.y, block_size.x, .5 * block_size.y);
+          ctx.fillStyle = palette[4];
+        }
+
         ctx.fillStyle = palette[3];
         ctx.fillRect(k * block_size.x, (h + visual_offsets[k]) * block_size.y, block_size.x, block_size.y);
         ctx.fillStyle = palette[4];
@@ -246,7 +260,8 @@ function drawTowers() {
           case "=":
             throw new Error("");
           case "|":
-
+            ctx.fillRect((k + .1) * block_size.x, (h + .1 + visual_offsets[k]) * block_size.y, block_size.x * .1, block_size.y * .8);
+            ctx.fillRect((k + .8) * block_size.x, (h + .1 + visual_offsets[k]) * block_size.y, block_size.x * .1, block_size.y * .8);
             break;
           case "◢":
           case "◣":
