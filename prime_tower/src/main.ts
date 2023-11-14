@@ -299,6 +299,75 @@ function drawInOut() {
   ctx.fill();
 }
 
+// function drawLaser() {
+//   ctx.strokeStyle = "cyan";
+//   ctx.lineWidth = 2;
+//   ctx.beginPath();
+//   let remaining_t = laser_t;
+//   let asdf = false;
+//   laser_path.forEach((step, k) => {
+//     // let is_last = k + 1 === laser_path.length;
+//     let prev_direction = laser_path[k - 1]?.direction || null;
+//     let next_direction = laser_path[k + 1]?.direction || null;
+//     if (remaining_t <= 0) return;
+//     ctx.beginPath(); // asdf
+//     ctx.strokeStyle = asdf ? "cyan" : "red";
+//     asdf = !asdf;
+//     let pos_a = new Vec2(step.source_tower, step.source_abs_floor);
+//     let pos_b = pos_a.add(dir2vec(step.direction).scale(Math.min(1, remaining_t)));
+//     switch (step.direction) {
+//       case "+tower":
+//         if (step.source_tower >= 0) {
+//           pos_a = pos_a.addX(-visual_offsets[step.source_tower]);
+//         }
+//         if (next_direction === "+floor" || next_direction === "+tower") {
+//           pos_b = pos_b.addX(-visual_offsets[step.source_tower + 1]);
+//         } else if (next_direction === "-floor") {
+//           pos_b = pos_b.addX(visual_offsets[step.source_tower + 1]);
+//         }
+//         // if (next_direction === "") {
+//         // }
+//         break;
+//       case "-tower":
+//         if (prev_direction === "-floor") {
+//           pos_a = pos_a.addX(visual_offsets[step.source_tower]);
+//           pos_a = pos_a.addY(2 * visual_offsets[step.source_tower]);
+//         }
+//         break
+//       case "+floor":
+//         pos_a = pos_a.addX(-visual_offsets[step.source_tower]);
+//         pos_b = pos_b.addX(-visual_offsets[step.source_tower]);
+//         break;
+//       case "-floor":
+//         if (prev_direction === "-tower") {
+//           pos_a = pos_a.addX(-visual_offsets[step.source_tower]);
+//         } else {
+//           pos_a = pos_a.addX(visual_offsets[step.source_tower]);
+//         }
+
+//         // } else if (prev_direction === "+tower") {
+//         //   pos_a = pos_a.addX(visual_offsets[step.source_tower]);
+//         // }
+//         pos_b = pos_b.addX(visual_offsets[step.source_tower]);
+//         if (next_direction === "-tower") {
+//           pos_b = pos_b.addY(2 * visual_offsets[step.source_tower]);
+//         } else {
+//           // pos_b = pos_b.addX(visual_offsets[step.source_tower]);
+//         }
+//         break;
+//       default:
+//         break;
+//     }
+//     ctx.moveTo((pos_a.x + .5) * block_size.x, (pos_a.y + .5) * block_size.y);
+//     ctx.lineTo((pos_b.x + .5) * block_size.x, (pos_b.y + .5) * block_size.y);
+//     ctx.stroke();
+//     remaining_t -= 1;
+//   });
+//   ctx.strokeStyle = "black";
+//   ctx.lineWidth = 1;
+// }
+
+
 function drawLaser() {
   ctx.strokeStyle = "cyan";
   ctx.lineWidth = 2;
