@@ -4,8 +4,10 @@
 import { Input, KeyCode, MouseButton } from "./kommon/input";
 import { zip2 } from "./kommon/kommon";
 // import { fromCount, zip2 } from "./kommon/kommon";
-import { Vec2, mod, approach } from "./kommon/math";
+import { Vec2, mod, approach, remap } from "./kommon/math";
 // import { canvasFromAscii } from "./kommon/spritePS";
+
+// sounds from https://freesound.org/people/soundbytez/packs/6351/
 
 const EDITOR = false;
 if (EDITOR) {
@@ -81,6 +83,7 @@ class LaserPathStep {
 
 let laser_path = computeLaserPath();
 let laser_t = 0;
+let goal_t = 0;
 
 // function computeLaserPath() {
 //   let result: LaserPathStep[] = [];
@@ -296,15 +299,19 @@ function drawInOut() {
   ctx.fill();
 
   ctx.beginPath();
-  const really_won = won && laser_t >= laser_path.length - .501;
-  ctx.fillStyle = really_won ? palette[7] : palette[0];
+  ctx.fillStyle = palette[0];
   ctx.arc((towers.length + .5) * block_size.x, (n_seen_blocks / 2 + .5) * block_size.y, block_size.x / 3, 0, Math.PI * 2);
   ctx.fill();
-  
-  if (really_won) {
+  let real_goal_t = remap(goal_t, .15, 1, 0, 1);
+  if (real_goal_t > 0) {
+    ctx.beginPath();
+    ctx.fillStyle = palette[7];
+    ctx.arc((towers.length + .5) * block_size.x, (n_seen_blocks / 2 + .5) * block_size.y, real_goal_t * block_size.x / 3, 0, Math.PI * 2);
+    ctx.fill();
+
     ctx.beginPath();
     ctx.fillStyle = "cyan";
-    ctx.arc((towers.length + .32) * block_size.x, (n_seen_blocks / 2 + .5) * block_size.y, block_size.x / 6, 0, Math.PI * 2);
+    ctx.arc((towers.length + .5 - real_goal_t * .18) * block_size.x, (n_seen_blocks / 2 + .5) * block_size.y, real_goal_t * block_size.x / 6, 0, Math.PI * 2);
     ctx.fill();
   }
 }
@@ -436,10 +443,17 @@ function every_frame(cur_timestamp: number) {
   input.startFrame();
 
   if (won) {
-    laser_t = approach(laser_t, laser_path.length, delta_time * 30);
+    laser_t = approach(laser_t, laser_path.length - .35, delta_time * 30);
   } else {
     laser_t = approach(laser_t, laser_path.length - .5, delta_time * 30);
   }
+
+  if (won && laser_t >= laser_path.length - .5) {
+    goal_t = approach(goal_t, 1, delta_time * 10);
+  } else {
+    goal_t = approach(goal_t, 0, delta_time * 15);
+  }
+
 
   if (EDITOR) {
     let mouse_tower = Math.floor(input.mouse.clientX / block_size.x);
