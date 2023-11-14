@@ -515,6 +515,32 @@ function every_frame(cur_timestamp: number) {
   drawLaser();
   ctx.resetTransform();
 
+  ctx.beginPath();
+  ctx.fillStyle = palette[1];
+  ctx.moveTo(0,0);
+  ctx.lineTo(canvas.width, 0);
+  ctx.lineTo(canvas.width, 10);
+  let asdf = true;
+  for (let t=1;t>=0;t-=.1) {
+    ctx.lineTo(canvas.width * t, asdf ? 10 : 20);
+    asdf = !asdf;
+  }
+  ctx.lineTo(0,0);
+  // ctx.fill();
+
+  // ctx.beginPath();
+  ctx.fillStyle = palette[1];
+  ctx.moveTo(0,canvas.height);
+  ctx.lineTo(canvas.width, canvas.height);
+  ctx.lineTo(canvas.width, canvas.height - 10);
+  asdf = true;
+  for (let t=1;t>=0;t-=.1) {
+    ctx.lineTo(canvas.width * t, canvas.height - (asdf ? 10 : 20));
+    asdf = !asdf;
+  }
+  ctx.lineTo(0,canvas.height);
+  ctx.fill();
+
   requestAnimationFrame(every_frame);
 }
 ////// library stuff
