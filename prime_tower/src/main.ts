@@ -221,7 +221,6 @@ const triShapes: Partial<Record<BlockType, Vec2[]>> = {
 }
 
 function drawTowers() {
-  ctx.font = "24px monospace"
   for (let k = 0; k < towers.length; k++) {
     let tower_data = towers[k];
     for (let h = -1; h <= n_seen_blocks; h++) {
@@ -229,19 +228,19 @@ function drawTowers() {
       // ctx.fillStyle = colors[k][floor];
       if (laser_path.some((p, i) => i < laser_t && p.source_tower === k && p.source_abs_floor === h)) {
         // if (false) {
-        if (laser_path.some((p, i) => i < laser_t && p.source_tower === k && p.source_abs_floor === h && (p.direction === "+floor" || p.direction === "-floor"))) {
-          ctx.fillStyle = palette[2];
-          ctx.fillRect(k * block_size.x, (h + visual_offsets[k]) * block_size.y, block_size.x, block_size.y);
-          ctx.fillStyle = palette[3];
-          ctx.fillRect((k+.25) * block_size.x, (h + visual_offsets[k]) * block_size.y, .5 * block_size.x, block_size.y);
-          ctx.fillStyle = palette[4];
-        } else {
-          ctx.fillStyle = palette[2];
-          ctx.fillRect(k * block_size.x, (h + visual_offsets[k]) * block_size.y, block_size.x, block_size.y);
-          ctx.fillStyle = palette[3];
-          ctx.fillRect(k * block_size.x, (h + .25 + visual_offsets[k]) * block_size.y, block_size.x, .5 * block_size.y);
-          ctx.fillStyle = palette[4];
-        }
+        // if (laser_path.some((p, i) => i < laser_t && p.source_tower === k && p.source_abs_floor === h && (p.direction === "+floor" || p.direction === "-floor"))) {
+        //   ctx.fillStyle = palette[2];
+        //   ctx.fillRect(k * block_size.x, (h + visual_offsets[k]) * block_size.y, block_size.x, block_size.y);
+        //   ctx.fillStyle = palette[3];
+        //   ctx.fillRect((k+.25) * block_size.x, (h + visual_offsets[k]) * block_size.y, .5 * block_size.x, block_size.y);
+        //   ctx.fillStyle = palette[4];
+        // } else {
+        //   ctx.fillStyle = palette[2];
+        //   ctx.fillRect(k * block_size.x, (h + visual_offsets[k]) * block_size.y, block_size.x, block_size.y);
+        //   ctx.fillStyle = palette[3];
+        //   ctx.fillRect(k * block_size.x, (h + .25 + visual_offsets[k]) * block_size.y, block_size.x, .5 * block_size.y);
+        //   ctx.fillStyle = palette[4];
+        // }
 
         ctx.fillStyle = palette[3];
         ctx.fillRect(k * block_size.x, (h + visual_offsets[k]) * block_size.y, block_size.x, block_size.y);
@@ -276,12 +275,28 @@ function drawTowers() {
 }
 
 function drawInOut() {
+  ctx.fillStyle = palette[3];
+  ctx.fillRect(block_size.x * -.5, -block_size.y, block_size.x * (towers.length + 1), block_size.y * (n_seen_blocks + 2));
+
+  ctx.beginPath();
+  ctx.fillStyle = palette[3];
+  ctx.arc(-.32 * block_size.x, (n_seen_blocks / 2 + .5) * block_size.y, block_size.x * 2 / 3, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.arc((towers.length + .32) * block_size.x, (n_seen_blocks / 2 + .5) * block_size.y, block_size.x * 2 / 3, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.beginPath();
   ctx.fillStyle = "cyan";
-  ctx.fillRect(-1 * block_size.x, (n_seen_blocks / 2) * block_size.y, block_size.x, block_size.y);
+  ctx.arc(-.5 * block_size.x, (n_seen_blocks / 2 + .5) * block_size.y, block_size.x / 3, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.beginPath();
   if (!won || laser_t <= laser_path.length - .501) {
     ctx.fillStyle = palette[0];
   }
-  ctx.fillRect(towers.length * block_size.x, (n_seen_blocks / 2) * block_size.y, block_size.x, block_size.y);
+  // ctx.fillRect(towers.length * block_size.x, (n_seen_blocks / 2) * block_size.y, block_size.x, block_size.y);
+  ctx.arc((towers.length + .5) * block_size.x, (n_seen_blocks / 2 + .5) * block_size.y, block_size.x / 3, 0, Math.PI * 2);
+  ctx.fill();
 }
 
 function drawLaser() {
@@ -341,7 +356,11 @@ function every_frame(cur_timestamp: number) {
   last_timestamp = cur_timestamp;
   input.startFrame();
 
-  laser_t = approach(laser_t, laser_path.length - .5, delta_time * 30);
+  if (won) {
+    laser_t = approach(laser_t, laser_path.length, delta_time * 30);
+  } else {
+    laser_t = approach(laser_t, laser_path.length - .5, delta_time * 30);
+  }
 
   if (EDITOR) {
     let mouse_tower = Math.floor(input.mouse.clientX / block_size.x);
