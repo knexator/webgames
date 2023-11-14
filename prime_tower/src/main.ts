@@ -286,17 +286,27 @@ function drawInOut() {
   ctx.fill();
 
   ctx.beginPath();
-  ctx.fillStyle = "cyan";
+  ctx.fillStyle = palette[7];
   ctx.arc(-.5 * block_size.x, (n_seen_blocks / 2 + .5) * block_size.y, block_size.x / 3, 0, Math.PI * 2);
   ctx.fill();
 
   ctx.beginPath();
-  if (!won || laser_t <= laser_path.length - .501) {
-    ctx.fillStyle = palette[0];
-  }
-  // ctx.fillRect(towers.length * block_size.x, (n_seen_blocks / 2) * block_size.y, block_size.x, block_size.y);
+  ctx.fillStyle = "cyan"
+  ctx.arc(-.35 * block_size.x, (n_seen_blocks / 2 + .5) * block_size.y, block_size.x / 6, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.beginPath();
+  const really_won = won && laser_t >= laser_path.length - .501;
+  ctx.fillStyle = really_won ? palette[7] : palette[0];
   ctx.arc((towers.length + .5) * block_size.x, (n_seen_blocks / 2 + .5) * block_size.y, block_size.x / 3, 0, Math.PI * 2);
   ctx.fill();
+  
+  if (really_won) {
+    ctx.beginPath();
+    ctx.fillStyle = "cyan";
+    ctx.arc((towers.length + .32) * block_size.x, (n_seen_blocks / 2 + .5) * block_size.y, block_size.x / 6, 0, Math.PI * 2);
+    ctx.fill();
+  }
 }
 
 // function drawLaser() {
@@ -517,28 +527,28 @@ function every_frame(cur_timestamp: number) {
 
   ctx.beginPath();
   ctx.fillStyle = palette[1];
-  ctx.moveTo(0,0);
+  ctx.moveTo(0, 0);
   ctx.lineTo(canvas.width, 0);
   ctx.lineTo(canvas.width, 10);
   let asdf = true;
-  for (let t=1;t>=0;t-=.1) {
+  for (let t = 1; t >= 0; t -= .1) {
     ctx.lineTo(canvas.width * t, asdf ? 10 : 20);
     asdf = !asdf;
   }
-  ctx.lineTo(0,0);
+  ctx.lineTo(0, 0);
   // ctx.fill();
 
   // ctx.beginPath();
   ctx.fillStyle = palette[1];
-  ctx.moveTo(0,canvas.height);
+  ctx.moveTo(0, canvas.height);
   ctx.lineTo(canvas.width, canvas.height);
   ctx.lineTo(canvas.width, canvas.height - 10);
   asdf = true;
-  for (let t=1;t>=0;t-=.1) {
+  for (let t = 1; t >= 0; t -= .1) {
     ctx.lineTo(canvas.width * t, canvas.height - (asdf ? 10 : 20));
     asdf = !asdf;
   }
-  ctx.lineTo(0,canvas.height);
+  ctx.lineTo(0, canvas.height);
   ctx.fill();
 
   requestAnimationFrame(every_frame);
