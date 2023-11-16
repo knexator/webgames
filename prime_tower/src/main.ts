@@ -6,8 +6,10 @@ import { fromCount, zip2 } from "./kommon/kommon";
 // import { fromCount, zip2 } from "./kommon/kommon";
 import { Vec2, mod, approach, remap, randomChoice, inRange, clamp } from "./kommon/math";
 // import { canvasFromAscii } from "./kommon/spritePS";
+import heart_sound_url from "./sounds/heartbeat.wav"
 
-// sounds from https://freesound.org/people/soundbytez/packs/6351/
+// sounds from https://freesound.org/people/tannernet/sounds/698699/
+// sounds from https://freesound.org/people/newlocknew/sounds/612642/
 
 const EDITOR = false;
 if (EDITOR) {
@@ -57,6 +59,14 @@ const sounds = await Promise.all(sound_urls.map(async url => {
     play: () => playSound(buffer),
   }
 }));
+
+let heart_source = new AudioBufferSourceNode(audioCtx, {
+  buffer: await loadSound(heart_sound_url),
+  loop: true,
+});
+let heart_volume_node = new GainNode(audioCtx, { gain: 0 });
+heart_source.connect(heart_volume_node);
+heart_volume_node.connect(audioCtx.destination);
 
 // game logic
 type BlockType = "." | "#" | "=" | "|" | "◢" | "◣" | "◤" | "◥"
@@ -365,7 +375,8 @@ function drawHeart() {
     let xoff = - 200 + 264 + 67.2;
     let yoff = - 100 + 200 + 250;
     let scale = clamp(real_heart_goal_t, 0, 1) * 1.05;
-    scale += .1 * clamp(remap(real_heart_goal_t, 1.2, 2, 0, 1), 0, 1) * Math.abs(Math.pow(Math.sin(last_timestamp * 0.003), 3)); // * Math.sin(last_timestamp * 0.003));
+    scale += .1 * clamp(remap(real_heart_goal_t, 1.2, 2, 0, 1), 0, 1) * Math.abs(Math.pow(Math.sin(last_timestamp * 0.001 * Math.PI * 14.898 / 15), 3)); // * Math.sin(last_timestamp * 0.003));
+    heart_volume_node.gain.value = 1.8 * clamp(remap(real_heart_goal_t, 1, 2, 0, 1), 0, 1);
     // + (1 + Math.sin(last_timestamp));
 
     ctx.fillStyle = "cyan";
@@ -679,6 +690,8 @@ if (loading_screen_element) {
 } else {
   requestAnimationFrame(every_frame);
 }
+
+heart_source.start(.185);
 
 // function isSolved() {
 //   let cur = new LaserPathStep(-1, Math.floor(n_seen_blocks / 2), "+tower");
