@@ -53,6 +53,8 @@ function playSound(audioBuffer: AudioBuffer) {
   source.start();
 }
 
+let heart_buffer_promise = loadSound(heart_sound_url);
+
 const sounds = await Promise.all(sound_urls.map(async url => {
   let buffer = await loadSound(url);
   return {
@@ -61,7 +63,7 @@ const sounds = await Promise.all(sound_urls.map(async url => {
 }));
 
 let heart_source = new AudioBufferSourceNode(audioCtx, {
-  buffer: await loadSound(heart_sound_url),
+  buffer: await heart_buffer_promise,
   loop: true,
 });
 let heart_volume_node = new GainNode(audioCtx, { gain: 0 });
@@ -367,6 +369,7 @@ function drawInOut() {
 
 function drawHeart() {
   let real_heart_goal_t = clamp(remap(heart_goal_t, .2, 1, 0, 2), 0, 2);
+  heart_volume_node.gain.value = 1.8 * clamp(remap(real_heart_goal_t, 0, 2, 0, 1), 0, 1);
   if (real_heart_goal_t > 0) {
     // ctx.beginPath();
     // ctx.arc(4 * block_size.x, (n_seen_blocks / 2 + .5) * block_size.y, real_heart_goal_t * block_size.x * 2, 0, Math.PI * 2);
@@ -376,7 +379,6 @@ function drawHeart() {
     let yoff = - 100 + 200 + 250;
     let scale = clamp(real_heart_goal_t, 0, 1) * 1.05;
     scale += .1 * clamp(remap(real_heart_goal_t, 1.2, 2, 0, 1), 0, 1) * Math.abs(Math.pow(Math.sin(last_timestamp * 0.001 * Math.PI * 14.898 / 15), 3)); // * Math.sin(last_timestamp * 0.003));
-    heart_volume_node.gain.value = 1.8 * clamp(remap(real_heart_goal_t, 1, 2, 0, 1), 0, 1);
     // + (1 + Math.sin(last_timestamp));
 
     ctx.fillStyle = "cyan";
