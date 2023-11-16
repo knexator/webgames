@@ -6,7 +6,7 @@ import { fromCount, zip2 } from "./kommon/kommon";
 // import { fromCount, zip2 } from "./kommon/kommon";
 import { Vec2, mod, approach, remap, randomChoice, inRange, clamp } from "./kommon/math";
 // import { canvasFromAscii } from "./kommon/spritePS";
-import heart_sound_url from "./sounds/heartbeat.wav"
+import heart_sound_url from "./sounds/heartbeat.mp3"
 
 // sounds from https://freesound.org/people/tannernet/sounds/698699/
 // sounds from https://freesound.org/people/newlocknew/sounds/612642/
@@ -693,7 +693,7 @@ if (loading_screen_element) {
   requestAnimationFrame(every_frame);
 }
 
-heart_source.start(.185);
+heart_source.start(0);
 
 // function isSolved() {
 //   let cur = new LaserPathStep(-1, Math.floor(n_seen_blocks / 2), "+tower");
