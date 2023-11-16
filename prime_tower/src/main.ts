@@ -1,10 +1,10 @@
-// import GUI from "lil-gui"
+import GUI from "lil-gui"
 
 // import { Grid2D } from "./kommon/grid2D";
 import { Input, KeyCode, MouseButton } from "./kommon/input";
 import { fromCount, zip2 } from "./kommon/kommon";
 // import { fromCount, zip2 } from "./kommon/kommon";
-import { Vec2, mod, approach, remap, randomChoice, inRange } from "./kommon/math";
+import { Vec2, mod, approach, remap, randomChoice, inRange, clamp } from "./kommon/math";
 // import { canvasFromAscii } from "./kommon/spritePS";
 
 // sounds from https://freesound.org/people/soundbytez/packs/6351/
@@ -19,6 +19,17 @@ if (EDITOR) {
   // });
   // )
 }
+
+// let CONFIG = {
+//   v100: 100,
+//   v500: 500,
+//   v1: 1,
+// };
+
+// let gui = new GUI();
+// gui.add(CONFIG, "v100", 0, 200);
+// gui.add(CONFIG, "v500", 0, 1000);
+// gui.add(CONFIG, "v1", 0, 1);
 
 const audioCtx = new AudioContext();
 
@@ -110,7 +121,8 @@ class LaserPathStep {
 
 let laser_path = computeLaserPath();
 let laser_t = 0;
-let goal_t = 0;
+let eye_goal_t = 0;
+let heart_goal_t = 0;
 
 // function computeLaserPath() {
 //   let result: LaserPathStep[] = [];
@@ -329,16 +341,43 @@ function drawInOut() {
   ctx.fillStyle = palette[0];
   ctx.arc((towers.length + .5) * block_size.x, (n_seen_blocks / 2 + .5) * block_size.y, block_size.x / 3, 0, Math.PI * 2);
   ctx.fill();
-  let real_goal_t = remap(goal_t, .15, 1, 0, 1);
-  if (real_goal_t > 0) {
+  let real_eye_goal_t = clamp(remap(eye_goal_t, .15, 1, 0, 1), 0, 1);
+  if (real_eye_goal_t > 0) {
     ctx.beginPath();
     ctx.fillStyle = palette[7];
-    ctx.arc((towers.length + .5) * block_size.x, (n_seen_blocks / 2 + .5) * block_size.y, real_goal_t * block_size.x / 3, 0, Math.PI * 2);
+    ctx.arc((towers.length + .5) * block_size.x, (n_seen_blocks / 2 + .5) * block_size.y, real_eye_goal_t * block_size.x / 3, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.beginPath();
     ctx.fillStyle = "cyan";
-    ctx.arc((towers.length + .5 - real_goal_t * .18) * block_size.x, (n_seen_blocks / 2 + .5) * block_size.y, real_goal_t * block_size.x / 6, 0, Math.PI * 2);
+    ctx.arc((towers.length + .5 - real_eye_goal_t * .18) * block_size.x, (n_seen_blocks / 2 + .5) * block_size.y, real_eye_goal_t * block_size.x / 6, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawHeart() {
+  let real_heart_goal_t = clamp(remap(heart_goal_t, .2, 1, 0, 2), 0, 2);
+  if (real_heart_goal_t > 0) {
+    // ctx.beginPath();
+    // ctx.arc(4 * block_size.x, (n_seen_blocks / 2 + .5) * block_size.y, real_heart_goal_t * block_size.x * 2, 0, Math.PI * 2);
+    // ctx.fill();
+
+    let xoff = - 200 + 264 + 67.2;
+    let yoff = - 100 + 200 + 250;
+    let scale = clamp(real_heart_goal_t, 0, 1) * 1.05;
+    scale += .1 * clamp(remap(real_heart_goal_t, 1.2, 2, 0, 1), 0, 1) * Math.abs(Math.pow(Math.sin(last_timestamp * 0.003), 3)); // * Math.sin(last_timestamp * 0.003));
+    // + (1 + Math.sin(last_timestamp));
+
+    ctx.fillStyle = "cyan";
+    ctx.beginPath();
+
+    ctx.moveTo(xoff, -42 * scale + yoff);
+    ctx.bezierCurveTo(-20 * scale + xoff, -80 * scale + yoff, -90 * scale + xoff, -44 * scale + yoff, -40 * scale + xoff, 6 * scale + yoff);
+    ctx.bezierCurveTo(-27 * scale + xoff, 19 * scale + yoff, -8 * scale + xoff, 37 * scale + yoff, xoff, 51 * scale + yoff);
+
+    ctx.moveTo(xoff, -42 * scale + yoff);
+    ctx.bezierCurveTo(20 * scale + xoff, -80 * scale + yoff, 90 * scale + xoff, -44 * scale + yoff, 40 * scale + xoff, 6 * scale + yoff);
+    ctx.bezierCurveTo(27 * scale + xoff, 19 * scale + yoff, 8 * scale + xoff, 37 * scale + yoff, xoff, 51 * scale + yoff);
     ctx.fill();
   }
 }
@@ -476,9 +515,12 @@ function every_frame(cur_timestamp: number) {
   }
 
   if (won && laser_t >= laser_path.length - .5) {
-    goal_t = approach(goal_t, 1, delta_time * 10);
+    eye_goal_t = approach(eye_goal_t, 1, delta_time * 10);
+    heart_goal_t = approach(heart_goal_t, 1, delta_time * .5);
   } else {
-    goal_t = approach(goal_t, 0, delta_time * 15);
+    eye_goal_t = approach(eye_goal_t, 0, delta_time * 15);
+    heart_goal_t = approach(heart_goal_t, 0, delta_time * 10);
+    // heart_goal_t = approach(heart_goal_t, 1, delta_time * 10);
   }
 
 
@@ -566,10 +608,10 @@ function every_frame(cur_timestamp: number) {
     if (inRange(Math.floor(input.mouse.clientX / block_size.x) - 1, 0, towers.length)) {
       // canvas.style.cursor = "grab";
       document.body.style.cursor = "grab";
-     } else {
+    } else {
       // canvas.style.cursor = "default";
       document.body.style.cursor = "default";
-     }
+    }
   }
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -578,6 +620,7 @@ function every_frame(cur_timestamp: number) {
   drawTowers();
   drawLaser();
   ctx.resetTransform();
+  drawHeart();
 
   ctx.beginPath();
   ctx.fillStyle = palette[1];
