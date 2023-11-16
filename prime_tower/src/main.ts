@@ -2,9 +2,9 @@
 
 // import { Grid2D } from "./kommon/grid2D";
 import { Input, KeyCode, MouseButton } from "./kommon/input";
-import { zip2 } from "./kommon/kommon";
+import { fromCount, zip2 } from "./kommon/kommon";
 // import { fromCount, zip2 } from "./kommon/kommon";
-import { Vec2, mod, approach, remap } from "./kommon/math";
+import { Vec2, mod, approach, remap, randomChoice } from "./kommon/math";
 // import { canvasFromAscii } from "./kommon/spritePS";
 
 // sounds from https://freesound.org/people/soundbytez/packs/6351/
@@ -19,6 +19,33 @@ if (EDITOR) {
   // });
   // )
 }
+
+const audioCtx = new AudioContext();
+
+const sound_urls = fromCount(26, k => {
+  return new URL(`./sounds/ratchet (${k + 1}).mp3`, import.meta.url).href;
+});
+
+async function loadSound(url: string): Promise<AudioBuffer> {
+  const response = await fetch(url);
+  const arrayBuffer = await response.arrayBuffer();
+  const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+  return audioBuffer;
+}
+
+function playSound(audioBuffer: AudioBuffer) {
+  var source = audioCtx.createBufferSource();
+  source.buffer = audioBuffer;                    // tell the source which sound to play
+  source.connect(audioCtx.destination);       // connect the source to the context's destination (the speakers)
+  source.start();
+}
+
+const sounds = await Promise.all(sound_urls.map(async url => {
+  let buffer = await loadSound(url);
+  return {
+    play: () => playSound(buffer),
+  }
+}));
 
 // game logic
 type BlockType = "." | "#" | "=" | "|" | "◢" | "◣" | "◤" | "◥"
@@ -510,10 +537,12 @@ function every_frame(cur_timestamp: number) {
       while (visual_offsets[clicked_tower_index] > .5) {
         visual_offsets[clicked_tower_index] -= 1.0;
         logic_offsets[clicked_tower_index] += 1;
+        randomChoice(sounds).play();
       }
       while (visual_offsets[clicked_tower_index] < -.5) {
         visual_offsets[clicked_tower_index] += 1.0;
         logic_offsets[clicked_tower_index] -= 1;
+        randomChoice(sounds).play();
       }
       logic_offsets[clicked_tower_index] = mod(logic_offsets[clicked_tower_index], towers[clicked_tower_index].length);
       let new_laser_path = computeLaserPath();
@@ -586,11 +615,13 @@ function at<T>(arr: T[], index: number): T {
 
 const loading_screen_element = document.querySelector<HTMLDivElement>("#loading_screen");
 if (loading_screen_element) {
-  loading_screen_element.innerText = "Press to start!";
-  document.addEventListener("pointerdown", _event => {
-    loading_screen_element.style.opacity = "0";
-    requestAnimationFrame(every_frame);
-  }, { once: true });
+  loading_screen_element.style.opacity = "0";
+  requestAnimationFrame(every_frame);
+  // loading_screen_element.innerText = "Press to start!";
+  // document.addEventListener("pointerdown", _event => {
+  //   loading_screen_element.style.opacity = "0";
+  //   requestAnimationFrame(every_frame);
+  // }, { once: true });
 } else {
   requestAnimationFrame(every_frame);
 }

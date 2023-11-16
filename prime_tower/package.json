@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "update": "tsc && vite build && butler push ./dist knexator/prime-tower:html"
+    "update": "tsc && vite build && butler push ./dist knexator/eye-contact:html"
   },
   "devDependencies": {
     "typescript": "^5.0.2",
