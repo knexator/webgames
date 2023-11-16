@@ -4,7 +4,7 @@
 import { Input, KeyCode, MouseButton } from "./kommon/input";
 import { fromCount, zip2 } from "./kommon/kommon";
 // import { fromCount, zip2 } from "./kommon/kommon";
-import { Vec2, mod, approach, remap, randomChoice } from "./kommon/math";
+import { Vec2, mod, approach, remap, randomChoice, inRange } from "./kommon/math";
 // import { canvasFromAscii } from "./kommon/spritePS";
 
 // sounds from https://freesound.org/people/soundbytez/packs/6351/
@@ -530,6 +530,10 @@ function every_frame(cur_timestamp: number) {
   if (input.mouse.isDown(MouseButton.Left)) {
     if (clicked_tower_index === null) {
       clicked_tower_index = Math.floor(input.mouse.clientX / block_size.x) - 1;
+      if (inRange(clicked_tower_index, 0, towers.length)) {
+        document.body.style.cursor = "grabbing";
+        // canvas.style.cursor = "grabbing";
+      }
     }
     let delta_offset = (input.mouse.clientY - input.mouse.prev_clientY) / block_size.y;
     visual_offsets[clicked_tower_index] += delta_offset;
@@ -559,6 +563,13 @@ function every_frame(cur_timestamp: number) {
   } else {
     visual_offsets = visual_offsets.map(x => approach(x, 0, delta_time / .5));
     clicked_tower_index = null;
+    if (inRange(Math.floor(input.mouse.clientX / block_size.x) - 1, 0, towers.length)) {
+      // canvas.style.cursor = "grab";
+      document.body.style.cursor = "grab";
+     } else {
+      // canvas.style.cursor = "default";
+      document.body.style.cursor = "default";
+     }
   }
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
