@@ -33,6 +33,8 @@ if (EDITOR) {
 // gui.add(CONFIG, "v500", 0, 1000);
 // gui.add(CONFIG, "v1", 0, 1);
 
+let LIGHT_SQUARES = false;
+
 const audioCtx = new AudioContext();
 
 const sound_urls = fromCount(26, k => {
@@ -296,7 +298,7 @@ function drawTowers() {
         //   ctx.fillStyle = palette[4];
         // }
 
-        ctx.fillStyle = palette[3];
+        ctx.fillStyle = LIGHT_SQUARES ? palette[3] : palette[2];
         ctx.fillRect(k * block_size.x, (h + visual_offsets[k]) * block_size.y, block_size.x, block_size.y);
         ctx.fillStyle = palette[4];
       } else {
@@ -520,6 +522,10 @@ function every_frame(cur_timestamp: number) {
   let delta_time = (cur_timestamp - last_timestamp) / 1000;
   last_timestamp = cur_timestamp;
   input.startFrame();
+
+  if (input.keyboard.wasPressed(KeyCode.KeyT)) {
+    LIGHT_SQUARES = !LIGHT_SQUARES;
+  }
 
   if (won) {
     laser_t = approach(laser_t, laser_path.length - .35, delta_time * 30);
