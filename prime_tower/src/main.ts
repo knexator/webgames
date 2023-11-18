@@ -582,14 +582,16 @@ function every_frame(cur_timestamp: number) {
     }
   }
 
-  if (input.mouse.isDown(MouseButton.Left)) {
-    if (clicked_tower_index === null) {
-      clicked_tower_index = Math.floor(input.mouse.clientX / block_size.x) - 1;
-      if (inRange(clicked_tower_index, 0, towers.length)) {
-        document.body.style.cursor = "grabbing";
-        // canvas.style.cursor = "grabbing";
-      }
+  if (input.mouse.wasPressed(MouseButton.Left)) {
+    clicked_tower_index = Math.floor(input.mouse.clientX / block_size.x) - 1;
+    if (inRange(clicked_tower_index, 0, towers.length)) {
+      document.body.style.cursor = "grabbing";
+      // canvas.style.cursor = "grabbing";
+    } else {
+      clicked_tower_index = null;
     }
+  }
+  if (input.mouse.isDown(MouseButton.Left) && clicked_tower_index !== null) {
     let delta_offset = (input.mouse.clientY - input.mouse.prev_clientY) / block_size.y;
     visual_offsets[clicked_tower_index] += delta_offset;
     if (Math.abs(visual_offsets[clicked_tower_index]) > .5) {
