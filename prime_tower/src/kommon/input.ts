@@ -174,7 +174,7 @@ export class MouseListener {
         document.addEventListener("touchend", this.onTouchEnd.bind(this));
     }
 
-    private onTouchEnd(ev: TouchEvent) {
+    private onTouchEnd(_ev: TouchEvent) {
         this.buttons = 0;
     }
 
