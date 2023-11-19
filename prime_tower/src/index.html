@@ -14,13 +14,30 @@
             margin: 0;
             overscroll-behavior: contain;
             background-color: #1a1a24;
+            /* background-color: red; */
         }
 
         #game_canvas {
-            display: block;
-            width: 100vw;
-            height: 100vh;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);               
+            /* width: 100vw; */
+            /* todo: what if the screen is wider than tall? */
+            aspect-ratio: .5;
             z-index: 2;
+        }
+
+        @media (orientation: portrait) {
+            #game_canvas {
+                width: 100vw;
+            } 
+        }
+
+        @media (orientation: landscape) {
+            #game_canvas {
+                height: 100vh;
+            } 
         }
 
         #loading_screen {

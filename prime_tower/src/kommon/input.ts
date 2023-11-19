@@ -168,6 +168,26 @@ export class MouseListener {
         document.addEventListener("pointerup", this.onPointerEvent.bind(this));
         document.addEventListener("pointerdown", this.onPointerEvent.bind(this));
         document.addEventListener("wheel", this.onWheelEvent.bind(this));
+
+        document.addEventListener("touchstart", this.onTouchStart.bind(this));
+        document.addEventListener("touchmove", this.onTouchMove.bind(this));
+        document.addEventListener("touchend", this.onTouchEnd.bind(this));
+    }
+
+    private onTouchEnd(ev: TouchEvent) {
+        this.buttons = 0;
+    }
+
+
+    private onTouchStart(ev: TouchEvent) {
+        this.buttons = 7;
+        this.clientX = ev.touches[0].clientX;
+        this.clientY = ev.touches[0].clientY;
+    }
+
+    private onTouchMove(ev: TouchEvent) {
+        this.clientX = ev.touches[0].clientX;
+        this.clientY = ev.touches[0].clientY;
     }
 
     private onPointerEvent(ev: MouseEvent) {

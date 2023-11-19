@@ -115,14 +115,19 @@ let colors = [
   [0, 2, 1, 2, 3, 3],
 ].map(arr => arr.map(n => palette[n]));
 
-const block_size = new Vec2(50, 50);
+// let block_size = new Vec2(50, 50);
 
 const input = new Input();
 const canvas = document.querySelector<HTMLCanvasElement>("#game_canvas")!;
 const ctx = canvas.getContext("2d")!;
 
-canvas.width = block_size.x * (towers.length + 2);
-canvas.height = block_size.y * n_seen_blocks;
+// canvas.width = block_size.x * (towers.length + 2);
+// canvas.height = block_size.y * n_seen_blocks;
+
+canvas.width = canvas.clientWidth;
+canvas.height = canvas.clientHeight;
+const block_size = new Vec2(canvas.width / 8, canvas.height / 16);
+
 
 class LaserPathStep {
   constructor(
@@ -590,14 +595,16 @@ function every_frame(cur_timestamp: number) {
 
   if (input.mouse.wasPressed(MouseButton.Left)) {
     clicked_tower_index = Math.floor(input.mouse.clientX / block_size.x) - 1;
+    console.log(clicked_tower_index);
     if (inRange(clicked_tower_index, 0, towers.length)) {
       document.body.style.cursor = "grabbing";
       // canvas.style.cursor = "grabbing";
     } else {
       clicked_tower_index = null;
     }
-  }
-  if (input.mouse.isDown(MouseButton.Left) && clicked_tower_index !== null) {
+    console.log(clicked_tower_index);
+    // console.log(input.mouse.buttons, input.mouse.clientX, input.mouse.clientY);
+  } else if (input.mouse.isDown(MouseButton.Left) && clicked_tower_index !== null) {
     let delta_offset = (input.mouse.clientY - input.mouse.prev_clientY) / block_size.y;
     visual_offsets[clicked_tower_index] += delta_offset;
     if (Math.abs(visual_offsets[clicked_tower_index]) > .5) {
