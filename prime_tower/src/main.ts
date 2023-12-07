@@ -126,8 +126,14 @@ const ctx = canvas.getContext("2d")!;
 
 canvas.width = canvas.clientWidth;
 canvas.height = canvas.clientHeight;
-const block_size = new Vec2(canvas.width / 8, canvas.height / 16);
-
+let block_size: Vec2;
+if (canvas.clientWidth * 2 >= canvas.clientHeight) {
+  // limited by height
+  block_size = new Vec2(canvas.height / 16, canvas.height / 16)
+} else {
+  block_size = new Vec2(canvas.width / 8, canvas.width / 8)
+}
+let offset = new Vec2(canvas.width - block_size.x * 8, canvas.height - block_size.y * 16).scale(.5);
 
 class LaserPathStep {
   constructor(
@@ -375,6 +381,8 @@ function drawInOut() {
 }
 
 function drawHeart() {
+  ctx.translate(offset.x, offset.y);
+  ctx.scale(block_size.x / 50, block_size.y / 50);
   let real_heart_goal_t = clamp(remap(heart_goal_t, .2, 1, 0, 2), 0, 2);
   heart_volume_node.gain.value = 1.8 * clamp(remap(real_heart_goal_t, 0, 2, 0, 1), 0, 1);
   if (real_heart_goal_t > 0) {
@@ -528,6 +536,18 @@ function every_frame(cur_timestamp: number) {
   last_timestamp = cur_timestamp;
   input.startFrame();
 
+  if (canvas.width !== canvas.clientWidth || canvas.height !== canvas.clientHeight) {
+    canvas.width = canvas.clientWidth;
+    canvas.height = canvas.clientHeight;
+    if (canvas.clientWidth * 2 >= canvas.clientHeight) {
+      // limited by height
+      block_size = new Vec2(canvas.height / 16, canvas.height / 16)
+    } else {
+      block_size = new Vec2(canvas.width / 8, canvas.width / 8)
+    }
+    offset = new Vec2(canvas.width - block_size.x * 8, canvas.height - block_size.y * 16).scale(.5);
+  }
+
   if (input.keyboard.wasPressed(KeyCode.KeyT)) {
     LIGHT_SQUARES = !LIGHT_SQUARES;
   }
@@ -548,9 +568,10 @@ function every_frame(cur_timestamp: number) {
   }
 
 
+  let mouse_pos = new Vec2(input.mouse.clientX, input.mouse.clientY).sub(offset);
   if (EDITOR) {
-    let mouse_tower = Math.floor(input.mouse.clientX / block_size.x);
-    let mouse_abs_floor = Math.floor(input.mouse.clientY / block_size.y);
+    let mouse_tower = Math.floor(mouse_pos.x / block_size.x);
+    let mouse_abs_floor = Math.floor(mouse_pos.y / block_size.y);
     if (mouse_tower >= 0 && mouse_tower < towers.length && mouse_abs_floor >= 0 && mouse_abs_floor < n_seen_blocks) {
       const blocks: BlockType[] = [".", "#", "=", "|", "◢", "◣", "◤", "◥"];
       let cur_block = towers[mouse_tower][mod(mouse_abs_floor - logic_offsets[mouse_tower], towers[mouse_tower].length)];
@@ -594,7 +615,7 @@ function every_frame(cur_timestamp: number) {
   }
 
   if (input.mouse.wasPressed(MouseButton.Left)) {
-    clicked_tower_index = Math.floor(input.mouse.clientX / block_size.x) - 1;
+    clicked_tower_index = Math.floor(mouse_pos.x / block_size.x) - 1;
     console.log(clicked_tower_index);
     if (inRange(clicked_tower_index, 0, towers.length)) {
       document.body.style.cursor = "grabbing";
@@ -603,7 +624,7 @@ function every_frame(cur_timestamp: number) {
       clicked_tower_index = null;
     }
     console.log(clicked_tower_index);
-    // console.log(input.mouse.buttons, input.mouse.clientX, input.mouse.clientY);
+    // console.log(input.mouse.buttons, mouse_pos.x, mouse_pos.y);
   } else if (input.mouse.isDown(MouseButton.Left) && clicked_tower_index !== null) {
     let delta_offset = (input.mouse.clientY - input.mouse.prev_clientY) / block_size.y;
     visual_offsets[clicked_tower_index] += delta_offset;
@@ -633,7 +654,7 @@ function every_frame(cur_timestamp: number) {
   } else {
     visual_offsets = visual_offsets.map(x => approach(x, 0, delta_time / .5));
     clicked_tower_index = null;
-    if (inRange(Math.floor(input.mouse.clientX / block_size.x) - 1, 0, towers.length)) {
+    if (inRange(Math.floor(mouse_pos.x / block_size.x) - 1, 0, towers.length)) {
       // canvas.style.cursor = "grab";
       document.body.style.cursor = "grab";
     } else {
@@ -643,23 +664,27 @@ function every_frame(cur_timestamp: number) {
   }
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.translate(offset.x, offset.y);
   ctx.translate(block_size.x, -block_size.y / 2);
   drawInOut();
   drawTowers();
   drawLaser();
   ctx.resetTransform();
+  // ctx.translate(offset.x, offset.y);
   drawHeart();
+  ctx.resetTransform();
 
   ctx.beginPath();
   ctx.fillStyle = palette[1];
   ctx.moveTo(0, 0);
   ctx.lineTo(canvas.width, 0);
-  ctx.lineTo(canvas.width, 10);
+  ctx.lineTo(canvas.width, offset.y + block_size.y / 5);
   let asdf = true;
-  for (let t = 1; t >= 0; t -= .1) {
-    ctx.lineTo(canvas.width * t, asdf ? 10 : 20);
+  for (let x = canvas.width; x >= 0; x -= block_size.x * 40 / 50) {
+    ctx.lineTo(x, offset.y + (asdf ? block_size.y / 5 : block_size.y * 2 / 5));
     asdf = !asdf;
   }
+  ctx.lineTo(0, offset.y + block_size.y / 5);
   ctx.lineTo(0, 0);
   // ctx.fill();
 
@@ -667,12 +692,13 @@ function every_frame(cur_timestamp: number) {
   ctx.fillStyle = palette[1];
   ctx.moveTo(0, canvas.height);
   ctx.lineTo(canvas.width, canvas.height);
-  ctx.lineTo(canvas.width, canvas.height - 10);
+  ctx.lineTo(canvas.width, canvas.height - block_size.y / 5 - offset.y);
   asdf = true;
-  for (let t = 1; t >= 0; t -= .1) {
-    ctx.lineTo(canvas.width * t, canvas.height - (asdf ? 10 : 20));
+  for (let x = canvas.width; x >= 0; x -= block_size.x * 40 / 50) {
+    ctx.lineTo(x, canvas.height - offset.y - (asdf ? block_size.y / 5 : block_size.y * 2 / 5));
     asdf = !asdf;
   }
+  ctx.lineTo(0, canvas.height - offset.y - block_size.y / 5);
   ctx.lineTo(0, canvas.height);
   ctx.fill();
 

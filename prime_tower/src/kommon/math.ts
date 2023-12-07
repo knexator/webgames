@@ -185,6 +185,13 @@ export class Vec2 {
         );
     }
 
+    div(other: Vec2): Vec2 {
+        return new Vec2(
+            this.x / other.x,
+            this.y / other.y,
+        );
+    }
+
     scale(factor: number): Vec2 {
         return new Vec2(
             this.x * factor,

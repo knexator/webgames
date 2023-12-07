@@ -19,16 +19,16 @@
 
         #game_canvas {
             position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);               
-            /* width: 100vw; */
-            /* todo: what if the screen is wider than tall? */
-            aspect-ratio: .5;
+            /* top: 50%; */
+            /* left: 50%; */
+            /* transform: translate(-50%, -50%);                */
+            width: 100vw;
+            height: 100vh;
+            /* aspect-ratio: .5; */
             z-index: 2;
         }
 
-        @media (orientation: portrait) {
+        /* @media (orientation: portrait) {
             #game_canvas {
                 width: 100vw;
             } 
@@ -38,7 +38,7 @@
             #game_canvas {
                 height: 100vh;
             } 
-        }
+        } */
 
         #loading_screen {
             /* FIXME: customize loading screen */
