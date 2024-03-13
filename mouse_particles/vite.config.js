@@ -36,10 +36,5 @@ export default defineConfig(({ command, mode, ssrBuild }) => {
       emptyOutDir: true,
       target: 'esnext'
     },
-    resolve: {
-      alias: {
-        "kanvas2d": new URL('../kanvas2d', import.meta.url).pathname
-      }
-    }
   }
 })
