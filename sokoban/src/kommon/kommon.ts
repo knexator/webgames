@@ -28,6 +28,18 @@ export function* pairwise<T>(arr: Iterable<T>): Generator<[T, T], void, void> {
     }
 }
 
+export function* zip2<T, S>(array1: Iterable<T>, array2: Iterable<S>): Generator<[T, S]> {
+    let iterator1 = array1[Symbol.iterator]();
+    let iterator2 = array2[Symbol.iterator]();
+    while (true) {
+        let next1 = iterator1.next();
+        let next2 = iterator2.next();
+        let done = next1.done || next2.done;
+        if (done) return;
+        yield [next1.value, next2.value];
+    }
+}
+
 export function* zip(...arrays: Iterable<any>[]): Generator<any> {
     let iterators = arrays.map(a => a[Symbol.iterator]());
     while (true) {

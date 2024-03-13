@@ -17,24 +17,45 @@ gl.clearColor(.5, .5, .5, 1);
 const CONFIG = {
   size: 1.5,
   clear: .3,
+  algorithm: "lerp" as "lerp" | "physics",
   lerp: .25,
+  drag_time: .05,
+  linear_force: 130,
 };
 
 const gui = new GUI();
 gui.add(CONFIG, "size", 1, 5);
 gui.add(CONFIG, "clear", 0, 1);
 gui.add(CONFIG, "lerp", 0, 1);
+gui.add(CONFIG, "algorithm", ["lerp", "physics"]);
+gui.add(CONFIG, "drag_time", 0, .1);
+gui.add(CONFIG, "linear_force", 0, 250);
 
 class Particle {
+  public prev_pos: Vec2
+  // public acc: Vec2 = Vec2.zero;
   constructor(
     public pos: Vec2,
-    public vel: Vec2 = Vec2.zero,
-    public acc: Vec2 = Vec2.zero,
-  ) { }
+  ) {
+    this.prev_pos = pos;
+  }
 
   update(dt: number, target: Vec2): void {
-    const half_life = -(1/60) / Math.log2(1 - CONFIG.lerp);
-    this.pos = Vec2.lerp(this.pos, target, 1 - Math.pow(2, -dt / half_life)); 
+    if (CONFIG.algorithm === "lerp") {
+      const half_life = -(1 / 60) / Math.log2(1 - CONFIG.lerp);
+      this.prev_pos = this.pos;
+      this.pos = Vec2.lerp(this.pos, target, 1 - Math.pow(2, -dt / half_life));
+    } else if (CONFIG.algorithm === "physics") {
+      const drag_half_life = -CONFIG.drag_time / Math.log2(1 / 100);
+      const acc = target.sub(this.pos).scale(CONFIG.linear_force);
+      let delta_pos = this.pos.sub(this.prev_pos);
+      delta_pos = delta_pos.add(acc.scale(dt * dt));
+      delta_pos = Vec2.lerp(Vec2.zero, delta_pos, 1 - Math.pow(2, -dt / drag_half_life));
+      const new_pos = this.pos.add(delta_pos);
+      this.prev_pos = this.pos;
+      this.pos = new_pos;
+      // this.acc = Vec2.zero;
+    }
   }
 }
 
@@ -69,7 +90,7 @@ function every_frame(cur_timestamp: number) {
   ctx.fillStyle = 'black';
   ctx.beginPath();
   for (const particle of particles) {
-    drawCircle(particle.pos, CONFIG.size); 
+    drawCircle(particle.pos, CONFIG.size);
   }
   ctx.fill();
 

@@ -218,6 +218,13 @@ export class Vec2 {
         return out;
     }
 
+    map1(fn: (x: number) => number, out?: Vec2): Vec2 {
+        out = out || this;
+        out.x = fn(this.x);
+        out.y = fn(this.y);
+        return out;
+    }
+
     static fromPolar(radians: number, length: number): Vec2 {
         return new Vec2(Math.cos(radians) * length, Math.sin(radians) * length);
     }
