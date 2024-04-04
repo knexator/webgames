@@ -69,11 +69,13 @@ let CONFIG = {
   TURN_DURATION: .15,
   CHEAT_INMORTAL: false,
   FUSE_DURATION: 5,
+  PLAYER_CAN_EXPLODE: false,
 }
 
 gui.add(CONFIG, "TURN_DURATION", .15, 1);
 gui.add(CONFIG, "CHEAT_INMORTAL");
 gui.add(CONFIG, "FUSE_DURATION", 3, 10, 1);
+gui.add(CONFIG, "PLAYER_CAN_EXPLODE");
 
 let SNAKE_LENGTH = 4;
 
@@ -213,6 +215,11 @@ function explodeApple(k: number) {
   cur_screen_shake.actualMag = 5.0;
   score += 1;
   appleSound.play();
+
+  if (hit_head && CONFIG.PLAYER_CAN_EXPLODE) {
+    crashSound.play();
+    lose();
+  }
 }
 
 function update(curTime: number) {
@@ -302,7 +309,8 @@ function update(curTime: number) {
           cur_apple.i = mod(cur_apple.i + di, W);
           cur_apple.j = mod(cur_apple.j + dj, W);
           cur_apple.ticking = true;
-          if (head.some(({ i, j }) => cur_apple.i === i && cur_apple.j === j)) {
+          if (head.some(({ i, j }) => cur_apple.i === i && cur_apple.j === j)
+            || cur_apples.some(({ i, j }, other_k) => other_k !== k && cur_apple.i === i && cur_apple.j === j)) {
             explodeApple(k);
           }
         }
