@@ -46,6 +46,7 @@ let CONFIG = {
   PLAYER_CAN_EXPLODE: false,
   N_BOMBS: 3,
   SLOWDOWN: 5,
+  TOTAL_SLOWDOWN: false,
 }
 
 const BOARD_SIZE = new Vec2(16, 16);
@@ -57,6 +58,7 @@ gui.add(CONFIG, "FUSE_DURATION", 3, 10, 1);
 gui.add(CONFIG, "N_BOMBS", 1, 6, 1);
 gui.add(CONFIG, "PLAYER_CAN_EXPLODE");
 gui.add(CONFIG, "SLOWDOWN", 2, 10);
+gui.add(CONFIG, "TOTAL_SLOWDOWN");
 
 // https://lospec.com/palette-list/sweetie-16
 const COLORS = {
@@ -169,29 +171,37 @@ function every_frame(cur_timestamp: number) {
   }
 
   if ([
-    KeyCode.KeyW,
-    KeyCode.KeyA,
-    KeyCode.KeyS,
-    KeyCode.KeyD,
+    KeyCode.KeyW, KeyCode.ArrowUp,
+    KeyCode.KeyA, KeyCode.ArrowLeft,
+    KeyCode.KeyS, KeyCode.ArrowDown,
+    KeyCode.KeyD, KeyCode.ArrowRight,
   ].some(k => input.keyboard.wasPressed(k))) {
     if (game_state === "lost") {
       restart();
     }
+    function btnp(ks: KeyCode[]) {
+      return ks.some(k => input.keyboard.wasPressed(k));
+    }
     input_queue.push(new Vec2(
-      (input.keyboard.wasPressed(KeyCode.KeyD) ? 1 : 0)
-      - (input.keyboard.wasPressed(KeyCode.KeyA) ? 1 : 0),
-      (input.keyboard.wasPressed(KeyCode.KeyS) ? 1 : 0)
-      - (input.keyboard.wasPressed(KeyCode.KeyW) ? 1 : 0),
+      (btnp([KeyCode.KeyD, KeyCode.ArrowRight]) ? 1 : 0)
+      - (btnp([KeyCode.KeyA, KeyCode.ArrowLeft]) ? 1 : 0),
+      (btnp([KeyCode.KeyS, KeyCode.ArrowDown]) ? 1 : 0)
+      - (btnp([KeyCode.KeyW, KeyCode.ArrowUp]) ? 1 : 0),
     ));
     if (game_state === "waiting") game_state = "main"
   }
 
+  let bullet_time = input.keyboard.isDown(KeyCode.Space);
   if (game_state === "main") {
     let cur_turn_duration = CONFIG.TURN_DURATION;
-    if (input.keyboard.isDown(KeyCode.Space)) {
+    if (bullet_time) {
       cur_turn_duration *= CONFIG.SLOWDOWN;
     }
-    turn_offset += delta_time / cur_turn_duration;
+    if (CONFIG.TOTAL_SLOWDOWN && bullet_time) {
+      // no advance
+    } else {
+      turn_offset += delta_time / cur_turn_duration;
+    }
   }
 
   while (Math.abs(turn_offset) >= 1) {
@@ -263,9 +273,6 @@ function every_frame(cur_timestamp: number) {
 
   const S = canvas_ctx.width / BOARD_SIZE.x;
 
-  ctx.fillStyle = COLORS.BACKGROUND;
-  ctx.fillRect(0, 0, canvas_ctx.width, canvas_ctx.height);
-
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.translate(cur_screen_shake.x, cur_screen_shake.y);
   let cur_shake_mag = cur_screen_shake.actualMag * (1 + Math.cos(last_timestamp * .25) * .25)
@@ -276,7 +283,7 @@ function every_frame(cur_timestamp: number) {
   cur_screen_shake.actualMag = approach(cur_screen_shake.actualMag, cur_screen_shake.targetMag, delta_time * 1000)
   // cur_screen_shake.actualMag = lerp(cur_screen_shake.actualMag, cur_screen_shake.targetMag, .1);
 
-  ctx.fillStyle = COLORS.BACKGROUND;
+  ctx.fillStyle = bullet_time ? "black" : COLORS.BACKGROUND;
   ctx.fillRect(0, 0, canvas_ctx.width, canvas_ctx.height);
 
   // ctx.fillStyle = "#111133";
