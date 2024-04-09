@@ -339,6 +339,8 @@ function every_frame(cur_timestamp: number) {
   } else if (game_state === "lost") {
     ctx.fillText(`Score: ${score}`, canvas_ctx.width / 2, canvas_ctx.height / 4);
     // ctx.fillText("", canvas.width / 2, canvas.height / 2);
+  } else if (game_state === "main") {
+    ctx.fillText(`${score}`, S/2, S * .8);
   }
 
 
