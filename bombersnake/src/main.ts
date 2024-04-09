@@ -45,6 +45,7 @@ let CONFIG = {
   FUSE_DURATION: 5,
   PLAYER_CAN_EXPLODE: false,
   N_BOMBS: 3,
+  SLOWDOWN: 5,
 }
 
 const BOARD_SIZE = new Vec2(16, 16);
@@ -55,6 +56,7 @@ gui.add(CONFIG, "CHEAT_INMORTAL");
 gui.add(CONFIG, "FUSE_DURATION", 3, 10, 1);
 gui.add(CONFIG, "N_BOMBS", 1, 6, 1);
 gui.add(CONFIG, "PLAYER_CAN_EXPLODE");
+gui.add(CONFIG, "SLOWDOWN", 2, 10);
 
 // https://lospec.com/palette-list/sweetie-16
 const COLORS = {
@@ -71,7 +73,6 @@ let cur_screen_shake = { x: 0, y: 0, targetMag: 0, actualMag: 0 };
 
 let turn = -16; // always int
 let head: { pos: Vec2, dir: Vec2, t: number }[];
-let cur_turn_duration: number;
 let score: number;
 let input_queue: Vec2[];
 let cur_bombs: Bomb[];
@@ -82,7 +83,6 @@ let exploding_cross_particles: { center: Vec2, turn: number }[];
 function restart() {
   turn = -16; // always int
   head = [{ pos: new Vec2(8, 8), dir: new Vec2(1, 0), t: turn }];
-  cur_turn_duration = CONFIG.TURN_DURATION;
   score = 0
   input_queue = [];
   cur_bombs = fromCount(CONFIG.N_BOMBS, _ => placeBomb());
@@ -133,11 +133,10 @@ function explodeApple(k: number) {
     // return (i !== cur_apple.i && j !== cur_apple.j) || (i === cur_apple.i && j === cur_apple.j);
   });
   cur_bombs[k] = placeBomb();
-  // cur_turn_duration = CONFIG.TURN_DURATION / 5;
   cur_screen_shake.actualMag = 5.0;
   score += 1;
   SOUNDS.apple.play();
-  exploding_cross_particles.push({center: cur_apple.pos, turn: turn});
+  exploding_cross_particles.push({ center: cur_apple.pos, turn: turn });
 
   if (hit_head && CONFIG.PLAYER_CAN_EXPLODE && !CONFIG.CHEAT_INMORTAL) {
     SOUNDS.crash.play();
@@ -187,8 +186,11 @@ function every_frame(cur_timestamp: number) {
     if (game_state === "waiting") game_state = "main"
   }
 
-  cur_turn_duration = CONFIG.TURN_DURATION;
   if (game_state === "main") {
+    let cur_turn_duration = CONFIG.TURN_DURATION;
+    if (input.keyboard.isDown(KeyCode.Space)) {
+      cur_turn_duration *= CONFIG.SLOWDOWN;
+    }
     turn_offset += delta_time / cur_turn_duration;
   }
 
