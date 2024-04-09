@@ -31,7 +31,7 @@ export function max(arr: number[]) {
 
 export function argmax(arr: number[]) {
     if (arr.length === 0) {
-        return undefined
+        throw new Error("empty array");
     }
     let res = 0;
     let biggest = arr[0];

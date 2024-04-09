@@ -45,6 +45,7 @@ let CONFIG = {
   FUSE_DURATION: 5,
   PLAYER_CAN_EXPLODE: false,
   N_BOMBS: 3,
+  LUCK: 5,
   SLOWDOWN: 5,
   TOTAL_SLOWDOWN: false,
 }
@@ -56,6 +57,7 @@ gui.add(CONFIG, "TURN_DURATION", .15, 1);
 gui.add(CONFIG, "CHEAT_INMORTAL");
 gui.add(CONFIG, "FUSE_DURATION", 3, 10, 1);
 gui.add(CONFIG, "N_BOMBS", 1, 6, 1);
+gui.add(CONFIG, "LUCK", 1, 15, 1);
 gui.add(CONFIG, "PLAYER_CAN_EXPLODE");
 gui.add(CONFIG, "SLOWDOWN", 2, 10);
 gui.add(CONFIG, "TOTAL_SLOWDOWN");
@@ -99,23 +101,36 @@ restart();
 type Bomb = { pos: Vec2, ticking: boolean, fuse_left: number };
 
 function placeBomb(): Bomb {
-  let pos, valid;
-  do {
-    // pos = new Vec2(Math.random(), Math.random()).mul(BOARD_SIZE)
-    pos = new Vec2(
-      Math.floor(Math.random() * BOARD_SIZE.x),
-      Math.floor(Math.random() * BOARD_SIZE.y)
-    );
-    valid = true;
-    for (const last_head of head) {
-      if (pos.equal(last_head.pos)) {
-        valid = false;
-        break;
+  function findSpot(): Vec2 {
+    let pos, valid;
+    do {
+      // pos = new Vec2(Math.random(), Math.random()).mul(BOARD_SIZE)
+      pos = new Vec2(
+        Math.floor(Math.random() * BOARD_SIZE.x),
+        Math.floor(Math.random() * BOARD_SIZE.y)
+      );
+      valid = true;
+      for (const last_head of head) {
+        if (pos.equal(last_head.pos)) {
+          valid = false;
+          break;
+        }
       }
-    }
-    let last_head = head[head.length - 1];
-    valid = valid && !pos.equal(last_head.pos.add(last_head.dir));
-  } while (!valid);
+      let last_head = head[head.length - 1];
+      valid = valid && !pos.equal(last_head.pos.add(last_head.dir));
+    } while (!valid);
+    return pos;
+  }
+
+  let candidates = fromCount(CONFIG.LUCK, _ => findSpot());
+  let visible_walls_at_each_candidate = candidates.map(pos => {
+    return head.filter(({ pos, }, k) => {
+      let affected = (pos.x === pos.x || pos.y === pos.y);
+      return affected;
+    }).length;
+  });
+  let pos = candidates[argmax(visible_walls_at_each_candidate)];
+
   return { pos: pos, ticking: false, fuse_left: CONFIG.FUSE_DURATION };
 }
 
@@ -340,7 +355,7 @@ function every_frame(cur_timestamp: number) {
     ctx.fillText(`Score: ${score}`, canvas_ctx.width / 2, canvas_ctx.height / 4);
     // ctx.fillText("", canvas.width / 2, canvas.height / 2);
   } else if (game_state === "main") {
-    ctx.fillText(`${score}`, S/2, S * .8);
+    ctx.fillText(`${score}`, S / 2, S * .8);
   }
 
 
