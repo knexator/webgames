@@ -42,6 +42,7 @@ jobs:
         run: |
           cd kanvas2d
           npm install
+          npm run build:lib
           cd ..
       - name: Install local packages
         run: |
