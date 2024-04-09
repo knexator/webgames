@@ -63,6 +63,7 @@ const COLORS = {
   APPLE_WARNING: "#38b764",
   TEXT: "#f4f4f4",
   SNAKE: generateGradient('#3b5dc9', '#41a6f6', 4),
+  EXPLOSION: "#ffcd75",
 };
 
 let cam_noise = noise.makeNoise3D(0);
@@ -75,7 +76,8 @@ let score: number;
 let input_queue: Vec2[];
 let cur_bombs: Bomb[];
 let game_state: "waiting" | "main" | "lost";
-let turn_offset = 0.99; // always between -1..1
+let turn_offset: number; // always between -1..1
+let exploding_cross_particles: { center: Vec2, turn: number }[];
 
 function restart() {
   turn = -16; // always int
@@ -86,7 +88,8 @@ function restart() {
   cur_bombs = fromCount(CONFIG.N_BOMBS, _ => placeBomb());
   game_state = "waiting";
   turn_offset = 0.99; // always between -1..1
-  cur_screen_shake.targetMag = 0
+  cur_screen_shake.targetMag = 0;
+  exploding_cross_particles = [];
 }
 
 restart();
@@ -134,8 +137,9 @@ function explodeApple(k: number) {
   cur_screen_shake.actualMag = 5.0;
   score += 1;
   SOUNDS.apple.play();
+  exploding_cross_particles.push({center: cur_apple.pos, turn: turn});
 
-  if (hit_head && CONFIG.PLAYER_CAN_EXPLODE) {
+  if (hit_head && CONFIG.PLAYER_CAN_EXPLODE && !CONFIG.CHEAT_INMORTAL) {
     SOUNDS.crash.play();
     lose();
   }
@@ -153,7 +157,7 @@ function every_frame(cur_timestamp: number) {
   ctx.fillStyle = 'gray';
   ctx.fillRect(0, 0, canvas_ctx.width, canvas_ctx.height);
   if (twgl.resizeCanvasToDisplaySize(canvas_ctx)) {
-  // if (or(twgl.resizeCanvasToDisplaySize(canvas_ctx), twgl.resizeCanvasToDisplaySize(canvas_gl))) {
+    // if (or(twgl.resizeCanvasToDisplaySize(canvas_ctx), twgl.resizeCanvasToDisplaySize(canvas_gl))) {
     // resizing stuff
     // gl.viewport(0, 0, canvas_gl.width, canvas_gl.height);
   }
@@ -183,15 +187,16 @@ function every_frame(cur_timestamp: number) {
     if (game_state === "waiting") game_state = "main"
   }
 
+  cur_turn_duration = CONFIG.TURN_DURATION;
   if (game_state === "main") {
     turn_offset += delta_time / cur_turn_duration;
   }
-  
+
   while (Math.abs(turn_offset) >= 1) {
     turn_offset -= 1
     turn += 1
     SOUNDS.step.play();
-    
+
     // do turn
     let last_head = head[head.length - 1];
     let next_input = Vec2.zero;
@@ -277,9 +282,32 @@ function every_frame(cur_timestamp: number) {
   // ctx.fillStyle = "#333399";
   // ctx.fillRect(0, canvas.height-S, ((turn + turn_offset) / MAX_TURNS + .5) * canvas.width, S);
 
-  ctx.fillStyle = COLORS.APPLE_WARNING;
-  ctx.lineWidth = 4;
+  // explosion particles
+  ctx.fillStyle = COLORS.EXPLOSION;
+  exploding_cross_particles = exploding_cross_particles.filter(particle => {
+    if (particle.turn !== turn) return false;
+    // for (let x=0; x<BOARD_SIZE.x; x++) {
+    //   let d = Math.abs(x - particle.center.x) / BOARD_SIZE.x;
+    //   // d *= d;
+    //   if (Math.abs(d - turn_offset) < .5) {
+    //     ctx.fillRect(x * S, particle.center.y * S, S, S);
+    //   }
+    // }
+    // for (let y=0; y<BOARD_SIZE.y; y++) {
+    //   let d = Math.abs(y - particle.center.y) / BOARD_SIZE.y;
+    //   // d *= d;
+    //   if (Math.abs(d - turn_offset) < .5) {
+    //     ctx.fillRect(particle.center.x * S, y * S, S, S);
+    //   }
+    // }
+    // return true;
 
+    ctx.fillRect(particle.center.x * S, 0, S, S * BOARD_SIZE.y);
+    ctx.fillRect(0, particle.center.y * S, S * BOARD_SIZE.x, S);
+    return true;
+  });
+
+  // snake body
   head.forEach(({ pos, t }, k) => {
     // ctx.fillStyle = SNAKE_ACTIVE_COLORS[SNAKE_LENGTH  - Math.max(0, SNAKE_LENGTH + t - turn)];
     ctx.fillStyle = COLORS.SNAKE[Math.max(0, Math.min(COLORS.SNAKE.length - 1, turn - t))];
