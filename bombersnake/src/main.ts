@@ -48,6 +48,7 @@ let CONFIG = {
   LUCK: 5,
   SLOWDOWN: 5,
   TOTAL_SLOWDOWN: false,
+  MULTIPLIER_CHANCE: .1,
 }
 
 const BOARD_SIZE = new Vec2(16, 16);
@@ -61,6 +62,7 @@ gui.add(CONFIG, "LUCK", 1, 15, 1);
 gui.add(CONFIG, "PLAYER_CAN_EXPLODE");
 gui.add(CONFIG, "SLOWDOWN", 2, 10);
 gui.add(CONFIG, "TOTAL_SLOWDOWN");
+gui.add(CONFIG, "MULTIPLIER_CHANCE", 0, 1);
 
 // https://lospec.com/palette-list/sweetie-16
 const COLORS = {
@@ -69,7 +71,7 @@ const COLORS = {
   TEXT: "#f4f4f4",
   SNAKE: generateGradient('#3b5dc9', '#41a6f6', 4),
   EXPLOSION: "#ffcd75",
-  // MULTIPLIER: "#f4f4f4",
+  MULTIPLIER: "#f4f4f4",
 };
 
 let cam_noise = noise.makeNoise3D(0);
@@ -83,6 +85,7 @@ let cur_collectables: Collectable[];
 let game_state: "waiting" | "main" | "lost";
 let turn_offset: number; // always between -1..1
 let exploding_cross_particles: { center: Vec2, turn: number }[];
+let multiplier = 1;
 
 function restart() {
   turn = -16; // always int
@@ -94,6 +97,7 @@ function restart() {
   turn_offset = 0.99; // always between -1..1
   cur_screen_shake.targetMag = 0;
   exploding_cross_particles = [];
+  multiplier = 1;
 }
 
 class Bomb {
@@ -106,34 +110,41 @@ class Bomb {
     this.fuse_left = CONFIG.FUSE_DURATION;
   }
 }
-type Collectable = Bomb;
+
+class Multiplier {
+  constructor(
+    public pos: Vec2,
+  ) { }
+}
+
+type Collectable = Bomb | Multiplier;
 
 restart();
 
 function placeCollectable(): Collectable {
-  function placeBomb(): Bomb {
-    function findSpot(): Vec2 {
-      let pos, valid;
-      do {
-        // pos = new Vec2(Math.random(), Math.random()).mul(BOARD_SIZE)
-        pos = new Vec2(
-          Math.floor(Math.random() * BOARD_SIZE.x),
-          Math.floor(Math.random() * BOARD_SIZE.y)
-        );
-        valid = true;
-        for (const last_head of head) {
-          if (pos.equal(last_head.pos)) {
-            valid = false;
-            break;
-          }
+  function findSpotWithoutWall(): Vec2 {
+    let pos, valid;
+    do {
+      // pos = new Vec2(Math.random(), Math.random()).mul(BOARD_SIZE)
+      pos = new Vec2(
+        Math.floor(Math.random() * BOARD_SIZE.x),
+        Math.floor(Math.random() * BOARD_SIZE.y)
+      );
+      valid = true;
+      for (const last_head of head) {
+        if (pos.equal(last_head.pos)) {
+          valid = false;
+          break;
         }
-        let last_head = head[head.length - 1];
-        valid = valid && !pos.equal(last_head.pos.add(last_head.dir));
-      } while (!valid);
-      return pos;
-    }
+      }
+      let last_head = head[head.length - 1];
+      valid = valid && !pos.equal(last_head.pos.add(last_head.dir));
+    } while (!valid);
+    return pos;
+  }
 
-    let candidates = fromCount(CONFIG.LUCK, _ => findSpot());
+  function placeBomb(): Bomb {
+    let candidates = fromCount(CONFIG.LUCK, _ => findSpotWithoutWall());
     let visible_walls_at_each_candidate = candidates.map(pos => {
       return head.filter(({ pos, }, k) => {
         let affected = (pos.x === pos.x || pos.y === pos.y);
@@ -145,7 +156,15 @@ function placeCollectable(): Collectable {
     return new Bomb(pos);
   }
 
-  return placeBomb();
+  function placeMultiplier(): Multiplier {
+    return new Multiplier(findSpotWithoutWall());
+  }
+
+  if (Math.random() < CONFIG.MULTIPLIER_CHANCE) {
+    return placeMultiplier();
+  } else {
+    return placeBomb();
+  }
 }
 
 function explodeBomb(k: number) {
@@ -164,7 +183,7 @@ function explodeBomb(k: number) {
   });
   cur_collectables[k] = placeCollectable();
   cur_screen_shake.actualMag = 5.0;
-  score += 1;
+  score += multiplier;
   SOUNDS.bomb.play();
   exploding_cross_particles.push({ center: cur_bomb.pos, turn: turn });
 
@@ -278,8 +297,11 @@ function every_frame(cur_timestamp: number) {
       lose()
     }
     for (let k = 0; k < cur_collectables.length; k++) {
-      const cur_bomb = cur_collectables[k];
-      if (new_head.pos.equal(cur_bomb.pos)) {
+      const cur_collectable = cur_collectables[k];
+      if (!new_head.pos.equal(cur_collectable.pos)) continue;
+
+      if (cur_collectable instanceof Bomb) {
+        const cur_bomb = cur_collectable;
         if (cur_bomb.fuse_left <= 0) {
           explodeBomb(k);
         } else {
@@ -290,15 +312,28 @@ function every_frame(cur_timestamp: number) {
             explodeBomb(k);
           }
         }
+      } else if (cur_collectable instanceof Multiplier) {
+        multiplier += 1;
+        cur_collectables[k] = placeCollectable();
+      } else {
+        throw new Error();
       }
     }
 
+    // tick collectables
     for (let k = 0; k < cur_collectables.length; k++) {
-      const cur_bomb = cur_collectables[k];
-      if (!cur_bomb.ticking) continue;
-      cur_bomb.fuse_left -= 1;
-      if (cur_bomb.fuse_left <= 0) {
-        explodeBomb(k);
+      const cur_collectable = cur_collectables[k];
+      if (cur_collectable instanceof Bomb) {
+        const cur_bomb = cur_collectable;
+        if (!cur_bomb.ticking) continue;
+        cur_bomb.fuse_left -= 1;
+        if (cur_bomb.fuse_left <= 0) {
+          explodeBomb(k);
+        }
+      } else if (cur_collectable instanceof Multiplier) {
+        // nothing
+      } else {
+        throw new Error();
       }
     }
   }
@@ -355,12 +390,21 @@ function every_frame(cur_timestamp: number) {
     ctx.fillRect(pos.x * S, pos.y * S, S, S);
   });
 
+  // draw collectables
   for (let k = 0; k < cur_collectables.length; k++) {
-    const cur_bomb = cur_collectables[k];
-    ctx.fillStyle = COLORS.BOMB;
-    ctx.fillRect(cur_bomb.pos.x * S, cur_bomb.pos.y * S, S, S);
-    ctx.fillStyle = "black";
-    ctx.fillText(cur_bomb.fuse_left.toString(), (cur_bomb.pos.x + .5) * S, (cur_bomb.pos.y + .8) * S);
+    const cur_collectable = cur_collectables[k];
+    if (cur_collectable instanceof Bomb) {
+      const cur_bomb = cur_collectable;
+      ctx.fillStyle = COLORS.BOMB;
+      ctx.fillRect(cur_bomb.pos.x * S, cur_bomb.pos.y * S, S, S);
+      ctx.fillStyle = "black";
+      ctx.fillText(cur_bomb.fuse_left.toString(), (cur_bomb.pos.x + .5) * S, (cur_bomb.pos.y + .8) * S);
+    } else if (cur_collectable instanceof Multiplier) {
+      ctx.fillStyle = COLORS.MULTIPLIER;
+      ctx.fillRect(cur_collectable.pos.x * S, cur_collectable.pos.y * S, S, S);
+    } else {
+      throw new Error();
+    }
   }
 
   ctx.font = '30px sans-serif';
