@@ -29,7 +29,7 @@ const SOUNDS = {
     // autoplay: true,
     volume: 0.25,
   }),
-  apple: new Howl({
+  bomb: new Howl({
     src: ['sounds/apple.wav'],
     volume: 1.0,
   }),
@@ -44,7 +44,7 @@ let CONFIG = {
   CHEAT_INMORTAL: false,
   FUSE_DURATION: 0,
   PLAYER_CAN_EXPLODE: false,
-  N_BOMBS: 3,
+  N_COLLECTABLES: 3,
   LUCK: 5,
   SLOWDOWN: 5,
   TOTAL_SLOWDOWN: false,
@@ -56,7 +56,7 @@ const gui = new GUI();
 gui.add(CONFIG, "TURN_DURATION", .05, 1);
 gui.add(CONFIG, "CHEAT_INMORTAL");
 gui.add(CONFIG, "FUSE_DURATION", 0, 10, 1);
-gui.add(CONFIG, "N_BOMBS", 1, 6, 1);
+gui.add(CONFIG, "N_COLLECTABLES", 1, 6, 1);
 gui.add(CONFIG, "LUCK", 1, 15, 1);
 gui.add(CONFIG, "PLAYER_CAN_EXPLODE");
 gui.add(CONFIG, "SLOWDOWN", 2, 10);
@@ -65,11 +65,11 @@ gui.add(CONFIG, "TOTAL_SLOWDOWN");
 // https://lospec.com/palette-list/sweetie-16
 const COLORS = {
   BACKGROUND: "#1a1c2c",
-  APPLE: "#a7f070",
-  APPLE_WARNING: "#38b764",
+  BOMB: "#a7f070",
   TEXT: "#f4f4f4",
   SNAKE: generateGradient('#3b5dc9', '#41a6f6', 4),
   EXPLOSION: "#ffcd75",
+  // MULTIPLIER: "#f4f4f4",
 };
 
 let cam_noise = noise.makeNoise3D(0);
@@ -79,7 +79,7 @@ let turn = -16; // always int
 let head: { pos: Vec2, dir: Vec2, t: number }[];
 let score: number;
 let input_queue: Vec2[];
-let cur_bombs: Bomb[];
+let cur_collectables: Collectable[];
 let game_state: "waiting" | "main" | "lost";
 let turn_offset: number; // always between -1..1
 let exploding_cross_particles: { center: Vec2, turn: number }[];
@@ -89,56 +89,70 @@ function restart() {
   head = [{ pos: new Vec2(8, 8), dir: new Vec2(1, 0), t: turn }];
   score = 0
   input_queue = [];
-  cur_bombs = fromCount(CONFIG.N_BOMBS, _ => placeBomb());
+  cur_collectables = fromCount(CONFIG.N_COLLECTABLES, _ => placeCollectable());
   game_state = "waiting";
   turn_offset = 0.99; // always between -1..1
   cur_screen_shake.targetMag = 0;
   exploding_cross_particles = [];
 }
 
+class Bomb {
+  public ticking: boolean;
+  public fuse_left: number;
+  constructor(
+    public pos: Vec2,
+  ) {
+    this.ticking = false;
+    this.fuse_left = CONFIG.FUSE_DURATION;
+  }
+}
+type Collectable = Bomb;
+
 restart();
 
-type Bomb = { pos: Vec2, ticking: boolean, fuse_left: number };
-
-function placeBomb(): Bomb {
-  function findSpot(): Vec2 {
-    let pos, valid;
-    do {
-      // pos = new Vec2(Math.random(), Math.random()).mul(BOARD_SIZE)
-      pos = new Vec2(
-        Math.floor(Math.random() * BOARD_SIZE.x),
-        Math.floor(Math.random() * BOARD_SIZE.y)
-      );
-      valid = true;
-      for (const last_head of head) {
-        if (pos.equal(last_head.pos)) {
-          valid = false;
-          break;
+function placeCollectable(): Collectable {
+  function placeBomb(): Bomb {
+    function findSpot(): Vec2 {
+      let pos, valid;
+      do {
+        // pos = new Vec2(Math.random(), Math.random()).mul(BOARD_SIZE)
+        pos = new Vec2(
+          Math.floor(Math.random() * BOARD_SIZE.x),
+          Math.floor(Math.random() * BOARD_SIZE.y)
+        );
+        valid = true;
+        for (const last_head of head) {
+          if (pos.equal(last_head.pos)) {
+            valid = false;
+            break;
+          }
         }
-      }
-      let last_head = head[head.length - 1];
-      valid = valid && !pos.equal(last_head.pos.add(last_head.dir));
-    } while (!valid);
-    return pos;
+        let last_head = head[head.length - 1];
+        valid = valid && !pos.equal(last_head.pos.add(last_head.dir));
+      } while (!valid);
+      return pos;
+    }
+
+    let candidates = fromCount(CONFIG.LUCK, _ => findSpot());
+    let visible_walls_at_each_candidate = candidates.map(pos => {
+      return head.filter(({ pos, }, k) => {
+        let affected = (pos.x === pos.x || pos.y === pos.y);
+        return affected;
+      }).length;
+    });
+    let pos = candidates[argmax(visible_walls_at_each_candidate)];
+
+    return new Bomb(pos);
   }
 
-  let candidates = fromCount(CONFIG.LUCK, _ => findSpot());
-  let visible_walls_at_each_candidate = candidates.map(pos => {
-    return head.filter(({ pos, }, k) => {
-      let affected = (pos.x === pos.x || pos.y === pos.y);
-      return affected;
-    }).length;
-  });
-  let pos = candidates[argmax(visible_walls_at_each_candidate)];
-
-  return { pos: pos, ticking: false, fuse_left: CONFIG.FUSE_DURATION };
+  return placeBomb();
 }
 
-function explodeApple(k: number) {
+function explodeBomb(k: number) {
   let hit_head = false;
-  let cur_apple = cur_bombs[k];
+  let cur_bomb = cur_collectables[k];
   head = head.filter(({ pos, t }, k) => {
-    let affected = (pos.x === cur_apple.pos.x || pos.y === cur_apple.pos.y);
+    let affected = (pos.x === cur_bomb.pos.x || pos.y === cur_bomb.pos.y);
     if (affected) {
       if (t === turn) {
         hit_head = true;
@@ -147,13 +161,12 @@ function explodeApple(k: number) {
       return false
     }
     return true;
-    // return (i !== cur_apple.i && j !== cur_apple.j) || (i === cur_apple.i && j === cur_apple.j);
   });
-  cur_bombs[k] = placeBomb();
+  cur_collectables[k] = placeCollectable();
   cur_screen_shake.actualMag = 5.0;
   score += 1;
-  SOUNDS.apple.play();
-  exploding_cross_particles.push({ center: cur_apple.pos, turn: turn });
+  SOUNDS.bomb.play();
+  exploding_cross_particles.push({ center: cur_bomb.pos, turn: turn });
 
   if (hit_head && CONFIG.PLAYER_CAN_EXPLODE && !CONFIG.CHEAT_INMORTAL) {
     SOUNDS.crash.play();
@@ -264,28 +277,28 @@ function every_frame(cur_timestamp: number) {
       SOUNDS.crash.play();
       lose()
     }
-    for (let k = 0; k < cur_bombs.length; k++) {
-      const cur_apple = cur_bombs[k];
-      if (new_head.pos.equal(cur_apple.pos)) {
-        if (cur_apple.fuse_left <= 0) {
-          explodeApple(k);
+    for (let k = 0; k < cur_collectables.length; k++) {
+      const cur_bomb = cur_collectables[k];
+      if (new_head.pos.equal(cur_bomb.pos)) {
+        if (cur_bomb.fuse_left <= 0) {
+          explodeBomb(k);
         } else {
-          cur_apple.pos = modVec2(cur_apple.pos.add(delta), BOARD_SIZE);
-          cur_apple.ticking = true;
-          if (head.some(({ pos }) => cur_apple.pos.equal(pos))
-            || cur_bombs.some(({ pos }, other_k) => other_k !== k && cur_apple.pos.equal(pos))) {
-            explodeApple(k);
+          cur_bomb.pos = modVec2(cur_bomb.pos.add(delta), BOARD_SIZE);
+          cur_bomb.ticking = true;
+          if (head.some(({ pos }) => cur_bomb.pos.equal(pos))
+            || cur_collectables.some(({ pos }, other_k) => other_k !== k && cur_bomb.pos.equal(pos))) {
+            explodeBomb(k);
           }
         }
       }
     }
 
-    for (let k = 0; k < cur_bombs.length; k++) {
-      const cur_apple = cur_bombs[k];
-      if (!cur_apple.ticking) continue;
-      cur_apple.fuse_left -= 1;
-      if (cur_apple.fuse_left <= 0) {
-        explodeApple(k);
+    for (let k = 0; k < cur_collectables.length; k++) {
+      const cur_bomb = cur_collectables[k];
+      if (!cur_bomb.ticking) continue;
+      cur_bomb.fuse_left -= 1;
+      if (cur_bomb.fuse_left <= 0) {
+        explodeBomb(k);
       }
     }
   }
@@ -342,12 +355,12 @@ function every_frame(cur_timestamp: number) {
     ctx.fillRect(pos.x * S, pos.y * S, S, S);
   });
 
-  for (let k = 0; k < cur_bombs.length; k++) {
-    const cur_apple = cur_bombs[k];
-    ctx.fillStyle = COLORS.APPLE;
-    ctx.fillRect(cur_apple.pos.x * S, cur_apple.pos.y * S, S, S);
+  for (let k = 0; k < cur_collectables.length; k++) {
+    const cur_bomb = cur_collectables[k];
+    ctx.fillStyle = COLORS.BOMB;
+    ctx.fillRect(cur_bomb.pos.x * S, cur_bomb.pos.y * S, S, S);
     ctx.fillStyle = "black";
-    ctx.fillText(cur_apple.fuse_left.toString(), (cur_apple.pos.x + .5) * S, (cur_apple.pos.y + .8) * S);
+    ctx.fillText(cur_bomb.fuse_left.toString(), (cur_bomb.pos.x + .5) * S, (cur_bomb.pos.y + .8) * S);
   }
 
   ctx.font = '30px sans-serif';
