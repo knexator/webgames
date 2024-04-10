@@ -42,7 +42,7 @@ const SOUNDS = {
 let CONFIG = {
   TURN_DURATION: .15,
   CHEAT_INMORTAL: false,
-  FUSE_DURATION: 5,
+  FUSE_DURATION: 0,
   PLAYER_CAN_EXPLODE: false,
   N_BOMBS: 3,
   LUCK: 5,
@@ -53,9 +53,9 @@ let CONFIG = {
 const BOARD_SIZE = new Vec2(16, 16);
 
 const gui = new GUI();
-gui.add(CONFIG, "TURN_DURATION", .15, 1);
+gui.add(CONFIG, "TURN_DURATION", .05, 1);
 gui.add(CONFIG, "CHEAT_INMORTAL");
-gui.add(CONFIG, "FUSE_DURATION", 3, 10, 1);
+gui.add(CONFIG, "FUSE_DURATION", 0, 10, 1);
 gui.add(CONFIG, "N_BOMBS", 1, 6, 1);
 gui.add(CONFIG, "LUCK", 1, 15, 1);
 gui.add(CONFIG, "PLAYER_CAN_EXPLODE");
@@ -267,11 +267,15 @@ function every_frame(cur_timestamp: number) {
     for (let k = 0; k < cur_bombs.length; k++) {
       const cur_apple = cur_bombs[k];
       if (new_head.pos.equal(cur_apple.pos)) {
-        cur_apple.pos = modVec2(cur_apple.pos.add(delta), BOARD_SIZE);
-        cur_apple.ticking = true;
-        if (head.some(({ pos }) => cur_apple.pos.equal(pos))
-          || cur_bombs.some(({ pos }, other_k) => other_k !== k && cur_apple.pos.equal(pos))) {
+        if (cur_apple.fuse_left <= 0) {
           explodeApple(k);
+        } else {
+          cur_apple.pos = modVec2(cur_apple.pos.add(delta), BOARD_SIZE);
+          cur_apple.ticking = true;
+          if (head.some(({ pos }) => cur_apple.pos.equal(pos))
+            || cur_bombs.some(({ pos }, other_k) => other_k !== k && cur_apple.pos.equal(pos))) {
+            explodeApple(k);
+          }
         }
       }
     }
@@ -280,7 +284,7 @@ function every_frame(cur_timestamp: number) {
       const cur_apple = cur_bombs[k];
       if (!cur_apple.ticking) continue;
       cur_apple.fuse_left -= 1;
-      if (cur_apple.fuse_left === 0) {
+      if (cur_apple.fuse_left <= 0) {
         explodeApple(k);
       }
     }
