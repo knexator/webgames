@@ -63,7 +63,7 @@ gui.add(CONFIG, "N_BOMBS", 1, 6, 1);
 gui.add(CONFIG, "N_MULTIPLIERS", 1, 2, 1);
 gui.add(CONFIG, "LUCK", 1, 15, 1);
 gui.add(CONFIG, "PLAYER_CAN_EXPLODE");
-gui.add(CONFIG, "SLOWDOWN", 2, 10);
+gui.add(CONFIG, "SLOWDOWN", 1, 10);
 gui.add(CONFIG, "TOTAL_SLOWDOWN");
 gui.add(CONFIG, "ALWAYS_SLOWDOWN");
 // gui.add(CONFIG, "MULTIPLIER_CHANCE", 0, 1);
