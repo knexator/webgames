@@ -49,6 +49,7 @@ let CONFIG = {
   LUCK: 5,
   SLOWDOWN: 5,
   TOTAL_SLOWDOWN: false,
+  ALWAYS_SLOWDOWN: true,
   // MULTIPLIER_CHANCE: .1,
 }
 
@@ -64,6 +65,7 @@ gui.add(CONFIG, "LUCK", 1, 15, 1);
 gui.add(CONFIG, "PLAYER_CAN_EXPLODE");
 gui.add(CONFIG, "SLOWDOWN", 2, 10);
 gui.add(CONFIG, "TOTAL_SLOWDOWN");
+gui.add(CONFIG, "ALWAYS_SLOWDOWN");
 // gui.add(CONFIG, "MULTIPLIER_CHANCE", 0, 1);
 
 // https://lospec.com/palette-list/sweetie-16
@@ -212,17 +214,18 @@ function every_frame(cur_timestamp: number) {
     restart();
   }
 
+
   if ([
     KeyCode.KeyW, KeyCode.ArrowUp,
     KeyCode.KeyA, KeyCode.ArrowLeft,
     KeyCode.KeyS, KeyCode.ArrowDown,
     KeyCode.KeyD, KeyCode.ArrowRight,
-  ].some(k => input.keyboard.wasPressed(k))) {
+  ].some(k => CONFIG.ALWAYS_SLOWDOWN ? input.keyboard.wasReleased(k) : input.keyboard.wasPressed(k))) {
     if (game_state === "lost") {
       restart();
     }
     function btnp(ks: KeyCode[]) {
-      return ks.some(k => input.keyboard.wasPressed(k));
+      return ks.some(k => CONFIG.ALWAYS_SLOWDOWN ? input.keyboard.wasReleased(k) : input.keyboard.wasPressed(k));
     }
     input_queue.push(new Vec2(
       (btnp([KeyCode.KeyD, KeyCode.ArrowRight]) ? 1 : 0)
@@ -234,6 +237,14 @@ function every_frame(cur_timestamp: number) {
   }
 
   let bullet_time = input.keyboard.isDown(KeyCode.Space);
+  if (CONFIG.ALWAYS_SLOWDOWN) {
+    bullet_time = bullet_time || [
+      KeyCode.KeyW, KeyCode.ArrowUp,
+      KeyCode.KeyA, KeyCode.ArrowLeft,
+      KeyCode.KeyS, KeyCode.ArrowDown,
+      KeyCode.KeyD, KeyCode.ArrowRight,
+    ].some(k => input.keyboard.isDown(k));
+  }
   if (game_state === "main") {
     let cur_turn_duration = CONFIG.TURN_DURATION;
     if (bullet_time) {
@@ -345,7 +356,7 @@ function every_frame(cur_timestamp: number) {
   cur_screen_shake.actualMag = approach(cur_screen_shake.actualMag, cur_screen_shake.targetMag, delta_time * 1000)
   // cur_screen_shake.actualMag = lerp(cur_screen_shake.actualMag, cur_screen_shake.targetMag, .1);
 
-  ctx.fillStyle = bullet_time ? "black" : COLORS.BACKGROUND;
+  ctx.fillStyle = (bullet_time && !CONFIG.ALWAYS_SLOWDOWN) ? "black" : COLORS.BACKGROUND;
   ctx.fillRect(0, 0, canvas_ctx.width, canvas_ctx.height);
 
   // ctx.fillStyle = "#111133";
