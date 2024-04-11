@@ -47,7 +47,7 @@ let CONFIG = {
   N_BOMBS: 3,
   N_MULTIPLIERS: 1,
   LUCK: 5,
-  SLOWDOWN: 5,
+  SLOWDOWN: 3,
   TOTAL_SLOWDOWN: false,
   ALWAYS_SLOWDOWN: true,
   // MULTIPLIER_CHANCE: .1,
@@ -127,7 +127,8 @@ type Collectable = Bomb | Multiplier;
 restart();
 
 function findSpotWithoutWall(): Vec2 {
-  let pos, valid;
+  let pos: Vec2;
+  let valid: boolean;
   do {
     // pos = new Vec2(Math.random(), Math.random()).mul(BOARD_SIZE)
     pos = new Vec2(
@@ -142,7 +143,7 @@ function findSpotWithoutWall(): Vec2 {
       }
     }
     let last_head = head[head.length - 1];
-    valid = valid && !pos.equal(last_head.pos.add(last_head.dir));
+    valid = valid && !pos.equal(last_head.pos.add(last_head.dir)) && !cur_collectables.some(x => x.pos.equal(pos));
   } while (!valid);
   return pos;
 }
@@ -356,7 +357,8 @@ function every_frame(cur_timestamp: number) {
   cur_screen_shake.actualMag = approach(cur_screen_shake.actualMag, cur_screen_shake.targetMag, delta_time * 1000)
   // cur_screen_shake.actualMag = lerp(cur_screen_shake.actualMag, cur_screen_shake.targetMag, .1);
 
-  ctx.fillStyle = (bullet_time && !CONFIG.ALWAYS_SLOWDOWN) ? "black" : COLORS.BACKGROUND;
+  // ctx.fillStyle = (bullet_time && !CONFIG.ALWAYS_SLOWDOWN) ? "black" : COLORS.BACKGROUND;
+  ctx.fillStyle = bullet_time ? (CONFIG.ALWAYS_SLOWDOWN ? "#191b2b" : "black") : COLORS.BACKGROUND;
   ctx.fillRect(0, 0, canvas_ctx.width, canvas_ctx.height);
 
   // ctx.fillStyle = "#111133";
