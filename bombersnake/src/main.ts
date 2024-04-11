@@ -44,11 +44,12 @@ let CONFIG = {
   CHEAT_INMORTAL: false,
   FUSE_DURATION: 0,
   PLAYER_CAN_EXPLODE: false,
-  N_COLLECTABLES: 3,
+  N_BOMBS: 3,
+  N_MULTIPLIERS: 1,
   LUCK: 5,
   SLOWDOWN: 5,
   TOTAL_SLOWDOWN: false,
-  MULTIPLIER_CHANCE: .1,
+  // MULTIPLIER_CHANCE: .1,
 }
 
 const BOARD_SIZE = new Vec2(16, 16);
@@ -57,12 +58,13 @@ const gui = new GUI();
 gui.add(CONFIG, "TURN_DURATION", .05, 1);
 gui.add(CONFIG, "CHEAT_INMORTAL");
 gui.add(CONFIG, "FUSE_DURATION", 0, 10, 1);
-gui.add(CONFIG, "N_COLLECTABLES", 1, 6, 1);
+gui.add(CONFIG, "N_BOMBS", 1, 6, 1);
+gui.add(CONFIG, "N_MULTIPLIERS", 1, 2, 1);
 gui.add(CONFIG, "LUCK", 1, 15, 1);
 gui.add(CONFIG, "PLAYER_CAN_EXPLODE");
 gui.add(CONFIG, "SLOWDOWN", 2, 10);
 gui.add(CONFIG, "TOTAL_SLOWDOWN");
-gui.add(CONFIG, "MULTIPLIER_CHANCE", 0, 1);
+// gui.add(CONFIG, "MULTIPLIER_CHANCE", 0, 1);
 
 // https://lospec.com/palette-list/sweetie-16
 const COLORS = {
@@ -92,7 +94,8 @@ function restart() {
   head = [{ pos: new Vec2(8, 8), dir: new Vec2(1, 0), t: turn }];
   score = 0
   input_queue = [];
-  cur_collectables = fromCount(CONFIG.N_COLLECTABLES, _ => placeCollectable());
+  cur_collectables = [];
+  cur_collectables = fromCount(CONFIG.N_BOMBS, _ => placeBomb() as Collectable).concat(fromCount(CONFIG.N_MULTIPLIERS, _ => placeMultiplier()));
   game_state = "waiting";
   turn_offset = 0.99; // always between -1..1
   cur_screen_shake.targetMag = 0;
@@ -121,50 +124,42 @@ type Collectable = Bomb | Multiplier;
 
 restart();
 
-function placeCollectable(): Collectable {
-  function findSpotWithoutWall(): Vec2 {
-    let pos, valid;
-    do {
-      // pos = new Vec2(Math.random(), Math.random()).mul(BOARD_SIZE)
-      pos = new Vec2(
-        Math.floor(Math.random() * BOARD_SIZE.x),
-        Math.floor(Math.random() * BOARD_SIZE.y)
-      );
-      valid = true;
-      for (const last_head of head) {
-        if (pos.equal(last_head.pos)) {
-          valid = false;
-          break;
-        }
+function findSpotWithoutWall(): Vec2 {
+  let pos, valid;
+  do {
+    // pos = new Vec2(Math.random(), Math.random()).mul(BOARD_SIZE)
+    pos = new Vec2(
+      Math.floor(Math.random() * BOARD_SIZE.x),
+      Math.floor(Math.random() * BOARD_SIZE.y)
+    );
+    valid = true;
+    for (const last_head of head) {
+      if (pos.equal(last_head.pos)) {
+        valid = false;
+        break;
       }
-      let last_head = head[head.length - 1];
-      valid = valid && !pos.equal(last_head.pos.add(last_head.dir));
-    } while (!valid);
-    return pos;
-  }
+    }
+    let last_head = head[head.length - 1];
+    valid = valid && !pos.equal(last_head.pos.add(last_head.dir));
+  } while (!valid);
+  return pos;
+}
 
-  function placeBomb(): Bomb {
-    let candidates = fromCount(CONFIG.LUCK, _ => findSpotWithoutWall());
-    let visible_walls_at_each_candidate = candidates.map(pos => {
-      return head.filter(({ pos, }, k) => {
-        let affected = (pos.x === pos.x || pos.y === pos.y);
-        return affected;
-      }).length;
-    });
-    let pos = candidates[argmax(visible_walls_at_each_candidate)];
+function placeBomb(): Bomb {
+  let candidates = fromCount(CONFIG.LUCK, _ => findSpotWithoutWall());
+  let visible_walls_at_each_candidate = candidates.map(pos => {
+    return head.filter(({ pos, }, k) => {
+      let affected = (pos.x === pos.x || pos.y === pos.y);
+      return affected;
+    }).length;
+  });
+  let pos = candidates[argmax(visible_walls_at_each_candidate)];
 
-    return new Bomb(pos);
-  }
+  return new Bomb(pos);
+}
 
-  function placeMultiplier(): Multiplier {
-    return new Multiplier(findSpotWithoutWall());
-  }
-
-  if (Math.random() < CONFIG.MULTIPLIER_CHANCE) {
-    return placeMultiplier();
-  } else {
-    return placeBomb();
-  }
+function placeMultiplier(): Multiplier {
+  return new Multiplier(findSpotWithoutWall());
 }
 
 function explodeBomb(k: number) {
@@ -181,7 +176,7 @@ function explodeBomb(k: number) {
     }
     return true;
   });
-  cur_collectables[k] = placeCollectable();
+  cur_collectables[k] = placeBomb();
   cur_screen_shake.actualMag = 5.0;
   score += multiplier;
   SOUNDS.bomb.play();
@@ -314,7 +309,7 @@ function every_frame(cur_timestamp: number) {
         }
       } else if (cur_collectable instanceof Multiplier) {
         multiplier += 1;
-        cur_collectables[k] = placeCollectable();
+        cur_collectables[k] = placeMultiplier();
       } else {
         throw new Error();
       }
