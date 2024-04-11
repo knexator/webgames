@@ -18,7 +18,7 @@ const ctx = canvas_ctx.getContext("2d")!;
 // gl.clearColor(.5, .5, .5, 1);
 
 const BOARD_SIZE = new Vec2(16, 16);
-const MARGIN = 2;
+const MARGIN = 5;
 
 const TILE_SIZE = 32;
 
@@ -61,8 +61,7 @@ let CONFIG = {
   SLOWDOWN: 3,
   TOTAL_SLOWDOWN: false,
   ALWAYS_SLOWDOWN: true,
-  // MULTIPLIER_CHANCE: .1,
-  // DRAW_WRAP: true,
+  DRAW_WRAP: 1,
 }
 
 const gui = new GUI();
@@ -76,8 +75,7 @@ gui.add(CONFIG, "PLAYER_CAN_EXPLODE");
 gui.add(CONFIG, "SLOWDOWN", 1, 10);
 gui.add(CONFIG, "TOTAL_SLOWDOWN");
 gui.add(CONFIG, "ALWAYS_SLOWDOWN");
-// gui.add(CONFIG, "MULTIPLIER_CHANCE", 0, 1);
-// gui.add(CONFIG, "DRAW_WRAP");
+gui.add(CONFIG, "DRAW_WRAP", 0, 5, 1);
 
 // https://lospec.com/palette-list/sweetie-16
 const COLORS = {
@@ -366,14 +364,11 @@ function every_frame(cur_timestamp: number) {
   cur_screen_shake.actualMag = approach(cur_screen_shake.actualMag, cur_screen_shake.targetMag, delta_time * 1000)
   // cur_screen_shake.actualMag = lerp(cur_screen_shake.actualMag, cur_screen_shake.targetMag, .1);
 
-  ctx.fillStyle = "#555";
+  ctx.fillStyle = bullet_time ? (CONFIG.ALWAYS_SLOWDOWN ? "#191b2b" : "black") : COLORS.BACKGROUND;
   ctx.fillRect(0, 0, canvas_ctx.width, canvas_ctx.height);
+  // ctx.fillRect(0, 0, BOARD_SIZE.x * TILE_SIZE, BOARD_SIZE.y * TILE_SIZE);
 
   ctx.translate(MARGIN * TILE_SIZE, MARGIN * TILE_SIZE);
-
-  // ctx.fillStyle = (bullet_time && !CONFIG.ALWAYS_SLOWDOWN) ? "black" : COLORS.BACKGROUND;
-  ctx.fillStyle = bullet_time ? (CONFIG.ALWAYS_SLOWDOWN ? "#191b2b" : "black") : COLORS.BACKGROUND;
-  ctx.fillRect(0, 0, BOARD_SIZE.x * TILE_SIZE, BOARD_SIZE.y * TILE_SIZE);
 
   // ctx.fillStyle = "#111133";
   // ctx.fillRect(0, canvas.height-S, canvas.width, S);
@@ -400,8 +395,12 @@ function every_frame(cur_timestamp: number) {
     // }
     // return true;
 
-    ctx.fillRect(particle.center.x * TILE_SIZE, 0, TILE_SIZE, TILE_SIZE * BOARD_SIZE.y);
-    ctx.fillRect(0, particle.center.y * TILE_SIZE, TILE_SIZE * BOARD_SIZE.x, TILE_SIZE);
+    for (let y = 0; y < BOARD_SIZE.y; y++) {
+      fillTile(new Vec2(particle.center.x, y));
+    }
+    for (let x = 0; x < BOARD_SIZE.y; x++) {
+      fillTile(new Vec2(x, particle.center.y));
+    }
     return true;
   });
 
@@ -409,7 +408,7 @@ function every_frame(cur_timestamp: number) {
   head.forEach(({ pos, t }, k) => {
     // ctx.fillStyle = SNAKE_ACTIVE_COLORS[SNAKE_LENGTH  - Math.max(0, SNAKE_LENGTH + t - turn)];
     ctx.fillStyle = COLORS.SNAKE[Math.max(0, Math.min(COLORS.SNAKE.length - 1, turn - t))];
-    ctx.fillRect(pos.x * TILE_SIZE, pos.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+    fillTile(pos);
   });
 
   // draw collectables
@@ -418,12 +417,12 @@ function every_frame(cur_timestamp: number) {
     if (cur_collectable instanceof Bomb) {
       const cur_bomb = cur_collectable;
       ctx.fillStyle = COLORS.BOMB;
-      ctx.fillRect(cur_bomb.pos.x * TILE_SIZE, cur_bomb.pos.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+      fillTile(cur_bomb.pos);
       ctx.fillStyle = "black";
-      ctx.fillText(cur_bomb.fuse_left.toString(), (cur_bomb.pos.x + .5) * TILE_SIZE, (cur_bomb.pos.y + .8) * TILE_SIZE);
+      textTile(cur_bomb.fuse_left.toString(), cur_bomb.pos);
     } else if (cur_collectable instanceof Multiplier) {
       ctx.fillStyle = COLORS.MULTIPLIER;
-      ctx.fillRect(cur_collectable.pos.x * TILE_SIZE, cur_collectable.pos.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+      fillTile(cur_collectable.pos);
     } else {
       throw new Error();
     }
@@ -434,14 +433,20 @@ function every_frame(cur_timestamp: number) {
   ctx.textAlign = "center";
   ctx.fillStyle = COLORS.TEXT;
   if (game_state === "waiting") {
-    ctx.fillText("WASD or Arrow Keys to move", canvas_ctx.width / 2, canvas_ctx.height / 4);
+    ctx.fillText("WASD or Arrow Keys to move", canvas_ctx.width / 2, (MARGIN + BOARD_SIZE.y / 4) * TILE_SIZE);
   } else if (game_state === "lost") {
-    ctx.fillText(`Score: ${score}`, canvas_ctx.width / 2, canvas_ctx.height / 4);
+    ctx.fillText(`Score: ${score}`, canvas_ctx.width / 2, (MARGIN + BOARD_SIZE.y / 4) * TILE_SIZE);
     // ctx.fillText("", canvas.width / 2, canvas.height / 2);
   } else if (game_state === "main") {
     ctx.fillText(`${score}`, MARGIN * TILE_SIZE + TILE_SIZE / 2, MARGIN * TILE_SIZE + TILE_SIZE * .8);
   }
 
+  // draw borders to hide stuff
+  ctx.fillStyle = "#555";
+  ctx.fillRect(0, 0, canvas_ctx.width, (MARGIN - CONFIG.DRAW_WRAP) * TILE_SIZE);
+  ctx.fillRect(0, 0, (MARGIN - CONFIG.DRAW_WRAP) * TILE_SIZE, canvas_ctx.height);
+  ctx.fillRect(0, canvas_ctx.height - (MARGIN - CONFIG.DRAW_WRAP) * TILE_SIZE, canvas_ctx.width, (MARGIN - CONFIG.DRAW_WRAP) * TILE_SIZE);
+  ctx.fillRect(canvas_ctx.width - (MARGIN - CONFIG.DRAW_WRAP) * TILE_SIZE, 0, (MARGIN - CONFIG.DRAW_WRAP) * TILE_SIZE, canvas_ctx.height);
 
   animation_id = requestAnimationFrame(every_frame);
 }
@@ -515,7 +520,24 @@ if (loading_screen_element) {
 } else {
   animation_id = requestAnimationFrame(every_frame);
 }
+
 function modVec2(value: Vec2, bounds: Vec2) {
   return new Vec2(mod(value.x, bounds.x), mod(value.y, bounds.y));
+}
+
+function fillTile(pos: Vec2) {
+  for (let i = -1; i <= 1; i++) {
+    for (let j = -1; j <= 1; j++) {
+      ctx.fillRect((pos.x + i * BOARD_SIZE.x) * TILE_SIZE, (pos.y + j * BOARD_SIZE.y) * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+    }
+  }
+}
+
+function textTile(text: string, pos: Vec2) {
+  for (let i = -1; i <= 1; i++) {
+    for (let j = -1; j <= 1; j++) {
+      ctx.fillText(text, (pos.x + .5 + i * BOARD_SIZE.x) * TILE_SIZE, (pos.y + .8 + j * BOARD_SIZE.y) * TILE_SIZE);
+    }
+  }
 }
 
