@@ -17,6 +17,17 @@ const ctx = canvas_ctx.getContext("2d")!;
 // const gl = initGL2(canvas_gl)!;
 // gl.clearColor(.5, .5, .5, 1);
 
+const BOARD_SIZE = new Vec2(16, 16);
+const MARGIN = 2;
+
+const TILE_SIZE = 32;
+
+{
+  const container = document.querySelector("#canvas_container") as HTMLElement;
+  container.style.width = `${TILE_SIZE * (BOARD_SIZE.x + MARGIN * 2)}px`
+  container.style.height = `${TILE_SIZE * (BOARD_SIZE.x + MARGIN * 2)}px`
+}
+
 const SOUNDS = {
   music: new Howl({
     src: ['sounds/music.mp3'],
@@ -51,9 +62,8 @@ let CONFIG = {
   TOTAL_SLOWDOWN: false,
   ALWAYS_SLOWDOWN: true,
   // MULTIPLIER_CHANCE: .1,
+  // DRAW_WRAP: true,
 }
-
-const BOARD_SIZE = new Vec2(16, 16);
 
 const gui = new GUI();
 gui.add(CONFIG, "TURN_DURATION", .05, 1);
@@ -67,6 +77,7 @@ gui.add(CONFIG, "SLOWDOWN", 1, 10);
 gui.add(CONFIG, "TOTAL_SLOWDOWN");
 gui.add(CONFIG, "ALWAYS_SLOWDOWN");
 // gui.add(CONFIG, "MULTIPLIER_CHANCE", 0, 1);
+// gui.add(CONFIG, "DRAW_WRAP");
 
 // https://lospec.com/palette-list/sweetie-16
 const COLORS = {
@@ -345,8 +356,6 @@ function every_frame(cur_timestamp: number) {
     }
   }
 
-  const S = canvas_ctx.width / BOARD_SIZE.x;
-
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.translate(cur_screen_shake.x, cur_screen_shake.y);
   let cur_shake_mag = cur_screen_shake.actualMag * (1 + Math.cos(last_timestamp * .25) * .25)
@@ -357,9 +366,14 @@ function every_frame(cur_timestamp: number) {
   cur_screen_shake.actualMag = approach(cur_screen_shake.actualMag, cur_screen_shake.targetMag, delta_time * 1000)
   // cur_screen_shake.actualMag = lerp(cur_screen_shake.actualMag, cur_screen_shake.targetMag, .1);
 
+  ctx.fillStyle = "#555";
+  ctx.fillRect(0, 0, canvas_ctx.width, canvas_ctx.height);
+
+  ctx.translate(MARGIN * TILE_SIZE, MARGIN * TILE_SIZE);
+
   // ctx.fillStyle = (bullet_time && !CONFIG.ALWAYS_SLOWDOWN) ? "black" : COLORS.BACKGROUND;
   ctx.fillStyle = bullet_time ? (CONFIG.ALWAYS_SLOWDOWN ? "#191b2b" : "black") : COLORS.BACKGROUND;
-  ctx.fillRect(0, 0, canvas_ctx.width, canvas_ctx.height);
+  ctx.fillRect(0, 0, BOARD_SIZE.x * TILE_SIZE, BOARD_SIZE.y * TILE_SIZE);
 
   // ctx.fillStyle = "#111133";
   // ctx.fillRect(0, canvas.height-S, canvas.width, S);
@@ -386,8 +400,8 @@ function every_frame(cur_timestamp: number) {
     // }
     // return true;
 
-    ctx.fillRect(particle.center.x * S, 0, S, S * BOARD_SIZE.y);
-    ctx.fillRect(0, particle.center.y * S, S * BOARD_SIZE.x, S);
+    ctx.fillRect(particle.center.x * TILE_SIZE, 0, TILE_SIZE, TILE_SIZE * BOARD_SIZE.y);
+    ctx.fillRect(0, particle.center.y * TILE_SIZE, TILE_SIZE * BOARD_SIZE.x, TILE_SIZE);
     return true;
   });
 
@@ -395,7 +409,7 @@ function every_frame(cur_timestamp: number) {
   head.forEach(({ pos, t }, k) => {
     // ctx.fillStyle = SNAKE_ACTIVE_COLORS[SNAKE_LENGTH  - Math.max(0, SNAKE_LENGTH + t - turn)];
     ctx.fillStyle = COLORS.SNAKE[Math.max(0, Math.min(COLORS.SNAKE.length - 1, turn - t))];
-    ctx.fillRect(pos.x * S, pos.y * S, S, S);
+    ctx.fillRect(pos.x * TILE_SIZE, pos.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
   });
 
   // draw collectables
@@ -404,17 +418,18 @@ function every_frame(cur_timestamp: number) {
     if (cur_collectable instanceof Bomb) {
       const cur_bomb = cur_collectable;
       ctx.fillStyle = COLORS.BOMB;
-      ctx.fillRect(cur_bomb.pos.x * S, cur_bomb.pos.y * S, S, S);
+      ctx.fillRect(cur_bomb.pos.x * TILE_SIZE, cur_bomb.pos.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
       ctx.fillStyle = "black";
-      ctx.fillText(cur_bomb.fuse_left.toString(), (cur_bomb.pos.x + .5) * S, (cur_bomb.pos.y + .8) * S);
+      ctx.fillText(cur_bomb.fuse_left.toString(), (cur_bomb.pos.x + .5) * TILE_SIZE, (cur_bomb.pos.y + .8) * TILE_SIZE);
     } else if (cur_collectable instanceof Multiplier) {
       ctx.fillStyle = COLORS.MULTIPLIER;
-      ctx.fillRect(cur_collectable.pos.x * S, cur_collectable.pos.y * S, S, S);
+      ctx.fillRect(cur_collectable.pos.x * TILE_SIZE, cur_collectable.pos.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
     } else {
       throw new Error();
     }
   }
 
+  ctx.resetTransform();
   ctx.font = '30px sans-serif';
   ctx.textAlign = "center";
   ctx.fillStyle = COLORS.TEXT;
@@ -424,7 +439,7 @@ function every_frame(cur_timestamp: number) {
     ctx.fillText(`Score: ${score}`, canvas_ctx.width / 2, canvas_ctx.height / 4);
     // ctx.fillText("", canvas.width / 2, canvas.height / 2);
   } else if (game_state === "main") {
-    ctx.fillText(`${score}`, S / 2, S * .8);
+    ctx.fillText(`${score}`, MARGIN * TILE_SIZE + TILE_SIZE / 2, MARGIN * TILE_SIZE + TILE_SIZE * .8);
   }
 
 
