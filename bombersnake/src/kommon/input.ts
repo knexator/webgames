@@ -239,15 +239,15 @@ export class Mouse {
         private readonly mouse_listener: MouseListener = new MouseListener(),
     ) { }
 
-    isDown(button: MouseButton): Boolean {
+    isDown(button: MouseButton): boolean {
         return Boolean(this.buttons & button);
     }
 
-    wasPressed(button: MouseButton): Boolean {
+    wasPressed(button: MouseButton): boolean {
         return Boolean(this.buttons & button) && !Boolean(this.prev_buttons & button);
     }
 
-    wasReleased(button: MouseButton): Boolean {
+    wasReleased(button: MouseButton): boolean {
         return !Boolean(this.buttons & button) && Boolean(this.prev_buttons & button);
     }
 
@@ -278,15 +278,15 @@ export class Keyboard {
         private readonly keyboard_listener: KeyboardListener = new KeyboardListener(),
     ) { }
 
-    isDown(code: KeyCode): Boolean {
+    isDown(code: KeyCode): boolean {
         return this.pressed.has(code);
     }
 
-    wasPressed(code: KeyCode): Boolean {
+    wasPressed(code: KeyCode): boolean {
         return this.pressed.has(code) && !this.prev_pressed.has(code);
     }
 
-    wasReleased(code: KeyCode): Boolean {
+    wasReleased(code: KeyCode): boolean {
         return !this.pressed.has(code) && this.prev_pressed.has(code);
     }
 

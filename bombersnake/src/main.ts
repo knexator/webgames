@@ -51,6 +51,7 @@ const SOUNDS = {
 };
 
 let CONFIG = {
+  PAUSED: false,
   TURN_DURATION: .15,
   CHEAT_INMORTAL: false,
   FUSE_DURATION: 0,
@@ -60,11 +61,14 @@ let CONFIG = {
   LUCK: 5,
   SLOWDOWN: 3,
   TOTAL_SLOWDOWN: false,
-  ALWAYS_SLOWDOWN: true,
+  ALWAYS_SLOWDOWN: false,
   DRAW_WRAP: 1,
+  DRAW_SNAKE_BORDER: true,
+  BORDER_SIZE: .2,
 }
 
 const gui = new GUI();
+gui.add(CONFIG, "PAUSED");
 gui.add(CONFIG, "TURN_DURATION", .05, 1);
 gui.add(CONFIG, "CHEAT_INMORTAL");
 gui.add(CONFIG, "FUSE_DURATION", 0, 10, 1);
@@ -76,6 +80,8 @@ gui.add(CONFIG, "SLOWDOWN", 1, 10);
 gui.add(CONFIG, "TOTAL_SLOWDOWN");
 gui.add(CONFIG, "ALWAYS_SLOWDOWN");
 gui.add(CONFIG, "DRAW_WRAP", 0, 5, 1);
+gui.add(CONFIG, "DRAW_SNAKE_BORDER");
+gui.add(CONFIG, "BORDER_SIZE", 0, .5);
 
 // https://lospec.com/palette-list/sweetie-16
 const COLORS = {
@@ -85,13 +91,16 @@ const COLORS = {
   SNAKE: generateGradient('#3b5dc9', '#41a6f6', 4),
   EXPLOSION: "#ffcd75",
   MULTIPLIER: "#f4f4f4",
+  BORDER: "#1a1c2c",
 };
+
+gui.addColor(COLORS, "BORDER");
 
 let cam_noise = noise.makeNoise3D(0);
 let cur_screen_shake = { x: 0, y: 0, targetMag: 0, actualMag: 0 };
 
 let turn = -16; // always int
-let head: { pos: Vec2, dir: Vec2, t: number }[];
+let head: { pos: Vec2, in_dir: Vec2, out_dir: Vec2, t: number }[];
 let score: number;
 let input_queue: Vec2[];
 let cur_collectables: Collectable[];
@@ -102,7 +111,7 @@ let multiplier = 1;
 
 function restart() {
   turn = -16; // always int
-  head = [{ pos: new Vec2(8, 8), dir: new Vec2(1, 0), t: turn }];
+  head = [{ pos: new Vec2(8, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(0, 0), t: turn }];
   score = 0
   input_queue = [];
   cur_collectables = [];
@@ -152,7 +161,7 @@ function findSpotWithoutWall(): Vec2 {
       }
     }
     let last_head = head[head.length - 1];
-    valid = valid && !pos.equal(last_head.pos.add(last_head.dir)) && !cur_collectables.some(x => x.pos.equal(pos));
+    valid = valid && !pos.equal(last_head.pos.add(last_head.in_dir)) && !cur_collectables.some(x => x.pos.equal(pos));
   } while (!valid);
   return pos;
 }
@@ -217,6 +226,12 @@ function every_frame(cur_timestamp: number) {
     // gl.viewport(0, 0, canvas_gl.width, canvas_gl.height);
   }
 
+  if (CONFIG.PAUSED) {
+    draw(0, false);
+    animation_id = requestAnimationFrame(every_frame);
+    return;
+  }
+
   // const rect = canvas_ctx.getBoundingClientRect();
   // const raw_mouse_pos = new Vec2(input.mouse.clientX - rect.left, input.mouse.clientY - rect.top);
 
@@ -278,7 +293,7 @@ function every_frame(cur_timestamp: number) {
     while (input_queue.length > 0) {
       next_input = input_queue.shift()!;
       if (Math.abs(next_input.x) + Math.abs(next_input.y) !== 1 ||
-        next_input.equal(last_head.dir.scale(-1))) {
+        next_input.equal(last_head.in_dir.scale(-1))) {
         // unvalid input
       } else {
         break;
@@ -288,17 +303,19 @@ function every_frame(cur_timestamp: number) {
 
     // let dj = (isKeyDown("s") ? 1 : 0) - (isKeyDown("w") ? 1 : 0)
     if (Math.abs(delta.x) + Math.abs(delta.y) !== 1 ||
-      next_input.equal(last_head.dir.scale(-1))) {
-      delta = last_head.dir;
+      next_input.equal(last_head.in_dir.scale(-1))) {
+      delta = last_head.in_dir.scale(-1);
     }
     // special case: very first input is invalid
     if (Math.abs(delta.x) + Math.abs(delta.y) !== 1) {
       delta = new Vec2(1, 0);
     }
     // assert: turn == last_head.t + time_direction
+    last_head.out_dir = delta;
     let new_head = {
       pos: modVec2(last_head.pos.add(delta), BOARD_SIZE),
-      dir: delta,
+      in_dir: delta.scale(-1),
+      out_dir: Vec2.zero,
       t: turn
     };
     head.push(new_head);
@@ -354,6 +371,12 @@ function every_frame(cur_timestamp: number) {
     }
   }
 
+  draw(delta_time, bullet_time);
+
+  animation_id = requestAnimationFrame(every_frame);
+}
+
+function draw(delta_time: number, bullet_time: boolean) {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.translate(cur_screen_shake.x, cur_screen_shake.y);
   let cur_shake_mag = cur_screen_shake.actualMag * (1 + Math.cos(last_timestamp * .25) * .25)
@@ -405,10 +428,31 @@ function every_frame(cur_timestamp: number) {
   });
 
   // snake body
-  head.forEach(({ pos, t }, k) => {
-    // ctx.fillStyle = SNAKE_ACTIVE_COLORS[SNAKE_LENGTH  - Math.max(0, SNAKE_LENGTH + t - turn)];
-    ctx.fillStyle = COLORS.SNAKE[Math.max(0, Math.min(COLORS.SNAKE.length - 1, turn - t))];
-    fillTile(pos);
+  head.forEach((cur_head, k) => {
+    if (CONFIG.DRAW_SNAKE_BORDER) {
+      ctx.fillStyle = COLORS.BORDER;
+      fillTile(cur_head.pos);
+      ctx.fillStyle = COLORS.SNAKE[Math.max(0, Math.min(COLORS.SNAKE.length - 1, turn - cur_head.t))];
+      const center = cur_head.pos.addXY(.5, .5)
+      fillTileCenterSize(center, Vec2.both(1 - CONFIG.BORDER_SIZE));
+      fillTileCenterSize(
+        center.add(cur_head.in_dir.scale(.5 - CONFIG.BORDER_SIZE / 2)), 
+        new Vec2(
+          cur_head.in_dir.x == 0 ? 1 - CONFIG.BORDER_SIZE : CONFIG.BORDER_SIZE,
+          cur_head.in_dir.y == 0 ? 1 - CONFIG.BORDER_SIZE : CONFIG.BORDER_SIZE
+        )
+      );
+      fillTileCenterSize(
+        center.add(cur_head.out_dir.scale(.5 - CONFIG.BORDER_SIZE / 2)), 
+        new Vec2(
+          cur_head.out_dir.x == 0 ? 1 - CONFIG.BORDER_SIZE : CONFIG.BORDER_SIZE,
+          cur_head.out_dir.y == 0 ? 1 - CONFIG.BORDER_SIZE : CONFIG.BORDER_SIZE
+        )
+      );
+    } else {
+      ctx.fillStyle = COLORS.SNAKE[Math.max(0, Math.min(COLORS.SNAKE.length - 1, turn - cur_head.t))];
+      fillTile(cur_head.pos);
+    }
   });
 
   // draw collectables
@@ -447,8 +491,6 @@ function every_frame(cur_timestamp: number) {
   ctx.fillRect(0, 0, (MARGIN - CONFIG.DRAW_WRAP) * TILE_SIZE, canvas_ctx.height);
   ctx.fillRect(0, canvas_ctx.height - (MARGIN - CONFIG.DRAW_WRAP) * TILE_SIZE, canvas_ctx.width, (MARGIN - CONFIG.DRAW_WRAP) * TILE_SIZE);
   ctx.fillRect(canvas_ctx.width - (MARGIN - CONFIG.DRAW_WRAP) * TILE_SIZE, 0, (MARGIN - CONFIG.DRAW_WRAP) * TILE_SIZE, canvas_ctx.height);
-
-  animation_id = requestAnimationFrame(every_frame);
 }
 
 function lose() {
@@ -529,6 +571,17 @@ function fillTile(pos: Vec2) {
   for (let i = -1; i <= 1; i++) {
     for (let j = -1; j <= 1; j++) {
       ctx.fillRect((pos.x + i * BOARD_SIZE.x) * TILE_SIZE, (pos.y + j * BOARD_SIZE.y) * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+    }
+  }
+}
+
+function fillTileCenterSize(center: Vec2, size: Vec2) {
+  for (let i = -1; i <= 1; i++) {
+    for (let j = -1; j <= 1; j++) {
+      ctx.fillRect(
+        (center.x - size.x / 2 + i * BOARD_SIZE.x) * TILE_SIZE, 
+        (center.y - size.y / 2 + j * BOARD_SIZE.y) * TILE_SIZE, 
+        TILE_SIZE * size.x, TILE_SIZE * size.y);
     }
   }
 }
