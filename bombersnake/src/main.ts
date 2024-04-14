@@ -126,7 +126,7 @@ let multiplier = 1;
 
 function restart() {
   turn = -16; // always int
-  head = [{ pos: new Vec2(8, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(0, 0), t: turn }];
+  head = [{ pos: new Vec2(8, 8), in_dir: new Vec2(0, 0), out_dir: new Vec2(0, 0), t: turn }];
   score = 0
   input_queue = [];
   cur_collectables = [];
@@ -304,26 +304,23 @@ function every_frame(cur_timestamp: number) {
 
     // do turn
     let last_head = head[head.length - 1];
-    let next_input = Vec2.zero;
+    let next_input: Vec2 | null = null;
     while (input_queue.length > 0) {
-      next_input = input_queue.shift()!;
-      if (Math.abs(next_input.x) + Math.abs(next_input.y) !== 1 ||
-        next_input.equal(last_head.in_dir.scale(-1))) {
+      let maybe_next_input = input_queue.shift()!;
+      if (Math.abs(maybe_next_input.x) + Math.abs(maybe_next_input.y) !== 1 ||
+        maybe_next_input.equal(last_head.in_dir)) {
         // unvalid input
       } else {
+        next_input = maybe_next_input;
         break;
       }
     }
-    let delta = next_input;
+    let delta: Vec2;
 
-    // let dj = (isKeyDown("s") ? 1 : 0) - (isKeyDown("w") ? 1 : 0)
-    if (Math.abs(delta.x) + Math.abs(delta.y) !== 1 ||
-      next_input.equal(last_head.in_dir.scale(-1))) {
+    if (next_input !== null) {
+      delta = next_input;
+    } else {
       delta = last_head.in_dir.scale(-1);
-    }
-    // special case: very first input is invalid
-    if (Math.abs(delta.x) + Math.abs(delta.y) !== 1) {
-      delta = new Vec2(1, 0);
     }
     // assert: turn == last_head.t + time_direction
     last_head.out_dir = delta;
