@@ -241,6 +241,10 @@ function every_frame(cur_timestamp: number) {
     // gl.viewport(0, 0, canvas_gl.width, canvas_gl.height);
   }
 
+  if (input.keyboard.wasPressed(KeyCode.KeyQ)) {
+    CONFIG.PAUSED = !CONFIG.PAUSED;
+  }
+
   if (CONFIG.PAUSED) {
     draw(false);
     animation_id = requestAnimationFrame(every_frame);
