@@ -85,16 +85,31 @@ gui.add(CONFIG, "BORDER_SIZE", 0, .5);
 
 // https://lospec.com/palette-list/sweetie-16
 const COLORS = {
+  BORDER: "#8ccbf2",
   BACKGROUND: "#1a1c2c",
   BOMB: "#a7f070",
   TEXT: "#f4f4f4",
-  SNAKE: generateGradient('#3b5dc9', '#41a6f6', 4),
+  SNAKE_WALL: '#3b5dc9',
+  SNAKE_HEAD: '#41a6f6',
   EXPLOSION: "#ffcd75",
   MULTIPLIER: "#f4f4f4",
-  BORDER: "#1a1c2c",
+  SNAKE: [] as string[],
 };
 
 gui.addColor(COLORS, "BORDER");
+gui.addColor(COLORS, "BACKGROUND");
+gui.addColor(COLORS, "BOMB");
+gui.addColor(COLORS, "SNAKE_HEAD");
+gui.addColor(COLORS, "SNAKE_WALL");
+gui.addColor(COLORS, "EXPLOSION");
+gui.addColor(COLORS, "MULTIPLIER");
+
+COLORS.SNAKE = generateGradient(COLORS.SNAKE_WALL, COLORS.SNAKE_HEAD, 4);
+gui.onChange(event => {
+  if (event.object === COLORS) {
+    COLORS.SNAKE = generateGradient(COLORS.SNAKE_WALL, COLORS.SNAKE_HEAD, 4);
+  }
+});
 
 let cam_noise = noise.makeNoise3D(0);
 let cur_screen_shake = { x: 0, y: 0, targetMag: 0, actualMag: 0 };
@@ -227,7 +242,7 @@ function every_frame(cur_timestamp: number) {
   }
 
   if (CONFIG.PAUSED) {
-    draw(0, false);
+    draw(false);
     animation_id = requestAnimationFrame(every_frame);
     return;
   }
@@ -371,20 +386,21 @@ function every_frame(cur_timestamp: number) {
     }
   }
 
-  draw(delta_time, bullet_time);
-
-  animation_id = requestAnimationFrame(every_frame);
-}
-
-function draw(delta_time: number, bullet_time: boolean) {
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.translate(cur_screen_shake.x, cur_screen_shake.y);
   let cur_shake_mag = cur_screen_shake.actualMag * (1 + Math.cos(last_timestamp * .25) * .25)
   let cur_shake_phase = cam_noise(last_timestamp * 0.01, 0, 0) * Math.PI;
   cur_screen_shake.x = Math.cos(cur_shake_phase) * cur_shake_mag;
   cur_screen_shake.y = Math.sin(cur_shake_phase) * cur_shake_mag;
   if (game_state !== "main") cur_screen_shake.targetMag = 0;
   cur_screen_shake.actualMag = approach(cur_screen_shake.actualMag, cur_screen_shake.targetMag, delta_time * 1000)
+
+  draw(bullet_time);
+
+  animation_id = requestAnimationFrame(every_frame);
+}
+
+function draw(bullet_time: boolean) {
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.translate(cur_screen_shake.x, cur_screen_shake.y);
   // cur_screen_shake.actualMag = lerp(cur_screen_shake.actualMag, cur_screen_shake.targetMag, .1);
 
   ctx.fillStyle = bullet_time ? (CONFIG.ALWAYS_SLOWDOWN ? "#191b2b" : "black") : COLORS.BACKGROUND;
@@ -436,14 +452,14 @@ function draw(delta_time: number, bullet_time: boolean) {
       const center = cur_head.pos.addXY(.5, .5)
       fillTileCenterSize(center, Vec2.both(1 - CONFIG.BORDER_SIZE));
       fillTileCenterSize(
-        center.add(cur_head.in_dir.scale(.5 - CONFIG.BORDER_SIZE / 2)), 
+        center.add(cur_head.in_dir.scale(.5 - CONFIG.BORDER_SIZE / 2)),
         new Vec2(
           cur_head.in_dir.x == 0 ? 1 - CONFIG.BORDER_SIZE : CONFIG.BORDER_SIZE,
           cur_head.in_dir.y == 0 ? 1 - CONFIG.BORDER_SIZE : CONFIG.BORDER_SIZE
         )
       );
       fillTileCenterSize(
-        center.add(cur_head.out_dir.scale(.5 - CONFIG.BORDER_SIZE / 2)), 
+        center.add(cur_head.out_dir.scale(.5 - CONFIG.BORDER_SIZE / 2)),
         new Vec2(
           cur_head.out_dir.x == 0 ? 1 - CONFIG.BORDER_SIZE : CONFIG.BORDER_SIZE,
           cur_head.out_dir.y == 0 ? 1 - CONFIG.BORDER_SIZE : CONFIG.BORDER_SIZE
@@ -462,8 +478,10 @@ function draw(delta_time: number, bullet_time: boolean) {
       const cur_bomb = cur_collectable;
       ctx.fillStyle = COLORS.BOMB;
       fillTile(cur_bomb.pos);
-      ctx.fillStyle = "black";
-      textTile(cur_bomb.fuse_left.toString(), cur_bomb.pos);
+      if (cur_bomb.ticking || CONFIG.FUSE_DURATION > 0) {
+        ctx.fillStyle = "black";
+        textTile(cur_bomb.fuse_left.toString(), cur_bomb.pos);
+      }
     } else if (cur_collectable instanceof Multiplier) {
       ctx.fillStyle = COLORS.MULTIPLIER;
       fillTile(cur_collectable.pos);
@@ -579,8 +597,8 @@ function fillTileCenterSize(center: Vec2, size: Vec2) {
   for (let i = -1; i <= 1; i++) {
     for (let j = -1; j <= 1; j++) {
       ctx.fillRect(
-        (center.x - size.x / 2 + i * BOARD_SIZE.x) * TILE_SIZE, 
-        (center.y - size.y / 2 + j * BOARD_SIZE.y) * TILE_SIZE, 
+        (center.x - size.x / 2 + i * BOARD_SIZE.x) * TILE_SIZE,
+        (center.y - size.y / 2 + j * BOARD_SIZE.y) * TILE_SIZE,
         TILE_SIZE * size.x, TILE_SIZE * size.y);
     }
   }
