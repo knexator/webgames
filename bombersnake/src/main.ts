@@ -265,9 +265,9 @@ function every_frame(cur_timestamp: number) {
     KeyCode.KeyS, KeyCode.ArrowDown,
     KeyCode.KeyD, KeyCode.ArrowRight,
   ].some(k => CONFIG.ALWAYS_SLOWDOWN ? input.keyboard.wasReleased(k) : input.keyboard.wasPressed(k))) {
-    if (game_state === "lost") {
-      restart();
-    }
+    // if (game_state === "lost") {
+    //   restart();
+    // }
     function btnp(ks: KeyCode[]) {
       return ks.some(k => CONFIG.ALWAYS_SLOWDOWN ? input.keyboard.wasReleased(k) : input.keyboard.wasPressed(k));
     }
