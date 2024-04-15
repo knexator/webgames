@@ -67,6 +67,9 @@ let CONFIG = {
   DRAW_PATTERN: false,
   DRAW_SNAKE_BORDER: true,
   BORDER_SIZE: .2,
+  GRIDLINE: true,
+  GRIDLINE_OVER: false,
+  GRIDLINE_WIDTH: .05,
 }
 
 const gui = new GUI();
@@ -85,6 +88,9 @@ gui.add(CONFIG, "DRAW_WRAP", 0, 5, 1);
 gui.add(CONFIG, "DRAW_PATTERN");
 gui.add(CONFIG, "DRAW_SNAKE_BORDER");
 gui.add(CONFIG, "BORDER_SIZE", 0, .5);
+gui.add(CONFIG, "GRIDLINE");
+gui.add(CONFIG, "GRIDLINE_OVER");
+gui.add(CONFIG, "GRIDLINE_WIDTH", 0, .5);
 
 // https://lospec.com/palette-list/sweetie-16
 const COLORS = {
@@ -96,6 +102,7 @@ const COLORS = {
   SNAKE_HEAD: '#41a6f6',
   EXPLOSION: "#ffcd75",
   MULTIPLIER: "#f4f4f4",
+  GRIDLINE: "#2f324b",
   SNAKE: [] as string[],
 };
 
@@ -106,6 +113,7 @@ gui.addColor(COLORS, "SNAKE_HEAD");
 gui.addColor(COLORS, "SNAKE_WALL");
 gui.addColor(COLORS, "EXPLOSION");
 gui.addColor(COLORS, "MULTIPLIER");
+gui.addColor(COLORS, "GRIDLINE");
 
 COLORS.SNAKE = generateGradient(COLORS.SNAKE_WALL, COLORS.SNAKE_HEAD, 4);
 gui.onChange(event => {
@@ -422,6 +430,17 @@ function draw(bullet_time: boolean) {
 
   ctx.translate(MARGIN * TILE_SIZE, MARGIN * TILE_SIZE);
 
+  // draw gridlines
+  if (CONFIG.GRIDLINE && !CONFIG.GRIDLINE_OVER) {
+    ctx.fillStyle = COLORS.GRIDLINE;
+    for (let i = 0; i < BOARD_SIZE.x; i++) {
+      for (let j = 0; j < BOARD_SIZE.y; j++) {
+        fillTileCenterSize(new Vec2(i, j), new Vec2(CONFIG.GRIDLINE_WIDTH, 1))
+        fillTileCenterSize(new Vec2(i, j), new Vec2(1, CONFIG.GRIDLINE_WIDTH))
+      }
+    }
+  }
+
   // ctx.fillStyle = "#111133";
   // ctx.fillRect(0, canvas.height-S, canvas.width, S);
   // ctx.fillStyle = "#333399";
@@ -500,6 +519,17 @@ function draw(bullet_time: boolean) {
       fillTile(cur_collectable.pos);
     } else {
       throw new Error();
+    }
+  }
+
+  // draw gridlines
+  if (CONFIG.GRIDLINE && CONFIG.GRIDLINE_OVER) {
+    ctx.fillStyle = COLORS.GRIDLINE;
+    for (let i = 0; i < BOARD_SIZE.x; i++) {
+      for (let j = 0; j < BOARD_SIZE.y; j++) {
+        fillTileCenterSize(new Vec2(i, j), new Vec2(CONFIG.GRIDLINE_WIDTH, 1))
+        fillTileCenterSize(new Vec2(i, j), new Vec2(1, CONFIG.GRIDLINE_WIDTH))
+      }
     }
   }
 
