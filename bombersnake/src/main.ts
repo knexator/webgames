@@ -9,6 +9,7 @@ import { Howl } from "howler"
 import { initGL2, IVec, Vec2, Color, GenericDrawer, StatefulDrawer, CircleDrawer, m3, CustomSpriteDrawer, Transform, IRect, IColor, IVec2, FullscreenShader } from "kanvas2d"
 import * as noise from './kommon/noise';
 import { generateGradient } from "./kommon/kolor";
+import triangle_pattern_url from "./images/triangle_pattern.png?url"
 
 const input = new Input();
 const canvas_ctx = document.querySelector<HTMLCanvasElement>("#ctx_canvas")!;
@@ -63,6 +64,7 @@ let CONFIG = {
   TOTAL_SLOWDOWN: false,
   ALWAYS_SLOWDOWN: false,
   DRAW_WRAP: 1,
+  DRAW_PATTERN: false,
   DRAW_SNAKE_BORDER: true,
   BORDER_SIZE: .2,
 }
@@ -80,6 +82,7 @@ gui.add(CONFIG, "SLOWDOWN", 1, 10);
 gui.add(CONFIG, "TOTAL_SLOWDOWN");
 gui.add(CONFIG, "ALWAYS_SLOWDOWN");
 gui.add(CONFIG, "DRAW_WRAP", 0, 5, 1);
+gui.add(CONFIG, "DRAW_PATTERN");
 gui.add(CONFIG, "DRAW_SNAKE_BORDER");
 gui.add(CONFIG, "BORDER_SIZE", 0, .5);
 
@@ -137,6 +140,15 @@ function restart() {
   exploding_cross_particles = [];
   multiplier = 1;
 }
+
+const triangle_pattern: CanvasPattern = await new Promise(resolve => {
+  const img = new Image();
+  img.src = triangle_pattern_url;
+  img.onload = () => {
+    const pattern = ctx.createPattern(img, "repeat")!;
+    resolve(pattern);
+  };
+});
 
 class Bomb {
   public ticking: boolean;
@@ -449,7 +461,7 @@ function draw(bullet_time: boolean) {
     if (CONFIG.DRAW_SNAKE_BORDER) {
       ctx.fillStyle = COLORS.BORDER;
       fillTile(cur_head.pos);
-      ctx.fillStyle = COLORS.SNAKE[Math.max(0, Math.min(COLORS.SNAKE.length - 1, turn - cur_head.t))];
+      ctx.fillStyle = CONFIG.DRAW_PATTERN ? triangle_pattern : COLORS.SNAKE[Math.max(0, Math.min(COLORS.SNAKE.length - 1, turn - cur_head.t))];
       const center = cur_head.pos.addXY(.5, .5)
       fillTileCenterSize(center, Vec2.both(1 - CONFIG.BORDER_SIZE));
       fillTileCenterSize(
@@ -467,7 +479,7 @@ function draw(bullet_time: boolean) {
         )
       );
     } else {
-      ctx.fillStyle = COLORS.SNAKE[Math.max(0, Math.min(COLORS.SNAKE.length - 1, turn - cur_head.t))];
+      ctx.fillStyle = CONFIG.DRAW_PATTERN ? triangle_pattern : COLORS.SNAKE[Math.max(0, Math.min(COLORS.SNAKE.length - 1, turn - cur_head.t))];
       fillTile(cur_head.pos);
     }
   });
