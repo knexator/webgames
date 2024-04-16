@@ -51,6 +51,31 @@ const SOUNDS = {
   }),
 };
 
+// let CONFIG = {
+//   PAUSED: false,
+//   TURN_DURATION: .15,
+//   CHEAT_INMORTAL: false,
+//   FUSE_DURATION: 0,
+//   PLAYER_CAN_EXPLODE: false,
+//   N_BOMBS: 3,
+//   N_MULTIPLIERS: 1,
+//   LUCK: 5,
+//   SLOWDOWN: 3,
+//   TOTAL_SLOWDOWN: false,
+//   ALWAYS_SLOWDOWN: false,
+//   DRAW_WRAP: 1,
+//   DRAW_PATTERN: false,
+//   DRAW_SNAKE_BORDER: true,
+//   BORDER_SIZE: .2,
+//   GRIDLINE: true,
+//   GRIDLINE_OVER: false,
+//   GRIDLINE_WIDTH: .05,
+//   DRAW_ROUNDED: true,
+//   ROUNDED_SIZE: .2,
+//   CHECKERED_SNAKE: true,
+//   CHECKERED_BACKGROUND: "no" as "no" | "2" | "3",
+// }
+
 let CONFIG = {
   PAUSED: false,
   TURN_DURATION: .15,
@@ -65,14 +90,15 @@ let CONFIG = {
   ALWAYS_SLOWDOWN: false,
   DRAW_WRAP: 1,
   DRAW_PATTERN: false,
-  DRAW_SNAKE_BORDER: true,
+  DRAW_SNAKE_BORDER: false,
   BORDER_SIZE: .2,
-  GRIDLINE: true,
+  GRIDLINE: false,
   GRIDLINE_OVER: false,
   GRIDLINE_WIDTH: .05,
   DRAW_ROUNDED: true,
-  ROUNDED_SIZE: .2,
+  ROUNDED_SIZE: .5,
   CHECKERED_SNAKE: true,
+  CHECKERED_BACKGROUND: "2" as "no" | "2" | "3",
 }
 
 const gui = new GUI();
@@ -97,15 +123,33 @@ gui.add(CONFIG, "GRIDLINE_WIDTH", 0, .5);
 gui.add(CONFIG, "DRAW_ROUNDED");
 gui.add(CONFIG, "ROUNDED_SIZE", 0, 1);
 gui.add(CONFIG, "CHECKERED_SNAKE");
+gui.add(CONFIG, "CHECKERED_BACKGROUND", ["no", "2", "3"]);
 
 // https://lospec.com/palette-list/sweetie-16
+// const COLORS = {
+//   BORDER: "#8ccbf2",
+//   BACKGROUND: "#1a1c2c",
+//   BACKGROUND_2: "#000000",
+//   BACKGROUND_3: "#ff00ff",
+//   BOMB: "#a7f070",
+//   TEXT: "#f4f4f4",
+//   SNAKE_WALL: '#3b5dc9',
+//   SNAKE_HEAD: '#41a6f6',
+//   EXPLOSION: "#ffcd75",
+//   MULTIPLIER: "#f4f4f4",
+//   GRIDLINE: "#2f324b",
+//   SNAKE: [] as string[],
+// };
+
 const COLORS = {
   BORDER: "#8ccbf2",
-  BACKGROUND: "#1a1c2c",
-  BOMB: "#a7f070",
+  BACKGROUND: "#173232",
+  BACKGROUND_2: "#244a4a",
+  BACKGROUND_3: "#203c3c",
+  BOMB: "#dd4646",
   TEXT: "#f4f4f4",
-  SNAKE_WALL: '#3b5dc9',
-  SNAKE_HEAD: '#41a6f6',
+  SNAKE_WALL: '#4e9f1c',
+  SNAKE_HEAD: '#80c535',
   EXPLOSION: "#ffcd75",
   MULTIPLIER: "#f4f4f4",
   GRIDLINE: "#2f324b",
@@ -114,6 +158,8 @@ const COLORS = {
 
 gui.addColor(COLORS, "BORDER");
 gui.addColor(COLORS, "BACKGROUND");
+gui.addColor(COLORS, "BACKGROUND_2");
+gui.addColor(COLORS, "BACKGROUND_3");
 gui.addColor(COLORS, "BOMB");
 gui.addColor(COLORS, "SNAKE_HEAD");
 gui.addColor(COLORS, "SNAKE_WALL");
@@ -430,11 +476,27 @@ function draw(bullet_time: boolean) {
   ctx.translate(cur_screen_shake.x, cur_screen_shake.y);
   // cur_screen_shake.actualMag = lerp(cur_screen_shake.actualMag, cur_screen_shake.targetMag, .1);
 
-  ctx.fillStyle = bullet_time ? (CONFIG.ALWAYS_SLOWDOWN ? "#191b2b" : "black") : COLORS.BACKGROUND;
-  ctx.fillRect(0, 0, canvas_ctx.width, canvas_ctx.height);
+  if (CONFIG.CHECKERED_BACKGROUND === "no") {
+    ctx.fillStyle = bullet_time ? (CONFIG.ALWAYS_SLOWDOWN ? "#191b2b" : "black") : COLORS.BACKGROUND;
+    ctx.fillRect(0, 0, canvas_ctx.width, canvas_ctx.height);
+  }
   // ctx.fillRect(0, 0, BOARD_SIZE.x * TILE_SIZE, BOARD_SIZE.y * TILE_SIZE);
 
   ctx.translate(MARGIN * TILE_SIZE, MARGIN * TILE_SIZE);
+
+  if (CONFIG.CHECKERED_BACKGROUND !== "no") {
+    for (let i = 0; i < BOARD_SIZE.x; i++) {
+      for (let j = 0; j < BOARD_SIZE.y; j++) {
+        if (CONFIG.CHECKERED_BACKGROUND === "2") {
+          ctx.fillStyle = mod(i + j, 2) === 0 ? COLORS.BACKGROUND : COLORS.BACKGROUND_2;
+        } else if (CONFIG.CHECKERED_BACKGROUND === "3") {
+          ctx.fillStyle = mod(i + j, 2) === 0 ? COLORS.BACKGROUND_3
+            : mod(i, 2) === 0 ? COLORS.BACKGROUND : COLORS.BACKGROUND_2;
+        }
+        fillTile(new Vec2(i, j));
+      }
+    }
+  }
 
   // draw gridlines
   if (CONFIG.GRIDLINE && !CONFIG.GRIDLINE_OVER) {
