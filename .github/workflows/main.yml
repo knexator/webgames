@@ -63,9 +63,12 @@ jobs:
             rm -rf node_modules
             cd ..
           done
-      - name: remove node_modules of kanvas2d
+      - name: remove node_modules of kanvas2d and kommon
         run: |
           cd kanvas2d
+          rm -rf node_modules
+          cd ..
+          cd kommon
           rm -rf node_modules
           cd ..
       - name: Upload artifact
