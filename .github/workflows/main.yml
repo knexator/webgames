@@ -43,7 +43,6 @@ jobs:
           cd kanvas2d
           npm install
           npm run build:lib
-          rm -rf node_modules
           cd ..
       - name: Install local packages
         run: |
@@ -64,6 +63,11 @@ jobs:
             rm -rf node_modules
             cd ..
           done
+      - name: remove node_modules of kanvas2d
+        run: |
+          cd kanvas2d
+          rm -rf node_modules
+          cd ..
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v2
         with:
