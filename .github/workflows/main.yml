@@ -43,6 +43,7 @@ jobs:
           cd kanvas2d
           npm install
           npm run build:lib
+          rm -rf node_modules
           cd ..
       - name: Install local packages
         run: |
@@ -59,6 +60,8 @@ jobs:
             npm install            
             # Build the project
             npm run build
+            # Delete node_modules
+            rm -rf node_modules
             cd ..
           done
       - name: Upload artifact

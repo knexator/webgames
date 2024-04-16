@@ -98,7 +98,7 @@ let CONFIG = {
   DRAW_ROUNDED: true,
   ROUNDED_SIZE: .5,
   CHECKERED_SNAKE: true,
-  CHECKERED_BACKGROUND: "2" as "no" | "2" | "3",
+  CHECKERED_BACKGROUND: "3" as "no" | "2" | "3",
 }
 
 const gui = new GUI();
