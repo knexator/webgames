@@ -70,6 +70,8 @@ let CONFIG = {
   GRIDLINE: true,
   GRIDLINE_OVER: false,
   GRIDLINE_WIDTH: .05,
+  DRAW_ROUNDED: true,
+  ROUNDED_SIZE: .2,
 }
 
 const gui = new GUI();
@@ -91,6 +93,8 @@ gui.add(CONFIG, "BORDER_SIZE", 0, .5);
 gui.add(CONFIG, "GRIDLINE");
 gui.add(CONFIG, "GRIDLINE_OVER");
 gui.add(CONFIG, "GRIDLINE_WIDTH", 0, .5);
+gui.add(CONFIG, "DRAW_ROUNDED");
+gui.add(CONFIG, "ROUNDED_SIZE", 0, 1);
 
 // https://lospec.com/palette-list/sweetie-16
 const COLORS = {
@@ -477,29 +481,57 @@ function draw(bullet_time: boolean) {
 
   // snake body
   head.forEach((cur_head, k) => {
-    if (CONFIG.DRAW_SNAKE_BORDER) {
-      ctx.fillStyle = COLORS.BORDER;
-      fillTile(cur_head.pos);
+    if (CONFIG.DRAW_ROUNDED) {
       ctx.fillStyle = CONFIG.DRAW_PATTERN ? triangle_pattern : COLORS.SNAKE[Math.max(0, Math.min(COLORS.SNAKE.length - 1, turn - cur_head.t))];
-      const center = cur_head.pos.addXY(.5, .5)
-      fillTileCenterSize(center, Vec2.both(1 - CONFIG.BORDER_SIZE));
-      fillTileCenterSize(
-        center.add(cur_head.in_dir.scale(.5 - CONFIG.BORDER_SIZE / 2)),
-        new Vec2(
-          cur_head.in_dir.x == 0 ? 1 - CONFIG.BORDER_SIZE : CONFIG.BORDER_SIZE,
-          cur_head.in_dir.y == 0 ? 1 - CONFIG.BORDER_SIZE : CONFIG.BORDER_SIZE
+      if (cur_head.in_dir.equal(cur_head.out_dir.scale(-1))) {
+        fillTile(cur_head.pos);
+      } else {
+        const center = cur_head.pos.addXY(.5, .5)
+        fillTileCenterSize(center.add(cur_head.in_dir.scale(CONFIG.ROUNDED_SIZE / 2)),
+          new Vec2(
+            cur_head.in_dir.x == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
+            cur_head.in_dir.y == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
+          )
         )
-      );
-      fillTileCenterSize(
-        center.add(cur_head.out_dir.scale(.5 - CONFIG.BORDER_SIZE / 2)),
-        new Vec2(
-          cur_head.out_dir.x == 0 ? 1 - CONFIG.BORDER_SIZE : CONFIG.BORDER_SIZE,
-          cur_head.out_dir.y == 0 ? 1 - CONFIG.BORDER_SIZE : CONFIG.BORDER_SIZE
+        fillTileCenterSize(center.add(cur_head.out_dir.scale(CONFIG.ROUNDED_SIZE / 2)),
+          new Vec2(
+            cur_head.out_dir.x == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
+            cur_head.out_dir.y == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
+          )
         )
-      );
+        // ctx.fillStyle = CONFIG.DRAW_PATTERN ? triangle_pattern : COLORS.SNAKE[Math.max(0, Math.min(COLORS.SNAKE.length - 1, turn - cur_head.t))];
+        ctx.save();
+        ctx.beginPath();
+        ctx.clip(tileRegion(cur_head.pos));
+        drawCircle(center.add(cur_head.in_dir.add(cur_head.out_dir).scale(CONFIG.ROUNDED_SIZE - .5)), CONFIG.ROUNDED_SIZE);
+        ctx.fill();
+        ctx.restore();
+      }
     } else {
-      ctx.fillStyle = CONFIG.DRAW_PATTERN ? triangle_pattern : COLORS.SNAKE[Math.max(0, Math.min(COLORS.SNAKE.length - 1, turn - cur_head.t))];
-      fillTile(cur_head.pos);
+      if (CONFIG.DRAW_SNAKE_BORDER) {
+        ctx.fillStyle = COLORS.BORDER;
+        fillTile(cur_head.pos);
+        ctx.fillStyle = CONFIG.DRAW_PATTERN ? triangle_pattern : COLORS.SNAKE[Math.max(0, Math.min(COLORS.SNAKE.length - 1, turn - cur_head.t))];
+        const center = cur_head.pos.addXY(.5, .5)
+        fillTileCenterSize(center, Vec2.both(1 - CONFIG.BORDER_SIZE));
+        fillTileCenterSize(
+          center.add(cur_head.in_dir.scale(.5 - CONFIG.BORDER_SIZE / 2)),
+          new Vec2(
+            cur_head.in_dir.x == 0 ? 1 - CONFIG.BORDER_SIZE : CONFIG.BORDER_SIZE,
+            cur_head.in_dir.y == 0 ? 1 - CONFIG.BORDER_SIZE : CONFIG.BORDER_SIZE
+          )
+        );
+        fillTileCenterSize(
+          center.add(cur_head.out_dir.scale(.5 - CONFIG.BORDER_SIZE / 2)),
+          new Vec2(
+            cur_head.out_dir.x == 0 ? 1 - CONFIG.BORDER_SIZE : CONFIG.BORDER_SIZE,
+            cur_head.out_dir.y == 0 ? 1 - CONFIG.BORDER_SIZE : CONFIG.BORDER_SIZE
+          )
+        );
+      } else {
+        ctx.fillStyle = CONFIG.DRAW_PATTERN ? triangle_pattern : COLORS.SNAKE[Math.max(0, Math.min(COLORS.SNAKE.length - 1, turn - cur_head.t))];
+        fillTile(cur_head.pos);
+      }
     }
   });
 
@@ -575,11 +607,6 @@ function at<T>(arr: T[], index: number): T {
   return arr[mod(index, arr.length)];
 }
 
-function drawCircle(center: Vec2, radius: number) {
-  ctx.moveTo(center.x + radius, center.y);
-  ctx.arc(center.x, center.y, radius, 0, 2 * Math.PI);
-}
-
 function moveTo(pos: Vec2) {
   ctx.moveTo(pos.x, pos.y);
 }
@@ -646,6 +673,32 @@ function fillTileCenterSize(center: Vec2, size: Vec2) {
     }
   }
 }
+
+function tileRegion(pos: Vec2): Path2D {
+  let region = new Path2D();
+  for (let i = -1; i <= 1; i++) {
+    for (let j = -1; j <= 1; j++) {
+      region.rect((pos.x + i * BOARD_SIZE.x) * TILE_SIZE, (pos.y + j * BOARD_SIZE.y) * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+    }
+  }
+  return region;
+}
+
+function drawCircle(center: Vec2, radius: number) {
+  for (let i = -1; i <= 1; i++) {
+    for (let j = -1; j <= 1; j++) {
+      ctx.moveTo(
+        (center.x + radius + i * BOARD_SIZE.x) * TILE_SIZE,
+        (center.y + j * BOARD_SIZE.y) * TILE_SIZE,
+      );
+      ctx.arc(
+        (center.x + i * BOARD_SIZE.x) * TILE_SIZE,
+        (center.y + j * BOARD_SIZE.y) * TILE_SIZE,
+        radius * TILE_SIZE, 0, 2 * Math.PI);
+    }
+  }
+}
+
 
 function textTile(text: string, pos: Vec2) {
   for (let i = -1; i <= 1; i++) {
