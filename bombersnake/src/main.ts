@@ -485,6 +485,26 @@ function draw(bullet_time: boolean) {
       ctx.fillStyle = CONFIG.DRAW_PATTERN ? triangle_pattern : COLORS.SNAKE[Math.max(0, Math.min(COLORS.SNAKE.length - 1, turn - cur_head.t))];
       if (cur_head.in_dir.equal(cur_head.out_dir.scale(-1))) {
         fillTile(cur_head.pos);
+      } else if (cur_head.out_dir.equal(Vec2.zero)) {
+        let rounded_size = Math.min(.5, CONFIG.ROUNDED_SIZE);
+        // let rounded_size = .5;
+        const center = cur_head.pos.addXY(.5, .5)
+        fillTileCenterSize(center.add(cur_head.in_dir.scale(rounded_size / 2)),
+          new Vec2(
+            cur_head.in_dir.x == 0 ? 1 : 1 - rounded_size,
+            cur_head.in_dir.y == 0 ? 1 : 1 - rounded_size,
+          )
+        )
+        fillTileCenterSize(center,
+          new Vec2(
+            cur_head.in_dir.y == 0 ? 1 : 1 - rounded_size * 2,
+            cur_head.in_dir.x == 0 ? 1 : 1 - rounded_size * 2,
+          )
+        )
+        ctx.beginPath();
+        drawCircle(center.add(cur_head.in_dir.add(rotQuarterA(cur_head.in_dir)).scale(rounded_size - .5)), rounded_size);
+        drawCircle(center.add(cur_head.in_dir.add(rotQuarterB(cur_head.in_dir)).scale(rounded_size - .5)), rounded_size);
+        ctx.fill();
       } else {
         const center = cur_head.pos.addXY(.5, .5)
         fillTileCenterSize(center.add(cur_head.in_dir.scale(CONFIG.ROUNDED_SIZE / 2)),
@@ -653,6 +673,14 @@ if (loading_screen_element) {
 
 function modVec2(value: Vec2, bounds: Vec2) {
   return new Vec2(mod(value.x, bounds.x), mod(value.y, bounds.y));
+}
+
+function rotQuarterA(value: Vec2): Vec2 {
+  return new Vec2(value.y, -value.x);
+}
+
+function rotQuarterB(value: Vec2): Vec2 {
+  return new Vec2(-value.y, value.x);
 }
 
 function fillTile(pos: Vec2) {
