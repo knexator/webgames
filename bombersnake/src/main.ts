@@ -546,7 +546,7 @@ function draw(bullet_time: boolean) {
   // snake body
   head.forEach((cur_head, k) => {
     if (CONFIG.DRAW_ROUNDED) {
-      ctx.fillStyle = CONFIG.CHECKERED_SNAKE ? (mod(cur_head.t, 2) == 0 ? COLORS.SNAKE_HEAD : COLORS.SNAKE_WALL) : CONFIG.DRAW_PATTERN ? triangle_pattern : COLORS.SNAKE[Math.max(0, Math.min(COLORS.SNAKE.length - 1, turn - cur_head.t))];
+      ctx.fillStyle = CONFIG.CHECKERED_SNAKE ? (mod(cur_head.t, 2) == 1 ? COLORS.SNAKE_HEAD : COLORS.SNAKE_WALL) : CONFIG.DRAW_PATTERN ? triangle_pattern : COLORS.SNAKE[Math.max(0, Math.min(COLORS.SNAKE.length - 1, turn - cur_head.t))];
       if (cur_head.in_dir.equal(cur_head.out_dir.scale(-1))) {
         fillTile(cur_head.pos);
       } else if (cur_head.out_dir.equal(Vec2.zero)) {
@@ -594,7 +594,7 @@ function draw(bullet_time: boolean) {
       if (CONFIG.DRAW_SNAKE_BORDER) {
         ctx.fillStyle = COLORS.BORDER;
         fillTile(cur_head.pos);
-        ctx.fillStyle = CONFIG.CHECKERED_SNAKE ? (mod(cur_head.t, 2) == 0 ? COLORS.SNAKE_HEAD : COLORS.SNAKE_WALL) : CONFIG.DRAW_PATTERN ? triangle_pattern : COLORS.SNAKE[Math.max(0, Math.min(COLORS.SNAKE.length - 1, turn - cur_head.t))];
+        ctx.fillStyle = CONFIG.CHECKERED_SNAKE ? (mod(cur_head.t, 2) == 1 ? COLORS.SNAKE_HEAD : COLORS.SNAKE_WALL) : CONFIG.DRAW_PATTERN ? triangle_pattern : COLORS.SNAKE[Math.max(0, Math.min(COLORS.SNAKE.length - 1, turn - cur_head.t))];
         const center = cur_head.pos.addXY(.5, .5)
         fillTileCenterSize(center, Vec2.both(1 - CONFIG.BORDER_SIZE));
         fillTileCenterSize(
@@ -612,7 +612,7 @@ function draw(bullet_time: boolean) {
           )
         );
       } else {
-        ctx.fillStyle = CONFIG.CHECKERED_SNAKE ? (mod(cur_head.t, 2) == 0 ? COLORS.SNAKE_HEAD : COLORS.SNAKE_WALL) : CONFIG.DRAW_PATTERN ? triangle_pattern : COLORS.SNAKE[Math.max(0, Math.min(COLORS.SNAKE.length - 1, turn - cur_head.t))];
+        ctx.fillStyle = CONFIG.CHECKERED_SNAKE ? (mod(cur_head.t, 2) == 1 ? COLORS.SNAKE_HEAD : COLORS.SNAKE_WALL) : CONFIG.DRAW_PATTERN ? triangle_pattern : COLORS.SNAKE[Math.max(0, Math.min(COLORS.SNAKE.length - 1, turn - cur_head.t))];
         fillTile(cur_head.pos);
       }
     }
