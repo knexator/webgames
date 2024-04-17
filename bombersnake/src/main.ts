@@ -18,6 +18,30 @@ const ctx = canvas_ctx.getContext("2d")!;
 // const gl = initGL2(canvas_gl)!;
 // gl.clearColor(.5, .5, .5, 1);
 
+function loadImage(name: string): Promise<HTMLImageElement> {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.src = new URL(`./images/${name}.png`, import.meta.url).href;
+    img.onload = () => {
+      resolve(img);
+    };
+  })
+}
+
+const textures_async = await Promise.all(["bomb", "clock", "heart", "star"].flatMap(name => [loadImage(name), loadImage(name + 'B')]));
+const textures = {
+  bomb: textures_async[0],
+  clock: textures_async[2],
+  heart: textures_async[4],
+  multiplier: textures_async[6],
+  shadow: {
+    bomb: textures_async[1],
+    clock: textures_async[3],
+    heart: textures_async[5],
+    multiplier: textures_async[7],
+  }
+};
+
 const BOARD_SIZE = new Vec2(16, 16);
 const MARGIN = 5;
 
@@ -207,7 +231,7 @@ let multiplier = 1;
 
 function restart() {
   turn = 0; // always int
-  head = [{ pos: new Vec2(8, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(0, 0), t: turn }];
+  head = [{ pos: new Vec2(8, 8), in_dir: new Vec2(0, 0), out_dir: new Vec2(0, 0), t: turn }];
   score = 0
   input_queue = [];
   cur_collectables = [];
@@ -587,6 +611,27 @@ function draw(bullet_time: boolean) {
         fillTile(cur_head.pos.add(Vec2.both(CONFIG.SHADOW_DIST)));
       }
     });
+
+    // draw collectables
+    for (let k = 0; k < cur_collectables.length; k++) {
+      const cur_collectable = cur_collectables[k];
+      if (cur_collectable instanceof Bomb) {
+        const cur_bomb = cur_collectable;
+        drawTexture(cur_bomb.pos.add(Vec2.both(CONFIG.SHADOW_DIST)), textures.shadow.bomb);
+        // ctx.fillStyle = COLORS.SHADOW;
+        // fillTile(cur_bomb.pos.add(Vec2.both(CONFIG.SHADOW_DIST)));
+        if (cur_bomb.ticking || CONFIG.FUSE_DURATION > 0) {
+          ctx.fillStyle = "black";
+          textTile(cur_bomb.fuse_left.toString(), cur_bomb.pos);
+        }
+      } else if (cur_collectable instanceof Multiplier) {
+        // ctx.fillStyle = COLORS.SHADOW;
+        // fillTile(cur_collectable.pos.add(Vec2.both(CONFIG.SHADOW_DIST));
+        drawTexture(cur_collectable.pos.add(Vec2.both(CONFIG.SHADOW_DIST)), textures.shadow.multiplier);
+      } else {
+        throw new Error();
+      }
+    }
   }
 
   // explosion particles
@@ -739,15 +784,17 @@ function draw(bullet_time: boolean) {
     const cur_collectable = cur_collectables[k];
     if (cur_collectable instanceof Bomb) {
       const cur_bomb = cur_collectable;
-      ctx.fillStyle = COLORS.BOMB;
-      fillTile(cur_bomb.pos);
+      drawTexture(cur_bomb.pos, textures.bomb);
+      // ctx.fillStyle = COLORS.BOMB;
+      // fillTile(cur_bomb.pos);
       if (cur_bomb.ticking || CONFIG.FUSE_DURATION > 0) {
         ctx.fillStyle = "black";
         textTile(cur_bomb.fuse_left.toString(), cur_bomb.pos);
       }
     } else if (cur_collectable instanceof Multiplier) {
-      ctx.fillStyle = COLORS.MULTIPLIER;
-      fillTile(cur_collectable.pos);
+      // ctx.fillStyle = COLORS.MULTIPLIER;
+      // fillTile(cur_collectable.pos);
+      drawTexture(cur_collectable.pos, textures.multiplier);
     } else {
       throw new Error();
     }
@@ -860,6 +907,14 @@ function rotQuarterA(value: Vec2): Vec2 {
 
 function rotQuarterB(value: Vec2): Vec2 {
   return new Vec2(-value.y, value.x);
+}
+
+function drawTexture(top_left: Vec2, texture: HTMLImageElement) {
+  for (let i = -1; i <= 1; i++) {
+    for (let j = -1; j <= 1; j++) {
+      ctx.drawImage(texture, (top_left.x + i * BOARD_SIZE.x) * TILE_SIZE, (top_left.y + j * BOARD_SIZE.y) * TILE_SIZE);
+    }
+  }
 }
 
 function fillTile(pos: Vec2) {
