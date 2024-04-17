@@ -195,7 +195,7 @@ gui.onChange(event => {
 let cam_noise = noise.makeNoise3D(0);
 let cur_screen_shake = { x: 0, y: 0, targetMag: 0, actualMag: 0 };
 
-let turn = -16; // always int
+let turn: number;
 let head: { pos: Vec2, in_dir: Vec2, out_dir: Vec2, t: number }[];
 let score: number;
 let input_queue: Vec2[];
@@ -206,8 +206,8 @@ let exploding_cross_particles: { center: Vec2, turn: number }[];
 let multiplier = 1;
 
 function restart() {
-  turn = -16; // always int
-  head = [{ pos: new Vec2(8, 8), in_dir: new Vec2(0, 0), out_dir: new Vec2(0, 0), t: turn }];
+  turn = 0; // always int
+  head = [{ pos: new Vec2(8, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(0, 0), t: turn }];
   score = 0
   input_queue = [];
   cur_collectables = [];
@@ -417,6 +417,9 @@ function every_frame(cur_timestamp: number) {
       delta = last_head.in_dir.scale(-1);
     }
     // assert: turn == last_head.t + time_direction
+    if (turn == 1) {
+      last_head.in_dir = delta.scale(-1);
+    }
     last_head.out_dir = delta;
     let new_head = {
       pos: modVec2(last_head.pos.add(delta), BOARD_SIZE),
