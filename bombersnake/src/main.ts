@@ -101,7 +101,7 @@ let CONFIG = {
   CHECKERED_BACKGROUND: "3" as "no" | "2" | "3",
   SHADOW: true,
   SHADOW_DIST: .1,
-  SCARF: true,
+  SCARF: "half" as "no" | "half" | "full",
   SCARF_BORDER_WIDTH: 1 / 3,
 }
 
@@ -130,7 +130,7 @@ gui.add(CONFIG, "CHECKERED_SNAKE");
 gui.add(CONFIG, "CHECKERED_BACKGROUND", ["no", "2", "3"]);
 gui.add(CONFIG, "SHADOW");
 gui.add(CONFIG, "SHADOW_DIST", 0, .5);
-gui.add(CONFIG, "SCARF");
+gui.add(CONFIG, "SCARF", ["no", "half", "full"]);
 gui.add(CONFIG, "SCARF_BORDER_WIDTH", 0, .5);
 
 // https://lospec.com/palette-list/sweetie-16
@@ -615,7 +615,7 @@ function draw(bullet_time: boolean) {
   head.forEach((cur_head, k) => {
     if (CONFIG.DRAW_ROUNDED) {
       ctx.fillStyle = CONFIG.CHECKERED_SNAKE ? (mod(cur_head.t, 2) == 1 ? COLORS.SNAKE_HEAD : COLORS.SNAKE_WALL) : CONFIG.DRAW_PATTERN ? triangle_pattern : COLORS.SNAKE[Math.max(0, Math.min(COLORS.SNAKE.length - 1, turn - cur_head.t))];
-      if (CONFIG.SCARF && turn - cur_head.t === 1) ctx.fillStyle = COLORS.SCARF_IN;
+      if (CONFIG.SCARF === "full" && turn - cur_head.t === 1) ctx.fillStyle = COLORS.SCARF_IN;
       if (cur_head.in_dir.equal(cur_head.out_dir.scale(-1))) {
         fillTile(cur_head.pos);
       } else if (cur_head.out_dir.equal(Vec2.zero)) {
@@ -674,7 +674,7 @@ function draw(bullet_time: boolean) {
         ctx.fillStyle = COLORS.BORDER;
         fillTile(cur_head.pos);
         ctx.fillStyle = CONFIG.CHECKERED_SNAKE ? (mod(cur_head.t, 2) == 1 ? COLORS.SNAKE_HEAD : COLORS.SNAKE_WALL) : CONFIG.DRAW_PATTERN ? triangle_pattern : COLORS.SNAKE[Math.max(0, Math.min(COLORS.SNAKE.length - 1, turn - cur_head.t))];
-        if (CONFIG.SCARF && turn - cur_head.t === 1) ctx.fillStyle = COLORS.SCARF_IN;
+        if (CONFIG.SCARF === "full" && turn - cur_head.t === 1) ctx.fillStyle = COLORS.SCARF_IN;
         const center = cur_head.pos.addXY(.5, .5)
         fillTileCenterSize(center, Vec2.both(1 - CONFIG.BORDER_SIZE));
         fillTileCenterSize(
@@ -693,25 +693,27 @@ function draw(bullet_time: boolean) {
         );
       } else {
         ctx.fillStyle = CONFIG.CHECKERED_SNAKE ? (mod(cur_head.t, 2) == 1 ? COLORS.SNAKE_HEAD : COLORS.SNAKE_WALL) : CONFIG.DRAW_PATTERN ? triangle_pattern : COLORS.SNAKE[Math.max(0, Math.min(COLORS.SNAKE.length - 1, turn - cur_head.t))];
-        if (CONFIG.SCARF && turn - cur_head.t === 1) ctx.fillStyle = COLORS.SCARF_IN;
+        if (CONFIG.SCARF === "full" && turn - cur_head.t === 1) ctx.fillStyle = COLORS.SCARF_IN;
         fillTile(cur_head.pos);
       }
     }
   });
 
-  if (CONFIG.SCARF) {
+  if (CONFIG.SCARF !== "no") {
     head.forEach((cur_head, k) => {
       if (turn - cur_head.t !== 1) return;
       ctx.fillStyle = COLORS.SCARF_OUT;
       // fillTile(cur_head.pos);
       const center = cur_head.pos.addXY(.5, .5)
-      fillTileCenterSize(
-        center.add(cur_head.in_dir.scale(.5 - CONFIG.SCARF_BORDER_WIDTH / 2)),
-        new Vec2(
-          cur_head.in_dir.x == 0 ? 1 : CONFIG.SCARF_BORDER_WIDTH,
-          cur_head.in_dir.y == 0 ? 1 : CONFIG.SCARF_BORDER_WIDTH
-        )
-      );
+      if (CONFIG.SCARF === "full") {
+        fillTileCenterSize(
+          center.add(cur_head.in_dir.scale(.5 - CONFIG.SCARF_BORDER_WIDTH / 2)),
+          new Vec2(
+            cur_head.in_dir.x == 0 ? 1 : CONFIG.SCARF_BORDER_WIDTH,
+            cur_head.in_dir.y == 0 ? 1 : CONFIG.SCARF_BORDER_WIDTH
+          )
+        );
+      }
       fillTileCenterSize(
         center.add(cur_head.out_dir.scale(.5 - CONFIG.SCARF_BORDER_WIDTH / 2)),
         new Vec2(
