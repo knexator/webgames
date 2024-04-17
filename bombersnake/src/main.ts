@@ -101,8 +101,9 @@ let CONFIG = {
   CHECKERED_BACKGROUND: "3" as "no" | "2" | "3",
   SHADOW: true,
   SHADOW_DIST: .1,
-  SCARF: "half" as "no" | "half" | "full",
-  SCARF_BORDER_WIDTH: 1 / 3,
+  SCARF: "full" as "no" | "half" | "full",
+  SCARF_BORDER_WIDTH: 0,
+  HEAD_COLOR: true,
 }
 
 const gui = new GUI();
@@ -132,6 +133,7 @@ gui.add(CONFIG, "SHADOW");
 gui.add(CONFIG, "SHADOW_DIST", 0, .5);
 gui.add(CONFIG, "SCARF", ["no", "half", "full"]);
 gui.add(CONFIG, "SCARF_BORDER_WIDTH", 0, .5);
+gui.add(CONFIG, "HEAD_COLOR");
 
 // https://lospec.com/palette-list/sweetie-16
 // const COLORS = {
@@ -163,7 +165,8 @@ const COLORS = {
   GRIDLINE: "#2f324b",
   SHADOW: "#000000",
   SCARF_OUT: "#2d3ba4",
-  SCARF_IN: "#347fc5",
+  SCARF_IN: "#547e2a",
+  HEAD: "#85ce36",
   SNAKE: [] as string[],
 };
 
@@ -180,6 +183,7 @@ gui.addColor(COLORS, "GRIDLINE");
 gui.addColor(COLORS, "SHADOW");
 gui.addColor(COLORS, "SCARF_OUT");
 gui.addColor(COLORS, "SCARF_IN");
+gui.addColor(COLORS, "HEAD");
 
 COLORS.SNAKE = generateGradient(COLORS.SNAKE_WALL, COLORS.SNAKE_HEAD, 4);
 gui.onChange(event => {
@@ -619,6 +623,9 @@ function draw(bullet_time: boolean) {
       if (cur_head.in_dir.equal(cur_head.out_dir.scale(-1))) {
         fillTile(cur_head.pos);
       } else if (cur_head.out_dir.equal(Vec2.zero)) {
+        if (CONFIG.HEAD_COLOR) {
+          ctx.fillStyle = COLORS.HEAD;
+        }
         let rounded_size = Math.min(.5, CONFIG.ROUNDED_SIZE);
         // let rounded_size = .5;
         const center = cur_head.pos.addXY(.5, .5)
