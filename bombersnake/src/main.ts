@@ -570,7 +570,7 @@ function draw(bullet_time: boolean) {
           )
           ctx.save();
           ctx.beginPath();
-          // ctx.clip(tileRegion(cur_head.pos));
+          ctx.clip(tileRegion(cur_head.pos.add(Vec2.both(CONFIG.SHADOW_DIST))));
           drawCircle(center.add(cur_head.in_dir.add(cur_head.out_dir).scale(CONFIG.ROUNDED_SIZE - .5)), CONFIG.ROUNDED_SIZE);
           ctx.fill();
           ctx.restore();
