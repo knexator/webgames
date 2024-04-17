@@ -629,6 +629,16 @@ function draw(bullet_time: boolean) {
         drawCircle(center.add(cur_head.in_dir.add(rotQuarterA(cur_head.in_dir)).scale(rounded_size - .5)), rounded_size);
         drawCircle(center.add(cur_head.in_dir.add(rotQuarterB(cur_head.in_dir)).scale(rounded_size - .5)), rounded_size);
         ctx.fill();
+        
+        // eye
+        ctx.beginPath();
+        ctx.fillStyle = "white";
+        drawCircle(center.add(cur_head.in_dir.scale(-.1)), .3);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.fillStyle = "black";
+        drawCircle(center.add(cur_head.in_dir.scale(-.2)), .1);
+        ctx.fill();
       } else {
         const center = cur_head.pos.addXY(.5, .5)
         fillTileCenterSize(center.add(cur_head.in_dir.scale(CONFIG.ROUNDED_SIZE / 2)),
