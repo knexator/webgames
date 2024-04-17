@@ -99,6 +99,8 @@ let CONFIG = {
   ROUNDED_SIZE: .5,
   CHECKERED_SNAKE: true,
   CHECKERED_BACKGROUND: "3" as "no" | "2" | "3",
+  SHADOW: true,
+  SHADOW_DIST: .1,
 }
 
 const gui = new GUI();
@@ -124,6 +126,8 @@ gui.add(CONFIG, "DRAW_ROUNDED");
 gui.add(CONFIG, "ROUNDED_SIZE", 0, 1);
 gui.add(CONFIG, "CHECKERED_SNAKE");
 gui.add(CONFIG, "CHECKERED_BACKGROUND", ["no", "2", "3"]);
+gui.add(CONFIG, "SHADOW");
+gui.add(CONFIG, "SHADOW_DIST", 0, .5);
 
 // https://lospec.com/palette-list/sweetie-16
 // const COLORS = {
@@ -144,15 +148,16 @@ gui.add(CONFIG, "CHECKERED_BACKGROUND", ["no", "2", "3"]);
 const COLORS = {
   BORDER: "#8ccbf2",
   BACKGROUND: "#173232",
-  BACKGROUND_2: "#244a4a",
-  BACKGROUND_3: "#203c3c",
+  BACKGROUND_2: "#203c3c",
+  BACKGROUND_3: "#213636",
   BOMB: "#dd4646",
   TEXT: "#f4f4f4",
-  SNAKE_WALL: '#4e9f1c',
   SNAKE_HEAD: '#80c535',
+  SNAKE_WALL: '#6aa32c',
   EXPLOSION: "#ffcd75",
   MULTIPLIER: "#f4f4f4",
   GRIDLINE: "#2f324b",
+  SHADOW: "#000000",
   SNAKE: [] as string[],
 };
 
@@ -166,6 +171,7 @@ gui.addColor(COLORS, "SNAKE_WALL");
 gui.addColor(COLORS, "EXPLOSION");
 gui.addColor(COLORS, "MULTIPLIER");
 gui.addColor(COLORS, "GRIDLINE");
+gui.addColor(COLORS, "SHADOW");
 
 COLORS.SNAKE = generateGradient(COLORS.SNAKE_WALL, COLORS.SNAKE_HEAD, 4);
 gui.onChange(event => {
@@ -513,6 +519,60 @@ function draw(bullet_time: boolean) {
   // ctx.fillRect(0, canvas.height-S, canvas.width, S);
   // ctx.fillStyle = "#333399";
   // ctx.fillRect(0, canvas.height-S, ((turn + turn_offset) / MAX_TURNS + .5) * canvas.width, S);
+
+  if (CONFIG.SHADOW) {
+    head.forEach((cur_head, k) => {
+      if (CONFIG.DRAW_ROUNDED) {
+        ctx.fillStyle = COLORS.SHADOW;
+        if (cur_head.in_dir.equal(cur_head.out_dir.scale(-1))) {
+          fillTile(cur_head.pos.add(Vec2.both(CONFIG.SHADOW_DIST)));
+        } else if (cur_head.out_dir.equal(Vec2.zero)) {
+          let rounded_size = Math.min(.5, CONFIG.ROUNDED_SIZE);
+          // let rounded_size = .5;
+          const center = cur_head.pos.addXY(.5, .5).add(Vec2.both(CONFIG.SHADOW_DIST));
+          fillTileCenterSize(center.add(cur_head.in_dir.scale(rounded_size / 2)),
+            new Vec2(
+              cur_head.in_dir.x == 0 ? 1 : 1 - rounded_size,
+              cur_head.in_dir.y == 0 ? 1 : 1 - rounded_size,
+            )
+          )
+          fillTileCenterSize(center,
+            new Vec2(
+              cur_head.in_dir.y == 0 ? 1 : 1 - rounded_size * 2,
+              cur_head.in_dir.x == 0 ? 1 : 1 - rounded_size * 2,
+            )
+          )
+          ctx.beginPath();
+          drawCircle(center.add(cur_head.in_dir.add(rotQuarterA(cur_head.in_dir)).scale(rounded_size - .5)), rounded_size);
+          drawCircle(center.add(cur_head.in_dir.add(rotQuarterB(cur_head.in_dir)).scale(rounded_size - .5)), rounded_size);
+          ctx.fill();
+        } else {
+          const center = cur_head.pos.addXY(.5, .5).add(Vec2.both(CONFIG.SHADOW_DIST));
+          fillTileCenterSize(center.add(cur_head.in_dir.scale(CONFIG.ROUNDED_SIZE / 2)),
+            new Vec2(
+              cur_head.in_dir.x == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
+              cur_head.in_dir.y == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
+            )
+          )
+          fillTileCenterSize(center.add(cur_head.out_dir.scale(CONFIG.ROUNDED_SIZE / 2)),
+            new Vec2(
+              cur_head.out_dir.x == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
+              cur_head.out_dir.y == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
+            )
+          )
+          ctx.save();
+          ctx.beginPath();
+          // ctx.clip(tileRegion(cur_head.pos));
+          drawCircle(center.add(cur_head.in_dir.add(cur_head.out_dir).scale(CONFIG.ROUNDED_SIZE - .5)), CONFIG.ROUNDED_SIZE);
+          ctx.fill();
+          ctx.restore();
+        }
+      } else {
+        ctx.fillStyle = COLORS.SHADOW;
+        fillTile(cur_head.pos.add(Vec2.both(CONFIG.SHADOW_DIST)));
+      }
+    });
+  }
 
   // explosion particles
   ctx.fillStyle = COLORS.EXPLOSION;
