@@ -28,7 +28,8 @@ function loadImage(name: string): Promise<HTMLImageElement> {
   })
 }
 
-const textures_async = await Promise.all(["bomb", "clock", "heart", "star"].flatMap(name => [loadImage(name), loadImage(name + 'B')]));
+const textures_async = await Promise.all(["bomb", "clock", "heart", "star"].flatMap(name => [loadImage(name), loadImage(name + 'B')])
+  .concat(["open", "KO", "closed"].map(n => loadImage("eye_" + n))));
 const textures = {
   bomb: textures_async[0],
   clock: textures_async[2],
@@ -39,6 +40,11 @@ const textures = {
     clock: textures_async[3],
     heart: textures_async[5],
     multiplier: textures_async[7],
+  },
+  eye: {
+    open: textures_async[8],
+    KO: textures_async[9],
+    closed: textures_async[10],
   }
 };
 
@@ -695,14 +701,26 @@ function draw(bullet_time: boolean) {
         ctx.fill();
 
         // eye
-        ctx.beginPath();
-        ctx.fillStyle = "white";
-        drawCircle(center.add(cur_head.in_dir.scale(-.1)), .3);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.fillStyle = "black";
-        drawCircle(center.add(cur_head.in_dir.scale(-.2)), .1);
-        ctx.fill();
+        let eye_texture = game_state === "lost"
+          ? textures.eye.KO
+          : false
+            ? textures.eye.closed
+            : textures.eye.open;
+        if (cur_head.in_dir.equal(new Vec2(1, 0))) {
+          drawFlippedTexture(cur_head.pos.add(Vec2.both(.5)), eye_texture);
+        } else {
+          drawRotatedTexture(cur_head.pos.add(Vec2.both(.5)), eye_texture,
+            Math.atan2(-cur_head.in_dir.y, -cur_head.in_dir.x));
+        }
+        // drawTexture(cur_head.pos, game_state === "lost" ? textures.eye.KO : textures.eye.open);
+        // ctx.beginPath();
+        // ctx.fillStyle = "white";
+        // drawCircle(center.add(cur_head.in_dir.scale(-.1)), .3);
+        // ctx.fill();
+        // ctx.beginPath();
+        // ctx.fillStyle = "black";
+        // drawCircle(center.add(cur_head.in_dir.scale(-.2)), .1);
+        // ctx.fill();
       } else {
         const center = cur_head.pos.addXY(.5, .5)
         fillTileCenterSize(center.add(cur_head.in_dir.scale(CONFIG.ROUNDED_SIZE / 2)),
@@ -913,6 +931,34 @@ function drawTexture(top_left: Vec2, texture: HTMLImageElement) {
   for (let i = -1; i <= 1; i++) {
     for (let j = -1; j <= 1; j++) {
       ctx.drawImage(texture, (top_left.x + i * BOARD_SIZE.x) * TILE_SIZE, (top_left.y + j * BOARD_SIZE.y) * TILE_SIZE);
+    }
+  }
+}
+
+function drawRotatedTexture(center: Vec2, texture: HTMLImageElement, angle_in_radians: number) {
+  for (let i = -1; i <= 1; i++) {
+    for (let j = -1; j <= 1; j++) {
+      const px_center = center.add(BOARD_SIZE.mul(new Vec2(i, j))).scale(TILE_SIZE);
+
+      ctx.translate(px_center.x, px_center.y);
+      ctx.rotate(angle_in_radians);
+      ctx.drawImage(texture, -TILE_SIZE / 2, -TILE_SIZE / 2);
+      ctx.rotate(-angle_in_radians);
+      ctx.translate(-px_center.x, -px_center.y);
+    }
+  }
+}
+
+function drawFlippedTexture(center: Vec2, texture: HTMLImageElement) {
+  for (let i = -1; i <= 1; i++) {
+    for (let j = -1; j <= 1; j++) {
+      const px_center = center.add(BOARD_SIZE.mul(new Vec2(i, j))).scale(TILE_SIZE);
+
+      ctx.translate(px_center.x, px_center.y);
+      ctx.scale(-1, 1);
+      ctx.drawImage(texture, -TILE_SIZE / 2, -TILE_SIZE / 2);
+      ctx.scale(-1, 1);
+      ctx.translate(-px_center.x, -px_center.y);
     }
   }
 }
