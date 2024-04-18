@@ -677,9 +677,11 @@ function draw(bullet_time: boolean) {
     // }
     // return true;
 
-    ctx.beginPath();
-    drawCircleNoWrap(particle.center.add(Vec2.both(.5)), 8 * turn_offset);
-    ctx.stroke();
+    if (CONFIG.EXPLOSION_CIRCLE) {
+      ctx.beginPath();
+      drawCircleNoWrap(particle.center.add(Vec2.both(.5)), 8 * turn_offset);
+      ctx.stroke();
+    }
 
     for (let y = 0; y < BOARD_SIZE.y; y++) {
       fillTile(new Vec2(particle.center.x, y));
