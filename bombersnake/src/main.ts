@@ -135,6 +135,7 @@ let CONFIG = {
   SCARF_BORDER_WIDTH: 0,
   HEAD_COLOR: true,
   START_ON_BORDER: true,
+  EXPLOSION_CIRCLE: false,
 }
 
 const gui = new GUI();
@@ -166,6 +167,7 @@ gui.add(CONFIG, "SCARF", ["no", "half", "full"]);
 gui.add(CONFIG, "SCARF_BORDER_WIDTH", 0, .5);
 gui.add(CONFIG, "HEAD_COLOR");
 gui.add(CONFIG, "START_ON_BORDER");
+gui.add(CONFIG, "EXPLOSION_CIRCLE");
 
 // https://lospec.com/palette-list/sweetie-16
 // const COLORS = {
@@ -655,6 +657,8 @@ function draw(bullet_time: boolean) {
 
   // explosion particles
   ctx.fillStyle = COLORS.EXPLOSION;
+  ctx.strokeStyle = COLORS.EXPLOSION;
+  ctx.lineWidth = 3;
   exploding_cross_particles = exploding_cross_particles.filter(particle => {
     if (particle.turn !== turn) return false;
     // for (let x=0; x<BOARD_SIZE.x; x++) {
@@ -672,6 +676,10 @@ function draw(bullet_time: boolean) {
     //   }
     // }
     // return true;
+
+    ctx.beginPath();
+    drawCircleNoWrap(particle.center.add(Vec2.both(.5)), 8 * turn_offset);
+    ctx.stroke();
 
     for (let y = 0; y < BOARD_SIZE.y; y++) {
       fillTile(new Vec2(particle.center.x, y));
@@ -1008,18 +1016,21 @@ function tileRegion(pos: Vec2): Path2D {
 function drawCircle(center: Vec2, radius: number) {
   for (let i = -1; i <= 1; i++) {
     for (let j = -1; j <= 1; j++) {
-      ctx.moveTo(
-        (center.x + radius + i * BOARD_SIZE.x) * TILE_SIZE,
-        (center.y + j * BOARD_SIZE.y) * TILE_SIZE,
-      );
-      ctx.arc(
-        (center.x + i * BOARD_SIZE.x) * TILE_SIZE,
-        (center.y + j * BOARD_SIZE.y) * TILE_SIZE,
-        radius * TILE_SIZE, 0, 2 * Math.PI);
+      drawCircleNoWrap(center.addXY(i * BOARD_SIZE.x, j * BOARD_SIZE.y), radius);
     }
   }
 }
 
+function drawCircleNoWrap(center: Vec2, radius: number) {
+  ctx.moveTo(
+    (center.x + radius) * TILE_SIZE,
+    center.y * TILE_SIZE,
+  );
+  ctx.arc(
+    center.x * TILE_SIZE,
+    center.y * TILE_SIZE,
+    radius * TILE_SIZE, 0, 2 * Math.PI);
+}
 
 function textTile(text: string, pos: Vec2) {
   for (let i = -1; i <= 1; i++) {
