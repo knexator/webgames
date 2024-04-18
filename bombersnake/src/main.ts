@@ -134,7 +134,7 @@ let CONFIG = {
   SCARF: "full" as "no" | "half" | "full",
   SCARF_BORDER_WIDTH: 0,
   HEAD_COLOR: true,
-  START_ON_BORDER: false,
+  START_ON_BORDER: true,
 }
 
 const gui = new GUI();
@@ -246,9 +246,9 @@ function restart() {
   } else {
     turn = 2;
     head = [
-      { pos: new Vec2(7, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(1, 0), t: 0 },
-      { pos: new Vec2(8, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(1, 0), t: 1 },
-      { pos: new Vec2(9, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(0, 0), t: 2 },
+      { pos: new Vec2(6, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(1, 0), t: 0 },
+      { pos: new Vec2(7, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(1, 0), t: 1 },
+      { pos: new Vec2(8, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(0, 0), t: 2 },
     ];
   }
   score = 0
