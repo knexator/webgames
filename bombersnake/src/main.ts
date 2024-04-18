@@ -241,7 +241,7 @@ function restart() {
   if (CONFIG.START_ON_BORDER) {
     turn = 0;
     head = [
-      { pos: new Vec2(0, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(0, 0), t: 0 },
+      { pos: new Vec2(-CONFIG.DRAW_WRAP, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(0, 0), t: 0 },
     ];
   } else {
     turn = 2;
