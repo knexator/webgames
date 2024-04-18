@@ -230,7 +230,7 @@ let cam_noise = noise.makeNoise3D(0);
 let cur_screen_shake = { x: 0, y: 0, targetMag: 0, actualMag: 0 };
 
 let turn: number;
-let head: { pos: Vec2, in_dir: Vec2, out_dir: Vec2, t: number }[];
+let snake_blocks: { pos: Vec2, in_dir: Vec2, out_dir: Vec2, t: number }[];
 let score: number;
 let input_queue: Vec2[];
 let cur_collectables: Collectable[];
@@ -242,12 +242,12 @@ let multiplier = 1;
 function restart() {
   if (CONFIG.START_ON_BORDER) {
     turn = 0;
-    head = [
+    snake_blocks = [
       { pos: new Vec2(-CONFIG.DRAW_WRAP, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(0, 0), t: 0 },
     ];
   } else {
     turn = 2;
-    head = [
+    snake_blocks = [
       { pos: new Vec2(6, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(1, 0), t: 0 },
       { pos: new Vec2(7, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(1, 0), t: 1 },
       { pos: new Vec2(8, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(0, 0), t: 2 },
@@ -304,14 +304,14 @@ function findSpotWithoutWall(): Vec2 {
       Math.floor(Math.random() * BOARD_SIZE.y)
     );
     valid = true;
-    for (const last_head of head) {
-      if (pos.equal(last_head.pos)) {
+    for (const cur_block of snake_blocks) {
+      if (pos.equal(cur_block.pos)) {
         valid = false;
         break;
       }
     }
-    let last_head = head[head.length - 1];
-    valid = valid && !pos.equal(last_head.pos.add(last_head.in_dir)) && !cur_collectables.some(x => x.pos.equal(pos));
+    let last_block = snake_blocks[snake_blocks.length - 1];
+    valid = valid && !pos.equal(last_block.pos.add(last_block.in_dir)) && !cur_collectables.some(x => x.pos.equal(pos));
   } while (!valid);
   return pos;
 }
@@ -319,7 +319,7 @@ function findSpotWithoutWall(): Vec2 {
 function placeBomb(): Bomb {
   let candidates = fromCount(CONFIG.LUCK, _ => findSpotWithoutWall());
   let visible_walls_at_each_candidate = candidates.map(pos => {
-    return head.filter(({ pos, }, k) => {
+    return snake_blocks.filter(({ pos, }, k) => {
       let affected = (pos.x === pos.x || pos.y === pos.y);
       return affected;
     }).length;
@@ -336,7 +336,7 @@ function placeMultiplier(): Multiplier {
 function explodeBomb(k: number) {
   let hit_head = false;
   let cur_bomb = cur_collectables[k];
-  head = head.filter(({ pos, t }, k) => {
+  snake_blocks = snake_blocks.filter(({ pos, t }, k) => {
     let affected = (pos.x === cur_bomb.pos.x || pos.y === cur_bomb.pos.y);
     if (affected) {
       if (t === turn) {
@@ -442,12 +442,12 @@ function every_frame(cur_timestamp: number) {
     SOUNDS.step.play();
 
     // do turn
-    let last_head = head[head.length - 1];
+    let last_block = snake_blocks[snake_blocks.length - 1];
     let next_input: Vec2 | null = null;
     while (input_queue.length > 0) {
       let maybe_next_input = input_queue.shift()!;
       if (Math.abs(maybe_next_input.x) + Math.abs(maybe_next_input.y) !== 1 ||
-        maybe_next_input.equal(last_head.in_dir)) {
+        maybe_next_input.equal(last_block.in_dir)) {
         // unvalid input
       } else {
         next_input = maybe_next_input;
@@ -459,24 +459,24 @@ function every_frame(cur_timestamp: number) {
     if (next_input !== null) {
       delta = next_input;
     } else {
-      delta = last_head.in_dir.scale(-1);
+      delta = last_block.in_dir.scale(-1);
     }
-    // assert: turn == last_head.t + time_direction
+    // assert: turn == last_block.t + time_direction
     if (turn == 1) {
-      last_head.in_dir = delta.scale(-1);
+      last_block.in_dir = delta.scale(-1);
     }
-    last_head.out_dir = delta;
-    let new_head = {
-      pos: modVec2(last_head.pos.add(delta), BOARD_SIZE),
+    last_block.out_dir = delta;
+    let new_block = {
+      pos: modVec2(last_block.pos.add(delta), BOARD_SIZE),
       in_dir: delta.scale(-1),
       out_dir: Vec2.zero,
       t: turn
     };
-    head.push(new_head);
+    snake_blocks.push(new_block);
 
     let collision = false;
-    collision = head.some(({ pos, t }) => {
-      return pos.equal(new_head.pos) && t !== turn
+    collision = snake_blocks.some(({ pos, t }) => {
+      return pos.equal(new_block.pos) && t !== turn
     });
 
     if (!CONFIG.CHEAT_INMORTAL && collision) {
@@ -485,7 +485,7 @@ function every_frame(cur_timestamp: number) {
     }
     for (let k = 0; k < cur_collectables.length; k++) {
       const cur_collectable = cur_collectables[k];
-      if (!new_head.pos.equal(cur_collectable.pos)) continue;
+      if (!new_block.pos.equal(cur_collectable.pos)) continue;
 
       if (cur_collectable instanceof Bomb) {
         const cur_bomb = cur_collectable;
@@ -494,7 +494,7 @@ function every_frame(cur_timestamp: number) {
         } else {
           cur_bomb.pos = modVec2(cur_bomb.pos.add(delta), BOARD_SIZE);
           cur_bomb.ticking = true;
-          if (head.some(({ pos }) => cur_bomb.pos.equal(pos))
+          if (snake_blocks.some(({ pos }) => cur_bomb.pos.equal(pos))
             || cur_collectables.some(({ pos }, other_k) => other_k !== k && cur_bomb.pos.equal(pos))) {
             explodeBomb(k);
           }
@@ -581,55 +581,55 @@ function draw(bullet_time: boolean) {
   // ctx.fillRect(0, canvas.height-S, ((turn + turn_offset) / MAX_TURNS + .5) * canvas.width, S);
 
   if (CONFIG.SHADOW) {
-    head.forEach((cur_head, k) => {
+    snake_blocks.forEach((cur_block, k) => {
       if (CONFIG.DRAW_ROUNDED) {
         ctx.fillStyle = COLORS.SHADOW;
-        if (cur_head.in_dir.equal(cur_head.out_dir.scale(-1))) {
-          fillTile(cur_head.pos.add(Vec2.both(CONFIG.SHADOW_DIST)));
-        } else if (cur_head.out_dir.equal(Vec2.zero)) {
+        if (cur_block.in_dir.equal(cur_block.out_dir.scale(-1))) {
+          fillTile(cur_block.pos.add(Vec2.both(CONFIG.SHADOW_DIST)));
+        } else if (cur_block.out_dir.equal(Vec2.zero)) {
           let rounded_size = Math.min(.5, CONFIG.ROUNDED_SIZE);
           // let rounded_size = .5;
-          const center = cur_head.pos.addXY(.5, .5).add(Vec2.both(CONFIG.SHADOW_DIST));
-          fillTileCenterSize(center.add(cur_head.in_dir.scale(rounded_size / 2)),
+          const center = cur_block.pos.addXY(.5, .5).add(Vec2.both(CONFIG.SHADOW_DIST));
+          fillTileCenterSize(center.add(cur_block.in_dir.scale(rounded_size / 2)),
             new Vec2(
-              cur_head.in_dir.x == 0 ? 1 : 1 - rounded_size,
-              cur_head.in_dir.y == 0 ? 1 : 1 - rounded_size,
+              cur_block.in_dir.x == 0 ? 1 : 1 - rounded_size,
+              cur_block.in_dir.y == 0 ? 1 : 1 - rounded_size,
             )
           )
           fillTileCenterSize(center,
             new Vec2(
-              cur_head.in_dir.y == 0 ? 1 : 1 - rounded_size * 2,
-              cur_head.in_dir.x == 0 ? 1 : 1 - rounded_size * 2,
+              cur_block.in_dir.y == 0 ? 1 : 1 - rounded_size * 2,
+              cur_block.in_dir.x == 0 ? 1 : 1 - rounded_size * 2,
             )
           )
           ctx.beginPath();
-          drawCircle(center.add(cur_head.in_dir.add(rotQuarterA(cur_head.in_dir)).scale(rounded_size - .5)), rounded_size);
-          drawCircle(center.add(cur_head.in_dir.add(rotQuarterB(cur_head.in_dir)).scale(rounded_size - .5)), rounded_size);
+          drawCircle(center.add(cur_block.in_dir.add(rotQuarterA(cur_block.in_dir)).scale(rounded_size - .5)), rounded_size);
+          drawCircle(center.add(cur_block.in_dir.add(rotQuarterB(cur_block.in_dir)).scale(rounded_size - .5)), rounded_size);
           ctx.fill();
         } else {
-          const center = cur_head.pos.addXY(.5, .5).add(Vec2.both(CONFIG.SHADOW_DIST));
-          fillTileCenterSize(center.add(cur_head.in_dir.scale(CONFIG.ROUNDED_SIZE / 2)),
+          const center = cur_block.pos.addXY(.5, .5).add(Vec2.both(CONFIG.SHADOW_DIST));
+          fillTileCenterSize(center.add(cur_block.in_dir.scale(CONFIG.ROUNDED_SIZE / 2)),
             new Vec2(
-              cur_head.in_dir.x == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
-              cur_head.in_dir.y == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
+              cur_block.in_dir.x == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
+              cur_block.in_dir.y == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
             )
           )
-          fillTileCenterSize(center.add(cur_head.out_dir.scale(CONFIG.ROUNDED_SIZE / 2)),
+          fillTileCenterSize(center.add(cur_block.out_dir.scale(CONFIG.ROUNDED_SIZE / 2)),
             new Vec2(
-              cur_head.out_dir.x == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
-              cur_head.out_dir.y == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
+              cur_block.out_dir.x == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
+              cur_block.out_dir.y == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
             )
           )
           ctx.save();
           ctx.beginPath();
-          ctx.clip(tileRegion(cur_head.pos.add(Vec2.both(CONFIG.SHADOW_DIST))));
-          drawCircle(center.add(cur_head.in_dir.add(cur_head.out_dir).scale(CONFIG.ROUNDED_SIZE - .5)), CONFIG.ROUNDED_SIZE);
+          ctx.clip(tileRegion(cur_block.pos.add(Vec2.both(CONFIG.SHADOW_DIST))));
+          drawCircle(center.add(cur_block.in_dir.add(cur_block.out_dir).scale(CONFIG.ROUNDED_SIZE - .5)), CONFIG.ROUNDED_SIZE);
           ctx.fill();
           ctx.restore();
         }
       } else {
         ctx.fillStyle = COLORS.SHADOW;
-        fillTile(cur_head.pos.add(Vec2.both(CONFIG.SHADOW_DIST)));
+        fillTile(cur_block.pos.add(Vec2.both(CONFIG.SHADOW_DIST)));
       }
     });
 
@@ -691,34 +691,34 @@ function draw(bullet_time: boolean) {
   });
 
   // snake body
-  head.forEach((cur_head, k) => {
+  snake_blocks.forEach((cur_block, k) => {
     if (CONFIG.DRAW_ROUNDED) {
-      ctx.fillStyle = CONFIG.CHECKERED_SNAKE ? (mod(cur_head.t, 2) == 1 ? COLORS.SNAKE_HEAD : COLORS.SNAKE_WALL) : CONFIG.DRAW_PATTERN ? triangle_pattern : COLORS.SNAKE[Math.max(0, Math.min(COLORS.SNAKE.length - 1, turn - cur_head.t))];
-      if (CONFIG.SCARF === "full" && turn - cur_head.t === 1) ctx.fillStyle = COLORS.SCARF_IN;
-      if (cur_head.in_dir.equal(cur_head.out_dir.scale(-1))) {
-        fillTile(cur_head.pos);
-      } else if (cur_head.out_dir.equal(Vec2.zero)) {
+      ctx.fillStyle = CONFIG.CHECKERED_SNAKE ? (mod(cur_block.t, 2) == 1 ? COLORS.SNAKE_HEAD : COLORS.SNAKE_WALL) : CONFIG.DRAW_PATTERN ? triangle_pattern : COLORS.SNAKE[Math.max(0, Math.min(COLORS.SNAKE.length - 1, turn - cur_block.t))];
+      if (CONFIG.SCARF === "full" && turn - cur_block.t === 1) ctx.fillStyle = COLORS.SCARF_IN;
+      if (cur_block.in_dir.equal(cur_block.out_dir.scale(-1))) {
+        fillTile(cur_block.pos);
+      } else if (cur_block.out_dir.equal(Vec2.zero)) {
         if (CONFIG.HEAD_COLOR) {
           ctx.fillStyle = COLORS.HEAD;
         }
         let rounded_size = Math.min(.5, CONFIG.ROUNDED_SIZE);
         // let rounded_size = .5;
-        const center = cur_head.pos.addXY(.5, .5)
-        fillTileCenterSize(center.add(cur_head.in_dir.scale(rounded_size / 2)),
+        const center = cur_block.pos.addXY(.5, .5)
+        fillTileCenterSize(center.add(cur_block.in_dir.scale(rounded_size / 2)),
           new Vec2(
-            cur_head.in_dir.x == 0 ? 1 : 1 - rounded_size,
-            cur_head.in_dir.y == 0 ? 1 : 1 - rounded_size,
+            cur_block.in_dir.x == 0 ? 1 : 1 - rounded_size,
+            cur_block.in_dir.y == 0 ? 1 : 1 - rounded_size,
           )
         )
         fillTileCenterSize(center,
           new Vec2(
-            cur_head.in_dir.y == 0 ? 1 : 1 - rounded_size * 2,
-            cur_head.in_dir.x == 0 ? 1 : 1 - rounded_size * 2,
+            cur_block.in_dir.y == 0 ? 1 : 1 - rounded_size * 2,
+            cur_block.in_dir.x == 0 ? 1 : 1 - rounded_size * 2,
           )
         )
         ctx.beginPath();
-        drawCircle(center.add(cur_head.in_dir.add(rotQuarterA(cur_head.in_dir)).scale(rounded_size - .5)), rounded_size);
-        drawCircle(center.add(cur_head.in_dir.add(rotQuarterB(cur_head.in_dir)).scale(rounded_size - .5)), rounded_size);
+        drawCircle(center.add(cur_block.in_dir.add(rotQuarterA(cur_block.in_dir)).scale(rounded_size - .5)), rounded_size);
+        drawCircle(center.add(cur_block.in_dir.add(rotQuarterB(cur_block.in_dir)).scale(rounded_size - .5)), rounded_size);
         ctx.fill();
 
         // eye
@@ -727,92 +727,92 @@ function draw(bullet_time: boolean) {
           : false
             ? textures.eye.closed
             : textures.eye.open;
-        if (cur_head.in_dir.equal(new Vec2(1, 0))) {
-          drawFlippedTexture(cur_head.pos.add(Vec2.both(.5)), eye_texture);
+        if (cur_block.in_dir.equal(new Vec2(1, 0))) {
+          drawFlippedTexture(cur_block.pos.add(Vec2.both(.5)), eye_texture);
         } else {
-          drawRotatedTexture(cur_head.pos.add(Vec2.both(.5)), eye_texture,
-            Math.atan2(-cur_head.in_dir.y, -cur_head.in_dir.x));
+          drawRotatedTexture(cur_block.pos.add(Vec2.both(.5)), eye_texture,
+            Math.atan2(-cur_block.in_dir.y, -cur_block.in_dir.x));
         }
-        // drawTexture(cur_head.pos, game_state === "lost" ? textures.eye.KO : textures.eye.open);
+        // drawTexture(cur_block.pos, game_state === "lost" ? textures.eye.KO : textures.eye.open);
         // ctx.beginPath();
         // ctx.fillStyle = "white";
-        // drawCircle(center.add(cur_head.in_dir.scale(-.1)), .3);
+        // drawCircle(center.add(cur_block.in_dir.scale(-.1)), .3);
         // ctx.fill();
         // ctx.beginPath();
         // ctx.fillStyle = "black";
-        // drawCircle(center.add(cur_head.in_dir.scale(-.2)), .1);
+        // drawCircle(center.add(cur_block.in_dir.scale(-.2)), .1);
         // ctx.fill();
       } else {
-        const center = cur_head.pos.addXY(.5, .5)
-        fillTileCenterSize(center.add(cur_head.in_dir.scale(CONFIG.ROUNDED_SIZE / 2)),
+        const center = cur_block.pos.addXY(.5, .5)
+        fillTileCenterSize(center.add(cur_block.in_dir.scale(CONFIG.ROUNDED_SIZE / 2)),
           new Vec2(
-            cur_head.in_dir.x == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
-            cur_head.in_dir.y == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
+            cur_block.in_dir.x == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
+            cur_block.in_dir.y == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
           )
         )
-        fillTileCenterSize(center.add(cur_head.out_dir.scale(CONFIG.ROUNDED_SIZE / 2)),
+        fillTileCenterSize(center.add(cur_block.out_dir.scale(CONFIG.ROUNDED_SIZE / 2)),
           new Vec2(
-            cur_head.out_dir.x == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
-            cur_head.out_dir.y == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
+            cur_block.out_dir.x == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
+            cur_block.out_dir.y == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
           )
         )
         ctx.save();
         ctx.beginPath();
-        ctx.clip(tileRegion(cur_head.pos));
-        drawCircle(center.add(cur_head.in_dir.add(cur_head.out_dir).scale(CONFIG.ROUNDED_SIZE - .5)), CONFIG.ROUNDED_SIZE);
+        ctx.clip(tileRegion(cur_block.pos));
+        drawCircle(center.add(cur_block.in_dir.add(cur_block.out_dir).scale(CONFIG.ROUNDED_SIZE - .5)), CONFIG.ROUNDED_SIZE);
         ctx.fill();
         ctx.restore();
       }
     } else {
       if (CONFIG.DRAW_SNAKE_BORDER) {
         ctx.fillStyle = COLORS.BORDER;
-        fillTile(cur_head.pos);
-        ctx.fillStyle = CONFIG.CHECKERED_SNAKE ? (mod(cur_head.t, 2) == 1 ? COLORS.SNAKE_HEAD : COLORS.SNAKE_WALL) : CONFIG.DRAW_PATTERN ? triangle_pattern : COLORS.SNAKE[Math.max(0, Math.min(COLORS.SNAKE.length - 1, turn - cur_head.t))];
-        if (CONFIG.SCARF === "full" && turn - cur_head.t === 1) ctx.fillStyle = COLORS.SCARF_IN;
-        const center = cur_head.pos.addXY(.5, .5)
+        fillTile(cur_block.pos);
+        ctx.fillStyle = CONFIG.CHECKERED_SNAKE ? (mod(cur_block.t, 2) == 1 ? COLORS.SNAKE_HEAD : COLORS.SNAKE_WALL) : CONFIG.DRAW_PATTERN ? triangle_pattern : COLORS.SNAKE[Math.max(0, Math.min(COLORS.SNAKE.length - 1, turn - cur_block.t))];
+        if (CONFIG.SCARF === "full" && turn - cur_block.t === 1) ctx.fillStyle = COLORS.SCARF_IN;
+        const center = cur_block.pos.addXY(.5, .5)
         fillTileCenterSize(center, Vec2.both(1 - CONFIG.BORDER_SIZE));
         fillTileCenterSize(
-          center.add(cur_head.in_dir.scale(.5 - CONFIG.BORDER_SIZE / 2)),
+          center.add(cur_block.in_dir.scale(.5 - CONFIG.BORDER_SIZE / 2)),
           new Vec2(
-            cur_head.in_dir.x == 0 ? 1 - CONFIG.BORDER_SIZE : CONFIG.BORDER_SIZE,
-            cur_head.in_dir.y == 0 ? 1 - CONFIG.BORDER_SIZE : CONFIG.BORDER_SIZE
+            cur_block.in_dir.x == 0 ? 1 - CONFIG.BORDER_SIZE : CONFIG.BORDER_SIZE,
+            cur_block.in_dir.y == 0 ? 1 - CONFIG.BORDER_SIZE : CONFIG.BORDER_SIZE
           )
         );
         fillTileCenterSize(
-          center.add(cur_head.out_dir.scale(.5 - CONFIG.BORDER_SIZE / 2)),
+          center.add(cur_block.out_dir.scale(.5 - CONFIG.BORDER_SIZE / 2)),
           new Vec2(
-            cur_head.out_dir.x == 0 ? 1 - CONFIG.BORDER_SIZE : CONFIG.BORDER_SIZE,
-            cur_head.out_dir.y == 0 ? 1 - CONFIG.BORDER_SIZE : CONFIG.BORDER_SIZE
+            cur_block.out_dir.x == 0 ? 1 - CONFIG.BORDER_SIZE : CONFIG.BORDER_SIZE,
+            cur_block.out_dir.y == 0 ? 1 - CONFIG.BORDER_SIZE : CONFIG.BORDER_SIZE
           )
         );
       } else {
-        ctx.fillStyle = CONFIG.CHECKERED_SNAKE ? (mod(cur_head.t, 2) == 1 ? COLORS.SNAKE_HEAD : COLORS.SNAKE_WALL) : CONFIG.DRAW_PATTERN ? triangle_pattern : COLORS.SNAKE[Math.max(0, Math.min(COLORS.SNAKE.length - 1, turn - cur_head.t))];
-        if (CONFIG.SCARF === "full" && turn - cur_head.t === 1) ctx.fillStyle = COLORS.SCARF_IN;
-        fillTile(cur_head.pos);
+        ctx.fillStyle = CONFIG.CHECKERED_SNAKE ? (mod(cur_block.t, 2) == 1 ? COLORS.SNAKE_HEAD : COLORS.SNAKE_WALL) : CONFIG.DRAW_PATTERN ? triangle_pattern : COLORS.SNAKE[Math.max(0, Math.min(COLORS.SNAKE.length - 1, turn - cur_block.t))];
+        if (CONFIG.SCARF === "full" && turn - cur_block.t === 1) ctx.fillStyle = COLORS.SCARF_IN;
+        fillTile(cur_block.pos);
       }
     }
   });
 
   if (CONFIG.SCARF !== "no") {
-    head.forEach((cur_head, k) => {
-      if (turn - cur_head.t !== 1) return;
+    snake_blocks.forEach((cur_block, k) => {
+      if (turn - cur_block.t !== 1) return;
       ctx.fillStyle = COLORS.SCARF_OUT;
-      // fillTile(cur_head.pos);
-      const center = cur_head.pos.addXY(.5, .5)
+      // fillTile(cur_block.pos);
+      const center = cur_block.pos.addXY(.5, .5)
       if (CONFIG.SCARF === "full") {
         fillTileCenterSize(
-          center.add(cur_head.in_dir.scale(.5 - CONFIG.SCARF_BORDER_WIDTH / 2)),
+          center.add(cur_block.in_dir.scale(.5 - CONFIG.SCARF_BORDER_WIDTH / 2)),
           new Vec2(
-            cur_head.in_dir.x == 0 ? 1 : CONFIG.SCARF_BORDER_WIDTH,
-            cur_head.in_dir.y == 0 ? 1 : CONFIG.SCARF_BORDER_WIDTH
+            cur_block.in_dir.x == 0 ? 1 : CONFIG.SCARF_BORDER_WIDTH,
+            cur_block.in_dir.y == 0 ? 1 : CONFIG.SCARF_BORDER_WIDTH
           )
         );
       }
       fillTileCenterSize(
-        center.add(cur_head.out_dir.scale(.5 - CONFIG.SCARF_BORDER_WIDTH / 2)),
+        center.add(cur_block.out_dir.scale(.5 - CONFIG.SCARF_BORDER_WIDTH / 2)),
         new Vec2(
-          cur_head.out_dir.x == 0 ? 1 : CONFIG.SCARF_BORDER_WIDTH,
-          cur_head.out_dir.y == 0 ? 1 : CONFIG.SCARF_BORDER_WIDTH
+          cur_block.out_dir.x == 0 ? 1 : CONFIG.SCARF_BORDER_WIDTH,
+          cur_block.out_dir.y == 0 ? 1 : CONFIG.SCARF_BORDER_WIDTH
         )
       );
     });
