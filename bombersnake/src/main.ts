@@ -118,7 +118,7 @@ let CONFIG = {
   SLOWDOWN: 3,
   TOTAL_SLOWDOWN: false,
   ALWAYS_SLOWDOWN: false,
-  DRAW_WRAP: 1,
+  DRAW_WRAP: 0,
   DRAW_PATTERN: false,
   DRAW_SNAKE_BORDER: false,
   BORDER_SIZE: .2,
