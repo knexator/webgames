@@ -114,6 +114,8 @@ let CONFIG = {
   PLAYER_CAN_EXPLODE: false,
   N_BOMBS: 3,
   N_MULTIPLIERS: 1,
+  CLOCK_DURATION: 10,
+  CLOCK_FREQUENCY: 20,
   LUCK: 5,
   SLOWDOWN: 3,
   TOTAL_SLOWDOWN: false,
@@ -145,6 +147,8 @@ gui.add(CONFIG, "CHEAT_INMORTAL");
 gui.add(CONFIG, "FUSE_DURATION", 0, 10, 1);
 gui.add(CONFIG, "N_BOMBS", 1, 6, 1);
 gui.add(CONFIG, "N_MULTIPLIERS", 1, 2, 1);
+gui.add(CONFIG, "CLOCK_DURATION", 1, 100, 1);
+gui.add(CONFIG, "CLOCK_FREQUENCY", 1, 1000, 1);
 gui.add(CONFIG, "LUCK", 1, 15, 1);
 gui.add(CONFIG, "PLAYER_CAN_EXPLODE");
 gui.add(CONFIG, "SLOWDOWN", 1, 10);
@@ -237,7 +241,7 @@ let cur_collectables: Collectable[];
 let game_state: "waiting" | "main" | "lost";
 let turn_offset: number; // always between -1..1
 let exploding_cross_particles: { center: Vec2, turn: number }[];
-let multiplier = 1;
+let multiplier: number;
 
 function restart() {
   if (CONFIG.START_ON_BORDER) {
@@ -258,11 +262,12 @@ function restart() {
   cur_collectables = [];
   cur_collectables = [];
   for (let k = 0; k < CONFIG.N_BOMBS; k++) {
-   cur_collectables.push(placeBomb()); 
+    cur_collectables.push(placeBomb());
   }
   for (let k = 0; k < CONFIG.N_MULTIPLIERS; k++) {
-   cur_collectables.push(placeMultiplier()); 
+    cur_collectables.push(placeMultiplier());
   }
+  cur_collectables.push(new Clock());
   game_state = "waiting";
   turn_offset = 0.99; // always between -1..1
   cur_screen_shake.targetMag = 0;
@@ -296,7 +301,19 @@ class Multiplier {
   ) { }
 }
 
-type Collectable = Bomb | Multiplier;
+class Clock {
+  public pos: Vec2;
+  public active: boolean;
+  public remaining_turns: number;
+
+  constructor() {
+    this.pos = findSpotWithoutWall();
+    this.active = false;
+    this.remaining_turns = CONFIG.CLOCK_FREQUENCY;
+  }
+}
+
+type Collectable = Bomb | Multiplier | Clock;
 
 restart();
 
@@ -508,6 +525,12 @@ function every_frame(cur_timestamp: number) {
       } else if (cur_collectable instanceof Multiplier) {
         multiplier += 1;
         cur_collectables[k] = placeMultiplier();
+      } else if (cur_collectable instanceof Clock) {
+        const clock = cur_collectable;
+        if (clock.active) {
+          clock.remaining_turns = 0;
+          score += 10 * multiplier;
+        }
       } else {
         throw new Error();
       }
@@ -525,6 +548,19 @@ function every_frame(cur_timestamp: number) {
         }
       } else if (cur_collectable instanceof Multiplier) {
         // nothing
+      } else if (cur_collectable instanceof Clock) {
+        const clock = cur_collectable;
+        clock.remaining_turns -= 1;
+        if (clock.remaining_turns <= 0) {
+          if (clock.active) {
+            clock.active = false;
+            clock.remaining_turns = CONFIG.CLOCK_FREQUENCY;
+          } else {
+            clock.pos = findSpotWithoutWall();
+            clock.active = true;
+            clock.remaining_turns = CONFIG.CLOCK_DURATION;
+          }
+        }
       } else {
         throw new Error();
       }
@@ -655,6 +691,11 @@ function draw(bullet_time: boolean) {
         // ctx.fillStyle = COLORS.SHADOW;
         // fillTile(cur_collectable.pos.add(Vec2.both(CONFIG.SHADOW_DIST));
         drawTexture(cur_collectable.pos.add(Vec2.both(CONFIG.SHADOW_DIST)), textures.shadow.multiplier);
+      } else if (cur_collectable instanceof Clock) {
+        const clock = cur_collectable;
+        if (clock.active) {
+          drawTexture(clock.pos, textures.shadow.clock);
+        }
       } else {
         throw new Error();
       }
@@ -842,6 +883,11 @@ function draw(bullet_time: boolean) {
       // ctx.fillStyle = COLORS.MULTIPLIER;
       // fillTile(cur_collectable.pos);
       drawTexture(cur_collectable.pos, textures.multiplier);
+    } else if (cur_collectable instanceof Clock) {
+      const clock = cur_collectable;
+      if (clock.active) {
+        drawTexture(clock.pos, textures.clock);
+      }
     } else {
       throw new Error();
     }
