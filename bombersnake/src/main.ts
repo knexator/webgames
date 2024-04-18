@@ -256,7 +256,13 @@ function restart() {
   score = 0
   input_queue = [];
   cur_collectables = [];
-  cur_collectables = fromCount(CONFIG.N_BOMBS, _ => placeBomb() as Collectable).concat(fromCount(CONFIG.N_MULTIPLIERS, _ => placeMultiplier()));
+  cur_collectables = [];
+  for (let k = 0; k < CONFIG.N_BOMBS; k++) {
+   cur_collectables.push(placeBomb()); 
+  }
+  for (let k = 0; k < CONFIG.N_MULTIPLIERS; k++) {
+   cur_collectables.push(placeMultiplier()); 
+  }
   game_state = "waiting";
   turn_offset = 0.99; // always between -1..1
   cur_screen_shake.targetMag = 0;
@@ -730,9 +736,9 @@ function draw(bullet_time: boolean) {
             ? textures.eye.closed
             : textures.eye.open;
         if (cur_block.in_dir.equal(new Vec2(1, 0))) {
-          drawFlippedTexture(cur_block.pos.add(Vec2.both(.5)), eye_texture);
+          drawFlippedTexture(center, eye_texture);
         } else {
-          drawRotatedTexture(cur_block.pos.add(Vec2.both(.5)), eye_texture,
+          drawRotatedTexture(center, eye_texture,
             Math.atan2(-cur_block.in_dir.y, -cur_block.in_dir.x));
         }
         // drawTexture(cur_block.pos, game_state === "lost" ? textures.eye.KO : textures.eye.open);
