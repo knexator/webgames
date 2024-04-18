@@ -134,6 +134,7 @@ let CONFIG = {
   SCARF: "full" as "no" | "half" | "full",
   SCARF_BORDER_WIDTH: 0,
   HEAD_COLOR: true,
+  START_ON_BORDER: false,
 }
 
 const gui = new GUI();
@@ -164,6 +165,7 @@ gui.add(CONFIG, "SHADOW_DIST", 0, .5);
 gui.add(CONFIG, "SCARF", ["no", "half", "full"]);
 gui.add(CONFIG, "SCARF_BORDER_WIDTH", 0, .5);
 gui.add(CONFIG, "HEAD_COLOR");
+gui.add(CONFIG, "START_ON_BORDER");
 
 // https://lospec.com/palette-list/sweetie-16
 // const COLORS = {
@@ -236,8 +238,19 @@ let exploding_cross_particles: { center: Vec2, turn: number }[];
 let multiplier = 1;
 
 function restart() {
-  turn = 0; // always int
-  head = [{ pos: new Vec2(8, 8), in_dir: new Vec2(0, 0), out_dir: new Vec2(0, 0), t: turn }];
+  if (CONFIG.START_ON_BORDER) {
+    turn = 0;
+    head = [
+      { pos: new Vec2(0, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(0, 0), t: 0 },
+    ];
+  } else {
+    turn = 2;
+    head = [
+      { pos: new Vec2(7, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(1, 0), t: 0 },
+      { pos: new Vec2(8, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(1, 0), t: 1 },
+      { pos: new Vec2(9, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(0, 0), t: 2 },
+    ];
+  }
   score = 0
   input_queue = [];
   cur_collectables = [];
