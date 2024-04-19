@@ -30,7 +30,7 @@ function loadImage(name: string): Promise<HTMLImageElement> {
 
 const textures_async = await Promise.all(["bomb", "clock", "heart", "star"].flatMap(name => [loadImage(name), loadImage(name + 'B')])
   .concat(["open", "KO", "closed"].map(n => loadImage("eye_" + n))));
-const textures = {
+const TEXTURES = {
   bomb: textures_async[0],
   clock: textures_async[2],
   heart: textures_async[4],
@@ -231,7 +231,7 @@ gui.onChange(event => {
 });
 
 let cam_noise = noise.makeNoise3D(0);
-let cur_screen_shake = { x: 0, y: 0, targetMag: 0, actualMag: 0 };
+let cur_screen_shake = { x: 0, y: 0, actualMag: 0 };
 
 let turn: number;
 let snake_blocks: { pos: Vec2, in_dir: Vec2, out_dir: Vec2, t: number }[];
@@ -239,7 +239,7 @@ let score: number;
 let input_queue: Vec2[];
 let cur_collectables: Collectable[];
 let game_state: "waiting" | "main" | "lost";
-let turn_offset: number; // always between -1..1
+let turn_offset: number; // always between 0..1
 let exploding_cross_particles: { center: Vec2, turn: number }[];
 let multiplier: number;
 
@@ -269,8 +269,7 @@ function restart() {
   }
   cur_collectables.push(new Clock());
   game_state = "waiting";
-  turn_offset = 0.99; // always between -1..1
-  cur_screen_shake.targetMag = 0;
+  turn_offset = 0.99; // always between 0..1
   exploding_cross_particles = [];
   multiplier = 1;
 }
@@ -571,8 +570,7 @@ function every_frame(cur_timestamp: number) {
   let cur_shake_phase = cam_noise(last_timestamp * 0.01, 0, 0) * Math.PI;
   cur_screen_shake.x = Math.cos(cur_shake_phase) * cur_shake_mag;
   cur_screen_shake.y = Math.sin(cur_shake_phase) * cur_shake_mag;
-  if (game_state !== "main") cur_screen_shake.targetMag = 0;
-  cur_screen_shake.actualMag = approach(cur_screen_shake.actualMag, cur_screen_shake.targetMag, delta_time * 1000)
+  cur_screen_shake.actualMag = approach(cur_screen_shake.actualMag, 0, delta_time * 1000)
 
   draw(bullet_time);
 
@@ -680,7 +678,7 @@ function draw(bullet_time: boolean) {
       const cur_collectable = cur_collectables[k];
       if (cur_collectable instanceof Bomb) {
         const cur_bomb = cur_collectable;
-        drawTexture(cur_bomb.pos.add(Vec2.both(CONFIG.SHADOW_DIST)), textures.shadow.bomb);
+        drawTexture(cur_bomb.pos.add(Vec2.both(CONFIG.SHADOW_DIST)), TEXTURES.shadow.bomb);
         // ctx.fillStyle = COLORS.SHADOW;
         // fillTile(cur_bomb.pos.add(Vec2.both(CONFIG.SHADOW_DIST)));
         if (cur_bomb.ticking || CONFIG.FUSE_DURATION > 0) {
@@ -690,11 +688,11 @@ function draw(bullet_time: boolean) {
       } else if (cur_collectable instanceof Multiplier) {
         // ctx.fillStyle = COLORS.SHADOW;
         // fillTile(cur_collectable.pos.add(Vec2.both(CONFIG.SHADOW_DIST));
-        drawTexture(cur_collectable.pos.add(Vec2.both(CONFIG.SHADOW_DIST)), textures.shadow.multiplier);
+        drawTexture(cur_collectable.pos.add(Vec2.both(CONFIG.SHADOW_DIST)), TEXTURES.shadow.multiplier);
       } else if (cur_collectable instanceof Clock) {
         const clock = cur_collectable;
         if (clock.active) {
-          drawTexture(clock.pos, textures.shadow.clock);
+          drawTexture(clock.pos, TEXTURES.shadow.clock);
         }
       } else {
         throw new Error();
@@ -772,10 +770,10 @@ function draw(bullet_time: boolean) {
 
         // eye
         let eye_texture = game_state === "lost"
-          ? textures.eye.KO
+          ? TEXTURES.eye.KO
           : false
-            ? textures.eye.closed
-            : textures.eye.open;
+            ? TEXTURES.eye.closed
+            : TEXTURES.eye.open;
         if (cur_block.in_dir.equal(new Vec2(1, 0))) {
           drawFlippedTexture(center, eye_texture);
         } else {
@@ -872,7 +870,7 @@ function draw(bullet_time: boolean) {
     const cur_collectable = cur_collectables[k];
     if (cur_collectable instanceof Bomb) {
       const cur_bomb = cur_collectable;
-      drawTexture(cur_bomb.pos, textures.bomb);
+      drawTexture(cur_bomb.pos, TEXTURES.bomb);
       // ctx.fillStyle = COLORS.BOMB;
       // fillTile(cur_bomb.pos);
       if (cur_bomb.ticking || CONFIG.FUSE_DURATION > 0) {
@@ -882,11 +880,11 @@ function draw(bullet_time: boolean) {
     } else if (cur_collectable instanceof Multiplier) {
       // ctx.fillStyle = COLORS.MULTIPLIER;
       // fillTile(cur_collectable.pos);
-      drawTexture(cur_collectable.pos, textures.multiplier);
+      drawTexture(cur_collectable.pos, TEXTURES.multiplier);
     } else if (cur_collectable instanceof Clock) {
       const clock = cur_collectable;
       if (clock.active) {
-        drawTexture(clock.pos, textures.clock);
+        drawTexture(clock.pos, TEXTURES.clock);
       }
     } else {
       throw new Error();
