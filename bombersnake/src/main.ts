@@ -64,12 +64,12 @@ const SOUNDS = {
     src: ['sounds/music.mp3'],
     autoplay: false,
     loop: true,
-    volume: 0.25,
+    volume: 1,
   }),
   step: new Howl({
     src: ['sounds/step1.wav'],
     // autoplay: true,
-    volume: 0.25,
+    volume: 0,
   }),
   bomb: new Howl({
     src: ['sounds/apple.wav'],
@@ -257,6 +257,8 @@ function restart() {
       { pos: new Vec2(8, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(0, 0), t: 2 },
     ];
   }
+  
+  
   score = 0
   input_queue = [];
   cur_collectables = [];
@@ -377,7 +379,8 @@ function explodeBomb(k: number) {
   exploding_cross_particles.push({ center: cur_bomb.pos, turn: turn });
 
   if (hit_head && CONFIG.PLAYER_CAN_EXPLODE && !CONFIG.CHEAT_INMORTAL) {
-    SOUNDS.crash.play();
+	SOUNDS.crash.play();
+	SOUNDS.music.pause();
     lose();
   }
 }
@@ -386,6 +389,10 @@ let last_timestamp = 0;
 // main loop; game logic lives here
 function every_frame(cur_timestamp: number) {
   // in seconds
+  if (last_timestamp === 0){
+			SOUNDS.music.play();
+		}
+  
   let delta_time = (cur_timestamp - last_timestamp) / 1000;
   last_timestamp = cur_timestamp;
   input.startFrame();
