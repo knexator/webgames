@@ -903,6 +903,14 @@ function draw(bullet_time: boolean) {
   }
 
   ctx.resetTransform();
+
+  // draw borders to hide stuff
+  ctx.fillStyle = "#555";
+  ctx.fillRect(0, 0, canvas_ctx.width, (MARGIN - CONFIG.DRAW_WRAP) * TILE_SIZE);
+  ctx.fillRect(0, 0, (MARGIN - CONFIG.DRAW_WRAP) * TILE_SIZE, canvas_ctx.height);
+  ctx.fillRect(0, canvas_ctx.height - (MARGIN - CONFIG.DRAW_WRAP) * TILE_SIZE, canvas_ctx.width, (MARGIN - CONFIG.DRAW_WRAP) * TILE_SIZE);
+  ctx.fillRect(canvas_ctx.width - (MARGIN - CONFIG.DRAW_WRAP) * TILE_SIZE, 0, (MARGIN - CONFIG.DRAW_WRAP) * TILE_SIZE, canvas_ctx.height);
+
   ctx.font = '30px sans-serif';
   ctx.textAlign = "center";
   ctx.fillStyle = COLORS.TEXT;
@@ -912,15 +920,23 @@ function draw(bullet_time: boolean) {
     ctx.fillText(`Score: ${score}`, canvas_ctx.width / 2, (MARGIN + BOARD_SIZE.y / 4) * TILE_SIZE);
     // ctx.fillText("", canvas.width / 2, canvas.height / 2);
   } else if (game_state === "main") {
-    ctx.fillText(`${score}`, MARGIN * TILE_SIZE + TILE_SIZE / 2, MARGIN * TILE_SIZE + TILE_SIZE * .8);
+    // nothing
   }
 
-  // draw borders to hide stuff
-  ctx.fillStyle = "#555";
-  ctx.fillRect(0, 0, canvas_ctx.width, (MARGIN - CONFIG.DRAW_WRAP) * TILE_SIZE);
-  ctx.fillRect(0, 0, (MARGIN - CONFIG.DRAW_WRAP) * TILE_SIZE, canvas_ctx.height);
-  ctx.fillRect(0, canvas_ctx.height - (MARGIN - CONFIG.DRAW_WRAP) * TILE_SIZE, canvas_ctx.width, (MARGIN - CONFIG.DRAW_WRAP) * TILE_SIZE);
-  ctx.fillRect(canvas_ctx.width - (MARGIN - CONFIG.DRAW_WRAP) * TILE_SIZE, 0, (MARGIN - CONFIG.DRAW_WRAP) * TILE_SIZE, canvas_ctx.height);
+
+  // draw UI bar
+  ctx.translate((MARGIN - CONFIG.DRAW_WRAP) * TILE_SIZE, (MARGIN - CONFIG.DRAW_WRAP - 1 - .2) * TILE_SIZE);
+  ctx.fillStyle = "black";
+  ctx.fillRect(0, 0, BOARD_SIZE.x * TILE_SIZE, TILE_SIZE);
+  ctx.fillStyle = "white";
+  ctx.font = '30px sans-serif';
+  ctx.textAlign = "left";
+  ctx.textBaseline = "bottom";
+  ctx.fillStyle = COLORS.TEXT;
+  ctx.fillText(`Score: ${score}`, .2 * TILE_SIZE, TILE_SIZE);
+  ctx.drawImage(TEXTURES.multiplier, 12.5 * TILE_SIZE, 0);
+  ctx.fillText(`x${multiplier}`, 13.6 * TILE_SIZE, TILE_SIZE);
+
 }
 
 function lose() {
