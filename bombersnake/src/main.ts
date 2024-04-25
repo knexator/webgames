@@ -885,6 +885,20 @@ function draw(bullet_time: boolean) {
       const clock = cur_collectable;
       if (clock.active) {
         drawTexture(clock.pos, TEXTURES.clock);
+        ctx.strokeStyle = "black";
+        ctx.beginPath();
+        const center = clock.pos.add(Vec2.both(.5));
+        const hand_delta = Vec2.fromTurns(
+          remap(clock.remaining_turns - turn_offset, 0, CONFIG.CLOCK_DURATION, -1 / 4, -5 / 4)
+        ).scale(.3);
+        moveTo(center.scale(TILE_SIZE));
+        lineTo(center.add(hand_delta).scale(TILE_SIZE));
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.fillStyle = "black";
+        drawCircleNoWrap(center, .05);
+        drawCircleNoWrap(center.add(hand_delta), .05);
+        ctx.fill();
       }
     } else {
       throw new Error();
