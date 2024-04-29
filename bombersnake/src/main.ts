@@ -241,6 +241,7 @@ let cur_collectables: Collectable[];
 let game_state: "waiting" | "main" | "lost";
 let turn_offset: number; // always between 0..1
 let exploding_cross_particles: { center: Vec2, turn: number }[];
+let collected_stuff_particles: { center: Vec2, text: string, turn: number }[];
 let multiplier: number;
 
 function restart() {
@@ -271,6 +272,7 @@ function restart() {
   game_state = "waiting";
   turn_offset = 0.99; // always between 0..1
   exploding_cross_particles = [];
+  collected_stuff_particles = [];
   multiplier = 1;
 }
 
@@ -372,6 +374,7 @@ function explodeBomb(k: number) {
   cur_collectables[k] = placeBomb();
   cur_screen_shake.actualMag = 5.0;
   score += multiplier;
+  collected_stuff_particles.push({ center: cur_bomb.pos, text: '+' + multiplier.toString(), turn: turn });
   SOUNDS.bomb.play();
   exploding_cross_particles.push({ center: cur_bomb.pos, turn: turn });
 
@@ -505,6 +508,8 @@ function every_frame(cur_timestamp: number) {
       SOUNDS.crash.play();
       lose()
     }
+
+    // collect collectables
     for (let k = 0; k < cur_collectables.length; k++) {
       const cur_collectable = cur_collectables[k];
       if (!new_block.pos.equal(cur_collectable.pos)) continue;
@@ -523,12 +528,15 @@ function every_frame(cur_timestamp: number) {
         }
       } else if (cur_collectable instanceof Multiplier) {
         multiplier += 1;
+        collected_stuff_particles.push({ center: cur_collectable.pos, text: 'x' + multiplier.toString(), turn: turn });
         cur_collectables[k] = placeMultiplier();
       } else if (cur_collectable instanceof Clock) {
         const clock = cur_collectable;
         if (clock.active) {
+          let clock_score = 4 + multiplier;
+          collected_stuff_particles.push({ center: cur_collectable.pos, text: '+' + clock_score.toString(), turn: turn });
           clock.remaining_turns = 0;
-          score += 10 * multiplier;
+          score += clock_score;
         }
       } else {
         throw new Error();
@@ -904,6 +912,16 @@ function draw(bullet_time: boolean) {
       throw new Error();
     }
   }
+
+  // won points particles
+  ctx.fillStyle = COLORS.TEXT;
+  collected_stuff_particles = collected_stuff_particles.filter(particle => {
+    let t = remap(turn + turn_offset, particle.turn, particle.turn + 3, 0, 1);
+    if (t > 1) return false;
+    let dx = particle.center.x > BOARD_SIZE.x - 2 ? -1 : 1;
+    ctx.fillText(particle.text, (particle.center.x + dx) * TILE_SIZE, (particle.center.y + 1 - t * 1.5) * TILE_SIZE);
+    return true;
+  });
 
   // draw gridlines
   if (CONFIG.GRIDLINE && CONFIG.GRIDLINE_OVER) {
