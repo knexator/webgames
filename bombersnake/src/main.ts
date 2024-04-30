@@ -48,7 +48,7 @@ const TEXTURES = {
   }
 };
 
-function soundUrl(name: string) : string {
+function soundUrl(name: string): string {
   return new URL(`./sounds/${name}`, import.meta.url).href;
 }
 
@@ -418,6 +418,9 @@ function startTickTockSound(): void {
   tick_or_tock = false;
   SOUNDS.tick.play();
   SOUNDS.music.fade(SOUNDS.music.volume(), CONFIG.MUSIC_DURING_TICKTOCK * CONFIG.MUSIC_VOLUME, .3);
+  [SOUNDS.bomb, SOUNDS.star].forEach(x => {
+    x.fade(x.volume(), CONFIG.MUSIC_DURING_TICKTOCK, .3);
+  })
   tick_tock_interval_id = setInterval(() => {
     (tick_or_tock ? SOUNDS.tick : SOUNDS.tock).play();
     tick_or_tock = !tick_or_tock;
@@ -426,6 +429,9 @@ function startTickTockSound(): void {
 function stopTickTockSound(): void {
   if (tick_tock_interval_id !== null) {
     SOUNDS.music.fade(SOUNDS.music.volume(), CONFIG.MUSIC_VOLUME, .3);
+    [SOUNDS.bomb, SOUNDS.star].forEach(x => {
+      x.fade(x.volume(), 1, .3);
+    })
     clearInterval(tick_tock_interval_id);
     tick_tock_interval_id = null;
   }
