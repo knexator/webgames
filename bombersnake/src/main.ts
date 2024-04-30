@@ -976,11 +976,18 @@ function draw(bullet_time: boolean) {
   }
 
   // won points particles
-  ctx.fillStyle = COLORS.TEXT;
   collected_stuff_particles = collected_stuff_particles.filter(particle => {
     let t = remap(turn + turn_offset, particle.turn, particle.turn + 3, 0, 1);
     if (t > 1) return false;
     let dx = particle.center.x > BOARD_SIZE.x - 2 ? -1 : 1;
+    // text outline:
+    // ctx.strokeStyle = "black";
+    // ctx.strokeText(particle.text, (particle.center.x + dx) * TILE_SIZE, (particle.center.y + 1 - t * 1.5) * TILE_SIZE);
+    // text shadow
+    // ctx.fillStyle = "black";
+    // ctx.fillText(particle.text, (particle.center.x + dx + CONFIG.SHADOW_DIST) * TILE_SIZE, (particle.center.y + 1 - t * 1.5 + CONFIG.SHADOW_DIST) * TILE_SIZE);
+    // the text itself
+    ctx.fillStyle = COLORS.TEXT;
     ctx.fillText(particle.text, (particle.center.x + dx) * TILE_SIZE, (particle.center.y + 1 - t * 1.5) * TILE_SIZE);
     return true;
   });
