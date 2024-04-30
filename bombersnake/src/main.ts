@@ -48,6 +48,10 @@ const TEXTURES = {
   }
 };
 
+function soundUrl(name: string) : string {
+  return new URL(`./sounds/${name}`, import.meta.url).href;
+}
+
 const BOARD_SIZE = new Vec2(16, 16);
 const MARGIN = 5;
 
@@ -158,39 +162,39 @@ gui.add(CONFIG, "EXPLOSION_CIRCLE");
 
 const SOUNDS = {
   music: new Howl({
-    src: ['sounds/music.ogg'],
+    src: [soundUrl('music.ogg')],
     autoplay: true,
     loop: true,
     volume: CONFIG.MUSIC_VOLUME,
   }),
   step: new Howl({
-    src: ['sounds/step1.wav'],
+    src: [soundUrl('step1.wav')],
     // autoplay: true,
     volume: 0,
   }),
   bomb: new Howl({
-    src: ['sounds/apple.wav'],
+    src: [soundUrl('apple.wav')],
     volume: 1.0,
   }),
   crash: new Howl({
-    src: ['sounds/crash.wav'],
+    src: [soundUrl('crash.wav')],
     volume: 1.0,
   }),
   star: new Howl({
-    src: ['sounds/star.wav'],
+    src: [soundUrl('star.wav')],
     volume: 1.0,
   }),
   clock: new Howl({
-    src: ['sounds/clock.wav'],
+    src: [soundUrl('clock.wav')],
     volume: 1.0,
   }),
   tick: new Howl({
-    src: ['sounds/tick.mp3'],
-    volume: 1.0,
+    src: [soundUrl('tick.mp3')],
+    volume: 1.5,
   }),
   tock: new Howl({
-    src: ['sounds/tock.mp3'],
-    volume: 1.0,
+    src: [soundUrl('tock.mp3')],
+    volume: 1.5,
   }),
 };
 
