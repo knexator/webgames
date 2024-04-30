@@ -59,36 +59,6 @@ const TILE_SIZE = 32;
   container.style.height = `${TILE_SIZE * (BOARD_SIZE.x + MARGIN * 2)}px`
 }
 
-const SOUNDS = {
-  music: new Howl({
-    src: ['sounds/music.ogg'],
-    autoplay: true,
-    loop: true,
-    volume: 0.5,
-  }),
-  step: new Howl({
-    src: ['sounds/step1.wav'],
-    // autoplay: true,
-    volume: 0,
-  }),
-  bomb: new Howl({
-    src: ['sounds/apple.wav'],
-    volume: 1.0,
-  }),
-  crash: new Howl({
-    src: ['sounds/crash.wav'],
-    volume: 1.0,
-  }),
-  star: new Howl({
-    src: ['sounds/star.wav'],
-    volume: 1.0,
-  }),
-  clock: new Howl({
-    src: ['sounds/clock.wav'],
-    volume: 1.0,
-  }),
-};
-
 // let CONFIG = {
 //   PAUSED: false,
 //   TURN_DURATION: .15,
@@ -124,6 +94,9 @@ let CONFIG = {
   N_MULTIPLIERS: 1,
   CLOCK_DURATION: 10,
   CLOCK_FREQUENCY: 20,
+  TICKTOCK_SPEED: 400,
+  MUSIC_VOLUME: .5,
+  MUSIC_DURING_TICKTOCK: .6,
   LUCK: 5,
   SLOWDOWN: 3,
   TOTAL_SLOWDOWN: false,
@@ -156,7 +129,9 @@ gui.add(CONFIG, "FUSE_DURATION", 0, 10, 1);
 gui.add(CONFIG, "N_BOMBS", 1, 6, 1);
 gui.add(CONFIG, "N_MULTIPLIERS", 1, 2, 1);
 gui.add(CONFIG, "CLOCK_DURATION", 1, 100, 1);
-gui.add(CONFIG, "CLOCK_FREQUENCY", 1, 1000, 1);
+gui.add(CONFIG, "CLOCK_FREQUENCY", 1, 100, 1);
+gui.add(CONFIG, "TICKTOCK_SPEED", 300, 600);
+gui.add(CONFIG, "MUSIC_DURING_TICKTOCK", 0, 1);
 gui.add(CONFIG, "LUCK", 1, 15, 1);
 gui.add(CONFIG, "PLAYER_CAN_EXPLODE");
 gui.add(CONFIG, "SLOWDOWN", 1, 10);
@@ -180,6 +155,45 @@ gui.add(CONFIG, "SCARF_BORDER_WIDTH", 0, .5);
 gui.add(CONFIG, "HEAD_COLOR");
 gui.add(CONFIG, "START_ON_BORDER");
 gui.add(CONFIG, "EXPLOSION_CIRCLE");
+
+const SOUNDS = {
+  music: new Howl({
+    src: ['sounds/music.ogg'],
+    autoplay: true,
+    loop: true,
+    volume: CONFIG.MUSIC_VOLUME,
+  }),
+  step: new Howl({
+    src: ['sounds/step1.wav'],
+    // autoplay: true,
+    volume: 0,
+  }),
+  bomb: new Howl({
+    src: ['sounds/apple.wav'],
+    volume: 1.0,
+  }),
+  crash: new Howl({
+    src: ['sounds/crash.wav'],
+    volume: 1.0,
+  }),
+  star: new Howl({
+    src: ['sounds/star.wav'],
+    volume: 1.0,
+  }),
+  clock: new Howl({
+    src: ['sounds/clock.wav'],
+    volume: 1.0,
+  }),
+  tick: new Howl({
+    src: ['sounds/tick.mp3'],
+    volume: 1.0,
+  }),
+  tock: new Howl({
+    src: ['sounds/tock.mp3'],
+    volume: 1.0,
+  }),
+};
+
 
 // https://lospec.com/palette-list/sweetie-16
 // const COLORS = {
@@ -240,6 +254,7 @@ gui.onChange(event => {
 
 let cam_noise = noise.makeNoise3D(0);
 let cur_screen_shake = { x: 0, y: 0, actualMag: 0 };
+let tick_tock_interval_id: number | null = null;
 
 let turn: number;
 let snake_blocks: { pos: Vec2, in_dir: Vec2, out_dir: Vec2, t: number }[];
@@ -251,8 +266,10 @@ let turn_offset: number; // always between 0..1
 let exploding_cross_particles: { center: Vec2, turn: number }[];
 let collected_stuff_particles: { center: Vec2, text: string, turn: number }[];
 let multiplier: number;
+let tick_or_tock: boolean = false;
 
 function restart() {
+  stopTickTockSound();
   if (CONFIG.START_ON_BORDER) {
     turn = 0;
     snake_blocks = [
@@ -282,6 +299,7 @@ function restart() {
   exploding_cross_particles = [];
   collected_stuff_particles = [];
   multiplier = 1;
+  tick_or_tock = false;
 }
 
 const triangle_pattern: CanvasPattern = await new Promise(resolve => {
@@ -392,6 +410,23 @@ function explodeBomb(k: number) {
   }
 }
 
+function startTickTockSound(): void {
+  tick_or_tock = false;
+  SOUNDS.tick.play();
+  SOUNDS.music.fade(SOUNDS.music.volume(), CONFIG.MUSIC_DURING_TICKTOCK * CONFIG.MUSIC_VOLUME, .3);
+  tick_tock_interval_id = setInterval(() => {
+    (tick_or_tock ? SOUNDS.tick : SOUNDS.tock).play();
+    tick_or_tock = !tick_or_tock;
+  }, CONFIG.TICKTOCK_SPEED);
+}
+function stopTickTockSound(): void {
+  if (tick_tock_interval_id !== null) {
+    SOUNDS.music.fade(SOUNDS.music.volume(), CONFIG.MUSIC_VOLUME, .3);
+    clearInterval(tick_tock_interval_id);
+    tick_tock_interval_id = null;
+  }
+}
+
 let last_timestamp = 0;
 // main loop; game logic lives here
 function every_frame(cur_timestamp: number) {
@@ -424,6 +459,10 @@ function every_frame(cur_timestamp: number) {
 
   if (input.keyboard.wasPressed(KeyCode.KeyR)) {
     restart();
+  }
+
+  if (input.keyboard.wasPressed(KeyCode.KeyM)) {
+    SOUNDS.music.mute(!SOUNDS.music.mute());
   }
 
 
@@ -538,7 +577,7 @@ function every_frame(cur_timestamp: number) {
         multiplier += 1;
         collected_stuff_particles.push({ center: cur_collectable.pos, text: 'x' + multiplier.toString(), turn: turn });
         cur_collectables[k] = placeMultiplier();
-		SOUNDS.star.play();
+        SOUNDS.star.play();
       } else if (cur_collectable instanceof Clock) {
         const clock = cur_collectable;
         if (clock.active) {
@@ -546,7 +585,8 @@ function every_frame(cur_timestamp: number) {
           collected_stuff_particles.push({ center: cur_collectable.pos, text: '+' + clock_score.toString(), turn: turn });
           clock.remaining_turns = 0;
           score += clock_score;
-		  SOUNDS.clock.play();
+          SOUNDS.clock.play();
+          stopTickTockSound();
         }
       } else {
         throw new Error();
@@ -572,10 +612,12 @@ function every_frame(cur_timestamp: number) {
           if (clock.active) {
             clock.active = false;
             clock.remaining_turns = CONFIG.CLOCK_FREQUENCY;
+            stopTickTockSound();
           } else {
             clock.pos = findSpotWithoutWall();
             clock.active = true;
             clock.remaining_turns = CONFIG.CLOCK_DURATION;
+            startTickTockSound();
           }
         }
       } else {
@@ -982,6 +1024,7 @@ function draw(bullet_time: boolean) {
 }
 
 function lose() {
+  stopTickTockSound();
   game_state = "lost";
 }
 
