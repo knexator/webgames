@@ -61,15 +61,15 @@ const TILE_SIZE = 32;
 
 const SOUNDS = {
   music: new Howl({
-    src: ['sounds/music.mp3'],
-    autoplay: false,
+    src: ['sounds/music.ogg'],
+    autoplay: true,
     loop: true,
-    volume: 0.25,
+    volume: 0.5,
   }),
   step: new Howl({
     src: ['sounds/step1.wav'],
     // autoplay: true,
-    volume: 0.25,
+    volume: 0,
   }),
   bomb: new Howl({
     src: ['sounds/apple.wav'],
@@ -77,6 +77,14 @@ const SOUNDS = {
   }),
   crash: new Howl({
     src: ['sounds/crash.wav'],
+    volume: 1.0,
+  }),
+  star: new Howl({
+    src: ['sounds/star.wav'],
+    volume: 1.0,
+  }),
+  clock: new Howl({
+    src: ['sounds/clock.wav'],
     volume: 1.0,
   }),
 };
@@ -530,6 +538,7 @@ function every_frame(cur_timestamp: number) {
         multiplier += 1;
         collected_stuff_particles.push({ center: cur_collectable.pos, text: 'x' + multiplier.toString(), turn: turn });
         cur_collectables[k] = placeMultiplier();
+		SOUNDS.star.play();
       } else if (cur_collectable instanceof Clock) {
         const clock = cur_collectable;
         if (clock.active) {
@@ -537,6 +546,7 @@ function every_frame(cur_timestamp: number) {
           collected_stuff_particles.push({ center: cur_collectable.pos, text: '+' + clock_score.toString(), turn: turn });
           clock.remaining_turns = 0;
           score += clock_score;
+		  SOUNDS.clock.play();
         }
       } else {
         throw new Error();
