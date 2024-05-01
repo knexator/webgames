@@ -96,11 +96,11 @@ let CONFIG = {
   PLAYER_CAN_EXPLODE: false,
   N_BOMBS: 3,
   N_MULTIPLIERS: 1,
-  CLOCK_DURATION: 10,
-  CLOCK_FREQUENCY: 20,
+  CLOCK_DURATION: 20,
+  CLOCK_FREQUENCY: 50,
   TICKTOCK_SPEED: 400,
   MUSIC_VOLUME: .5,
-  MUSIC_DURING_TICKTOCK: .6,
+  MUSIC_DURING_TICKTOCK: .15,
   LUCK: 5,
   SLOWDOWN: 3,
   TOTAL_SLOWDOWN: false,
@@ -117,7 +117,7 @@ let CONFIG = {
   CHECKERED_SNAKE: true,
   CHECKERED_BACKGROUND: "3" as "no" | "2" | "3",
   SHADOW: true,
-  SHADOW_DIST: .1,
+  SHADOW_DIST: .2,
   SCARF: "full" as "no" | "half" | "full",
   SCARF_BORDER_WIDTH: 0,
   HEAD_COLOR: true,
@@ -174,7 +174,7 @@ const SOUNDS = {
   }),
   bomb: new Howl({
     src: [soundUrl('apple.wav')],
-    volume: 1.0,
+    volume: 0,
   }),
   crash: new Howl({
     src: [soundUrl('crash.wav')],
@@ -182,19 +182,19 @@ const SOUNDS = {
   }),
   star: new Howl({
     src: [soundUrl('star.wav')],
-    volume: 1.0,
+    volume: 5,
   }),
   clock: new Howl({
     src: [soundUrl('clock.wav')],
-    volume: 1.0,
+    volume: 1.5,
   }),
   tick: new Howl({
     src: [soundUrl('tick.mp3')],
-    volume: 1.5,
+    volume: 2,
   }),
   tock: new Howl({
     src: [soundUrl('tock.mp3')],
-    volume: 1.5,
+    volume: 2,
   }),
 };
 
@@ -429,9 +429,11 @@ function startTickTockSound(): void {
 function stopTickTockSound(): void {
   if (tick_tock_interval_id !== null) {
     SOUNDS.music.fade(SOUNDS.music.volume(), CONFIG.MUSIC_VOLUME, .3);
-    [SOUNDS.bomb, SOUNDS.star].forEach(x => {
-      x.fade(x.volume(), 1, .3);
-    })
+	SOUNDS.bomb.fade(SOUNDS.music.volume(), SOUNDS.bomb.volume(), .3);
+	SOUNDS.star.fade(SOUNDS.music.volume(), SOUNDS.star.volume(), .3);
+    /*[SOUNDS.bomb, SOUNDS.star].forEach(x => {
+      x.fade(x.volume(), CONFIG.MUSIC_VOLUME, .3);
+    })*/
     clearInterval(tick_tock_interval_id);
     tick_tock_interval_id = null;
   }
