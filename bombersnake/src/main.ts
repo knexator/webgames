@@ -99,7 +99,6 @@ let CONFIG = {
   CLOCK_DURATION: 20,
   CLOCK_FREQUENCY: 50,
   TICKTOCK_SPEED: 400,
-  MUSIC_VOLUME: .5,
   MUSIC_DURING_TICKTOCK: .15,
   LUCK: 5,
   SLOWDOWN: 3,
@@ -165,7 +164,7 @@ const SOUNDS = {
     src: [soundUrl('music.ogg')],
     autoplay: true,
     loop: true,
-    volume: CONFIG.MUSIC_VOLUME,
+    volume: .5,
   }),
   step: new Howl({
     src: [soundUrl('step1.wav')],
@@ -198,6 +197,7 @@ const SOUNDS = {
   }),
 };
 
+const INITIAL_VOLUME = objectMap(SOUNDS, x => x.volume());
 
 // https://lospec.com/palette-list/sweetie-16
 // const COLORS = {
@@ -417,10 +417,9 @@ function explodeBomb(k: number) {
 function startTickTockSound(): void {
   tick_or_tock = false;
   SOUNDS.tick.play();
-  SOUNDS.music.fade(SOUNDS.music.volume(), CONFIG.MUSIC_DURING_TICKTOCK * CONFIG.MUSIC_VOLUME, .3);
-  [SOUNDS.bomb, SOUNDS.star].forEach(x => {
-    x.fade(x.volume(), CONFIG.MUSIC_DURING_TICKTOCK, .3);
-  })
+  SOUNDS.music.fade(SOUNDS.music.volume(), CONFIG.MUSIC_DURING_TICKTOCK * INITIAL_VOLUME.music, .3);
+  SOUNDS.bomb.fade(SOUNDS.bomb.volume(), CONFIG.MUSIC_DURING_TICKTOCK * INITIAL_VOLUME.bomb, .3);
+  SOUNDS.star.fade(SOUNDS.star.volume(), CONFIG.MUSIC_DURING_TICKTOCK * INITIAL_VOLUME.star, .3);
   tick_tock_interval_id = setInterval(() => {
     (tick_or_tock ? SOUNDS.tick : SOUNDS.tock).play();
     tick_or_tock = !tick_or_tock;
@@ -428,12 +427,9 @@ function startTickTockSound(): void {
 }
 function stopTickTockSound(): void {
   if (tick_tock_interval_id !== null) {
-    SOUNDS.music.fade(SOUNDS.music.volume(), CONFIG.MUSIC_VOLUME, .3);
-	SOUNDS.bomb.fade(SOUNDS.music.volume(), SOUNDS.bomb.volume(), .3);
-	SOUNDS.star.fade(SOUNDS.music.volume(), SOUNDS.star.volume(), .3);
-    /*[SOUNDS.bomb, SOUNDS.star].forEach(x => {
-      x.fade(x.volume(), CONFIG.MUSIC_VOLUME, .3);
-    })*/
+    SOUNDS.music.fade(SOUNDS.music.volume(), INITIAL_VOLUME.music, .3);
+    SOUNDS.bomb.fade(SOUNDS.bomb.volume(), INITIAL_VOLUME.bomb, .3);
+    SOUNDS.star.fade(SOUNDS.star.volume(), INITIAL_VOLUME.star, .3);
     clearInterval(tick_tock_interval_id);
     tick_tock_interval_id = null;
   }
