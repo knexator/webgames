@@ -53,9 +53,10 @@ function soundUrl(name: string): string {
 }
 
 const BOARD_SIZE = new Vec2(16, 16);
-const MARGIN = 5;
+const MARGIN = 2;
 
 const TILE_SIZE = 32;
+const SWIPE_DIST = TILE_SIZE * 2;
 
 {
   const container = document.querySelector("#canvas_container") as HTMLElement;
@@ -140,7 +141,7 @@ gui.add(CONFIG, "PLAYER_CAN_EXPLODE");
 gui.add(CONFIG, "SLOWDOWN", 1, 10);
 gui.add(CONFIG, "TOTAL_SLOWDOWN");
 gui.add(CONFIG, "ALWAYS_SLOWDOWN");
-gui.add(CONFIG, "DRAW_WRAP", 0, 5, 1);
+gui.add(CONFIG, "DRAW_WRAP", 0, MARGIN, 1);
 gui.add(CONFIG, "DRAW_PATTERN");
 gui.add(CONFIG, "DRAW_SNAKE_BORDER");
 gui.add(CONFIG, "BORDER_SIZE", 0, .5);
@@ -158,6 +159,7 @@ gui.add(CONFIG, "SCARF_BORDER_WIDTH", 0, .5);
 gui.add(CONFIG, "HEAD_COLOR");
 gui.add(CONFIG, "START_ON_BORDER");
 gui.add(CONFIG, "EXPLOSION_CIRCLE");
+gui.hide();
 
 const SOUNDS = {
   music: new Howl({
@@ -270,7 +272,8 @@ let turn_offset: number; // always between 0..1
 let exploding_cross_particles: { center: Vec2, turn: number }[];
 let collected_stuff_particles: { center: Vec2, text: string, turn: number }[];
 let multiplier: number;
-let tick_or_tock: boolean = false;
+let tick_or_tock: boolean;
+let touch_input_base_point: Vec2 | null;
 
 function restart() {
   stopTickTockSound();
@@ -304,6 +307,7 @@ function restart() {
   collected_stuff_particles = [];
   multiplier = 1;
   tick_or_tock = false;
+  touch_input_base_point = null;
 }
 
 const triangle_pattern: CanvasPattern = await new Promise(resolve => {
@@ -456,14 +460,18 @@ function every_frame(cur_timestamp: number) {
     CONFIG.PAUSED = !CONFIG.PAUSED;
   }
 
+  if (input.keyboard.wasPressed(KeyCode.KeyH)) {
+    gui.show(gui._hidden);
+  }
+
   if (CONFIG.PAUSED) {
     draw(false);
     animation_id = requestAnimationFrame(every_frame);
     return;
   }
 
-  // const rect = canvas_ctx.getBoundingClientRect();
-  // const raw_mouse_pos = new Vec2(input.mouse.clientX - rect.left, input.mouse.clientY - rect.top);
+  const rect = canvas_ctx.getBoundingClientRect();
+  const raw_mouse_pos = new Vec2(input.mouse.clientX - rect.left - MARGIN * TILE_SIZE, input.mouse.clientY - rect.top - MARGIN * TILE_SIZE);
 
   if (input.keyboard.wasPressed(KeyCode.KeyR)) {
     restart();
@@ -473,6 +481,20 @@ function every_frame(cur_timestamp: number) {
     SOUNDS.music.mute(!SOUNDS.music.mute());
   }
 
+  if (input.mouse.isDown(MouseButton.Left)) {
+    if (touch_input_base_point === null) {
+      touch_input_base_point = raw_mouse_pos;
+    } else {
+      const delta = raw_mouse_pos.sub(touch_input_base_point);
+      if (delta.mag() > SWIPE_DIST) {
+        input_queue.push(roundToCardinalDirection(delta));
+        touch_input_base_point = raw_mouse_pos;
+      }
+    }
+    if (game_state === "waiting") game_state = "main"
+  } else {
+    touch_input_base_point = null;
+  }
 
   if ([
     KeyCode.KeyW, KeyCode.ArrowUp,
@@ -1102,6 +1124,14 @@ if (loading_screen_element) {
   }, { once: true });
 } else {
   animation_id = requestAnimationFrame(every_frame);
+}
+
+function roundToCardinalDirection(v: Vec2): Vec2 {
+  if (Math.abs(v.x) > Math.abs(v.y)) {
+    return new Vec2(Math.sign(v.x), 0);
+  } else {
+    return new Vec2(0, Math.sign(v.y));
+  }
 }
 
 function modVec2(value: Vec2, bounds: Vec2) {

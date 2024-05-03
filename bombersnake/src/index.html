@@ -14,7 +14,7 @@
             margin: 0;
             overscroll-behavior: contain;
             background-color: #555;
-
+            touch-action: none;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -58,7 +58,7 @@
             outline: none;
         }
 
-        @media (max-aspect-ratio: 16/9) {
+        /* @media (max-aspect-ratio: 16/9) {
             #canvas_container {
                 max-height: calc(100vw * 9 / 16);
             }
@@ -68,7 +68,7 @@
             #canvas_container {
                 max-width: calc(100vh * 16 / 9);
             }
-        }
+        } */
     </style>
     <script defer type="module" src="main.ts"></script>
 </head>
