@@ -227,8 +227,8 @@ const INITIAL_VOLUME = objectMap(SOUNDS, x => x.volume());
 
 const COLORS = {
   BORDER: "#8ccbf2",
-  BACKGROUND: "#173232",
-  BACKGROUND_2: "#203c3c",
+  BACKGROUND: "#203c3c",
+  BACKGROUND_2: "#253d3d",
   BACKGROUND_3: "#213636",
   BOMB: "#dd4646",
   TEXT: "#f4f4f4",
