@@ -108,7 +108,7 @@ let CONFIG = {
   CLOCK_DURATION: 20,
   CLOCK_FREQUENCY: 50,
   TICKTOCK_SPEED: 400,
-  MUSIC_DURING_TICKTOCK: .15,
+  MUSIC_DURING_TICKTOCK: .2,
   LUCK: 5,
   SLOWDOWN: 3,
   TOTAL_SLOWDOWN: false,
@@ -176,14 +176,14 @@ const SOUNDS = {
     loop: true,
     volume: .5,
   }),
-  step: new Howl({
-    src: [soundUrl('step1.wav')],
+  hiss1: new Howl({
+    src: [soundUrl('hiss.wav')],
     // autoplay: true,
-    volume: 0,
+    volume: 1,
   }),
   bomb: new Howl({
     src: [soundUrl('apple.wav')],
-    volume: 0,
+    volume: 0.7,
   }),
   crash: new Howl({
     src: [soundUrl('crash.wav')],
@@ -191,19 +191,19 @@ const SOUNDS = {
   }),
   star: new Howl({
     src: [soundUrl('star.wav')],
-    volume: 5,
+    volume: 2.5,
   }),
   clock: new Howl({
     src: [soundUrl('clock.wav')],
-    volume: 1.5,
+    volume: 2.2,
   }),
   tick: new Howl({
     src: [soundUrl('tick.mp3')],
-    volume: 2,
+    volume: 2.5,
   }),
   tock: new Howl({
     src: [soundUrl('tock.mp3')],
-    volume: 2,
+    volume: 2.5,
   }),
 };
 
@@ -511,7 +511,7 @@ function every_frame(cur_timestamp: number) {
     KeyCode.KeyA, KeyCode.ArrowLeft,
     KeyCode.KeyS, KeyCode.ArrowDown,
     KeyCode.KeyD, KeyCode.ArrowRight,
-  ].some(k => CONFIG.ALWAYS_SLOWDOWN ? input.keyboard.wasReleased(k) : input.keyboard.wasPressed(k))) {
+  ].some(k => CONFIG.ALWAYS_SLOWDOWN ? input.keyboard.wasReleased(k) : input.keyboard.wasPressed(k))) {  
     // if (game_state === "lost") {
     //   restart();
     // }
@@ -524,7 +524,9 @@ function every_frame(cur_timestamp: number) {
       (btnp([KeyCode.KeyS, KeyCode.ArrowDown]) ? 1 : 0)
       - (btnp([KeyCode.KeyW, KeyCode.ArrowUp]) ? 1 : 0),
     ));
-    if (game_state === "waiting") game_state = "main"
+	
+    
+	if (game_state === "waiting") game_state = "main"
   }
 
   let bullet_time = input.keyboard.isDown(KeyCode.Space);
@@ -551,7 +553,7 @@ function every_frame(cur_timestamp: number) {
   while (Math.abs(turn_offset) >= 1) {
     turn_offset -= 1
     turn += 1
-    SOUNDS.step.play();
+    //SOUNDS.step.play();
 
     // do turn
     let last_block = snake_blocks[snake_blocks.length - 1];
@@ -621,7 +623,7 @@ function every_frame(cur_timestamp: number) {
       } else if (cur_collectable instanceof Clock) {
         const clock = cur_collectable;
         if (clock.active) {
-          let clock_score = 4 + multiplier;
+          let clock_score = 3 * multiplier;
           collected_stuff_particles.push({ center: cur_collectable.pos, text: '+' + clock_score.toString(), turn: turn });
           clock.remaining_turns = 0;
           score += clock_score;
@@ -653,6 +655,7 @@ function every_frame(cur_timestamp: number) {
             clock.active = false;
             clock.remaining_turns = CONFIG.CLOCK_FREQUENCY;
             stopTickTockSound();
+			//SOUNDS.clock_end.play();
           } else {
             clock.pos = findSpotWithoutWall();
             clock.active = true;
@@ -1010,14 +1013,16 @@ function draw(bullet_time: boolean) {
     let t = remap(turn + turn_offset, particle.turn, particle.turn + 3, 0, 1);
     if (t > 1) return false;
     let dx = particle.center.x > BOARD_SIZE.x - 2 ? -1 : 1;
-    // text outline:
+    ctx.font = "bold 25px sans-serif";
+	// text outline:
     // ctx.strokeStyle = "black";
     // ctx.strokeText(particle.text, (particle.center.x + dx) * TILE_SIZE, (particle.center.y + 1 - t * 1.5) * TILE_SIZE);
     // text shadow
-    // ctx.fillStyle = "black";
-    // ctx.fillText(particle.text, (particle.center.x + dx + CONFIG.SHADOW_DIST) * TILE_SIZE, (particle.center.y + 1 - t * 1.5 + CONFIG.SHADOW_DIST) * TILE_SIZE);
+     ctx.fillStyle = "black";
+    ctx.fillText(particle.text, (particle.center.x + dx + CONFIG.SHADOW_DIST*0.5) * TILE_SIZE, (particle.center.y + 1 - t * 1.5 + CONFIG.SHADOW_DIST*0.5) * TILE_SIZE);
     // the text itself
     ctx.fillStyle = COLORS.TEXT;
+	
     ctx.fillText(particle.text, (particle.center.x + dx) * TILE_SIZE, (particle.center.y + 1 - t * 1.5) * TILE_SIZE);
     return true;
   });
