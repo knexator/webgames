@@ -123,7 +123,7 @@ let CONFIG = {
   DRAW_ROUNDED: true,
   ROUNDED_SIZE: .5,
   CHECKERED_SNAKE: true,
-  CHECKERED_BACKGROUND: "3" as "no" | "2" | "3",
+  CHECKERED_BACKGROUND: "3_v2" as "no" | "2" | "3" | "3_v2",
   SHADOW: true,
   SHADOW_DIST: .2,
   SCARF: "full" as "no" | "half" | "full",
@@ -159,7 +159,7 @@ gui.add(CONFIG, "GRIDLINE_WIDTH", 0, .5);
 gui.add(CONFIG, "DRAW_ROUNDED");
 gui.add(CONFIG, "ROUNDED_SIZE", 0, 1);
 gui.add(CONFIG, "CHECKERED_SNAKE");
-gui.add(CONFIG, "CHECKERED_BACKGROUND", ["no", "2", "3"]);
+gui.add(CONFIG, "CHECKERED_BACKGROUND", ["no", "2", "3", "3_v2"]);
 gui.add(CONFIG, "SHADOW");
 gui.add(CONFIG, "SHADOW_DIST", 0, .5);
 gui.add(CONFIG, "SCARF", ["no", "half", "full"]);
@@ -701,6 +701,9 @@ function draw(bullet_time: boolean) {
         } else if (CONFIG.CHECKERED_BACKGROUND === "3") {
           ctx.fillStyle = mod(i + j, 2) === 0 ? COLORS.BACKGROUND_3
             : mod(i, 2) === 0 ? COLORS.BACKGROUND : COLORS.BACKGROUND_2;
+        } else if (CONFIG.CHECKERED_BACKGROUND === "3_v2") {
+          ctx.fillStyle = mod(i + j, 2) === 0 ? COLORS.BACKGROUND_3
+            : mod(i + j + 1, 4) === 0 ? COLORS.BACKGROUND : COLORS.BACKGROUND_2;
         }
         fillTile(new Vec2(i, j));
       }
