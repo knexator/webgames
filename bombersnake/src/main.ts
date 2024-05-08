@@ -474,6 +474,10 @@ function every_frame(cur_timestamp: number) {
     gui.show(gui._hidden);
   }
 
+  if (input.keyboard.wasPressed(KeyCode.KeyM)) {
+    SOUNDS.music.mute(!SOUNDS.music.mute());
+  }
+
   if (CONFIG.PAUSED) {
     draw(false);
     animation_id = requestAnimationFrame(every_frame);
@@ -485,10 +489,6 @@ function every_frame(cur_timestamp: number) {
 
   if (input.keyboard.wasPressed(KeyCode.KeyR)) {
     restart();
-  }
-
-  if (input.keyboard.wasPressed(KeyCode.KeyM)) {
-    SOUNDS.music.mute(!SOUNDS.music.mute());
   }
 
   if (input.mouse.isDown(MouseButton.Left)) {
