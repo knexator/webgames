@@ -100,6 +100,7 @@ if (!is_phone) {
 let CONFIG = {
   PAUSED: false,
   TURN_DURATION: .15,
+  ANIM_PERC: 0.3,
   CHEAT_INMORTAL: false,
   FUSE_DURATION: 0,
   PLAYER_CAN_EXPLODE: false,
@@ -136,6 +137,7 @@ let CONFIG = {
 const gui = new GUI();
 gui.add(CONFIG, "PAUSED");
 gui.add(CONFIG, "TURN_DURATION", .05, 1);
+gui.add(CONFIG, "ANIM_PERC", 0, 1);
 gui.add(CONFIG, "CHEAT_INMORTAL");
 gui.add(CONFIG, "FUSE_DURATION", 0, 10, 1);
 gui.add(CONFIG, "N_BOMBS", 1, 6, 1);
@@ -511,7 +513,7 @@ function every_frame(cur_timestamp: number) {
     KeyCode.KeyA, KeyCode.ArrowLeft,
     KeyCode.KeyS, KeyCode.ArrowDown,
     KeyCode.KeyD, KeyCode.ArrowRight,
-  ].some(k => CONFIG.ALWAYS_SLOWDOWN ? input.keyboard.wasReleased(k) : input.keyboard.wasPressed(k))) {  
+  ].some(k => CONFIG.ALWAYS_SLOWDOWN ? input.keyboard.wasReleased(k) : input.keyboard.wasPressed(k))) {
     // if (game_state === "lost") {
     //   restart();
     // }
@@ -524,9 +526,9 @@ function every_frame(cur_timestamp: number) {
       (btnp([KeyCode.KeyS, KeyCode.ArrowDown]) ? 1 : 0)
       - (btnp([KeyCode.KeyW, KeyCode.ArrowUp]) ? 1 : 0),
     ));
-	
-    
-	if (game_state === "waiting") game_state = "main"
+
+
+    if (game_state === "waiting") game_state = "main"
   }
 
   let bullet_time = input.keyboard.isDown(KeyCode.Space);
@@ -655,7 +657,7 @@ function every_frame(cur_timestamp: number) {
             clock.active = false;
             clock.remaining_turns = CONFIG.CLOCK_FREQUENCY;
             stopTickTockSound();
-			//SOUNDS.clock_end.play();
+            //SOUNDS.clock_end.play();
           } else {
             clock.pos = findSpotWithoutWall();
             clock.active = true;
@@ -735,7 +737,10 @@ function draw(bullet_time: boolean) {
         } else if (cur_block.out_dir.equal(Vec2.zero)) {
           let rounded_size = Math.min(.5, CONFIG.ROUNDED_SIZE);
           // let rounded_size = .5;
-          const center = cur_block.pos.addXY(.5, .5).add(Vec2.both(CONFIG.SHADOW_DIST));
+          let center = cur_block.pos.addXY(.5, .5).add(Vec2.both(CONFIG.SHADOW_DIST));
+          if (turn_offset < CONFIG.ANIM_PERC) {
+            center = center.add(cur_block.in_dir.scale(1 - turn_offset / CONFIG.ANIM_PERC));
+          }
           fillTileCenterSize(center.add(cur_block.in_dir.scale(rounded_size / 2)),
             new Vec2(
               cur_block.in_dir.x == 0 ? 1 : 1 - rounded_size,
@@ -847,16 +852,28 @@ function draw(bullet_time: boolean) {
   snake_blocks.forEach((cur_block, k) => {
     if (CONFIG.DRAW_ROUNDED) {
       ctx.fillStyle = CONFIG.CHECKERED_SNAKE ? (mod(cur_block.t, 2) == 1 ? COLORS.SNAKE_HEAD : COLORS.SNAKE_WALL) : CONFIG.DRAW_PATTERN ? triangle_pattern : COLORS.SNAKE[Math.max(0, Math.min(COLORS.SNAKE.length - 1, turn - cur_block.t))];
-      if (CONFIG.SCARF === "full" && turn - cur_block.t === 1) ctx.fillStyle = COLORS.SCARF_IN;
+      const is_scarf = CONFIG.SCARF === "full" && turn - cur_block.t === 1;
+      if (is_scarf) ctx.fillStyle = COLORS.SCARF_IN;
       if (cur_block.in_dir.equal(cur_block.out_dir.scale(-1))) {
-        fillTile(cur_block.pos);
+        if (is_scarf) {
+          let center = cur_block.pos.addXY(.5, .5);
+          if (turn_offset < CONFIG.ANIM_PERC) {
+            center = center.add(cur_block.in_dir.scale(1 - turn_offset / CONFIG.ANIM_PERC));
+          }
+          fillTileCenterSize(center, Vec2.both(1));
+        } else {
+          fillTile(cur_block.pos);
+        }
       } else if (cur_block.out_dir.equal(Vec2.zero)) {
         if (CONFIG.HEAD_COLOR) {
           ctx.fillStyle = COLORS.HEAD;
         }
         let rounded_size = Math.min(.5, CONFIG.ROUNDED_SIZE);
         // let rounded_size = .5;
-        const center = cur_block.pos.addXY(.5, .5)
+        let center = cur_block.pos.addXY(.5, .5);
+        if (turn_offset < CONFIG.ANIM_PERC) {
+          center = center.add(cur_block.in_dir.scale(1 - turn_offset / CONFIG.ANIM_PERC));
+        }
         fillTileCenterSize(center.add(cur_block.in_dir.scale(rounded_size / 2)),
           new Vec2(
             cur_block.in_dir.x == 0 ? 1 : 1 - rounded_size,
@@ -896,7 +913,10 @@ function draw(bullet_time: boolean) {
         // drawCircle(center.add(cur_block.in_dir.scale(-.2)), .1);
         // ctx.fill();
       } else {
-        const center = cur_block.pos.addXY(.5, .5)
+        let center = cur_block.pos.addXY(.5, .5)
+        if (is_scarf && turn_offset < CONFIG.ANIM_PERC) {
+          center = center.add(cur_block.in_dir.scale(1 - turn_offset / CONFIG.ANIM_PERC));
+        }
         fillTileCenterSize(center.add(cur_block.in_dir.scale(CONFIG.ROUNDED_SIZE / 2)),
           new Vec2(
             cur_block.in_dir.x == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
@@ -1017,15 +1037,15 @@ function draw(bullet_time: boolean) {
     if (t > 1) return false;
     let dx = particle.center.x > BOARD_SIZE.x - 2 ? -1 : 1;
     ctx.font = "bold 25px sans-serif";
-	// text outline:
+    // text outline:
     // ctx.strokeStyle = "black";
     // ctx.strokeText(particle.text, (particle.center.x + dx) * TILE_SIZE, (particle.center.y + 1 - t * 1.5) * TILE_SIZE);
     // text shadow
-     ctx.fillStyle = "black";
-    ctx.fillText(particle.text, (particle.center.x + dx + CONFIG.SHADOW_DIST*0.5) * TILE_SIZE, (particle.center.y + 1 - t * 1.5 + CONFIG.SHADOW_DIST*0.5) * TILE_SIZE);
+    ctx.fillStyle = "black";
+    ctx.fillText(particle.text, (particle.center.x + dx + CONFIG.SHADOW_DIST * 0.5) * TILE_SIZE, (particle.center.y + 1 - t * 1.5 + CONFIG.SHADOW_DIST * 0.5) * TILE_SIZE);
     // the text itself
     ctx.fillStyle = COLORS.TEXT;
-	
+
     ctx.fillText(particle.text, (particle.center.x + dx) * TILE_SIZE, (particle.center.y + 1 - t * 1.5) * TILE_SIZE);
     return true;
   });
