@@ -11,6 +11,8 @@ import * as noise from './kommon/noise';
 import { generateGradient } from "./kommon/kolor";
 import triangle_pattern_url from "./images/triangle_pattern.png?url"
 
+// TODO: animated scarf not rounded right after corner
+
 const input = new Input();
 const canvas_ctx = document.querySelector<HTMLCanvasElement>("#ctx_canvas")!;
 const ctx = canvas_ctx.getContext("2d")!;
@@ -732,8 +734,14 @@ function draw(bullet_time: boolean) {
     snake_blocks.forEach((cur_block, k) => {
       if (CONFIG.DRAW_ROUNDED) {
         ctx.fillStyle = COLORS.SHADOW;
+        const is_scarf = CONFIG.SCARF === "full" && turn - cur_block.t === 1;
         if (cur_block.in_dir.equal(cur_block.out_dir.scale(-1))) {
-          fillTile(cur_block.pos.add(Vec2.both(CONFIG.SHADOW_DIST)));
+          if (is_scarf && turn_offset < CONFIG.ANIM_PERC) {
+            const center = cur_block.pos.add(Vec2.both(CONFIG.SHADOW_DIST)).addXY(.5, .5).add(cur_block.in_dir.scale((1 - turn_offset / CONFIG.ANIM_PERC) / 2));
+            fillTileCenterSize(center, Vec2.both(1));
+          } else {
+            fillTile(cur_block.pos.add(Vec2.both(CONFIG.SHADOW_DIST)));
+          }
         } else if (cur_block.out_dir.equal(Vec2.zero)) {
           let rounded_size = Math.min(.5, CONFIG.ROUNDED_SIZE);
           // let rounded_size = .5;
@@ -855,11 +863,8 @@ function draw(bullet_time: boolean) {
       const is_scarf = CONFIG.SCARF === "full" && turn - cur_block.t === 1;
       if (is_scarf) ctx.fillStyle = COLORS.SCARF_IN;
       if (cur_block.in_dir.equal(cur_block.out_dir.scale(-1))) {
-        if (is_scarf) {
-          let center = cur_block.pos.addXY(.5, .5);
-          if (turn_offset < CONFIG.ANIM_PERC) {
-            center = center.add(cur_block.in_dir.scale(1 - turn_offset / CONFIG.ANIM_PERC));
-          }
+        if (is_scarf && turn_offset < CONFIG.ANIM_PERC) {
+          const center = cur_block.pos.addXY(.5, .5).add(cur_block.in_dir.scale(1 - turn_offset / CONFIG.ANIM_PERC));
           fillTileCenterSize(center, Vec2.both(1));
         } else {
           fillTile(cur_block.pos);
