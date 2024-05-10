@@ -913,9 +913,14 @@ function draw(bullet_time: boolean) {
         // drawCircle(center.add(cur_block.in_dir.scale(-.2)), .1);
         // ctx.fill();
       } else {
-        let center = cur_block.pos.addXY(.5, .5)
+        const center = cur_block.pos.addXY(.5, .5)
         if (is_scarf && turn_offset < CONFIG.ANIM_PERC) {
-          center = center.add(cur_block.in_dir.scale(1 - turn_offset / CONFIG.ANIM_PERC));
+          let anim_t = turn_offset / CONFIG.ANIM_PERC;
+          // center = center.add(cur_block.in_dir.scale(1 - ));
+          fillTileCenterSize(center.add(cur_block.in_dir.scale(.5 + (1 - anim_t) / 2)), new Vec2(
+            cur_block.in_dir.x == 0 ? 1 : 1 - anim_t,
+            cur_block.in_dir.y == 0 ? 1 : 1 - anim_t,
+          ));
         }
         fillTileCenterSize(center.add(cur_block.in_dir.scale(CONFIG.ROUNDED_SIZE / 2)),
           new Vec2(
