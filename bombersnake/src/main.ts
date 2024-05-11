@@ -290,9 +290,10 @@ let touch_input_base_point: Vec2 | null;
 function restart() {
   stopTickTockSound();
   if (CONFIG.START_ON_BORDER) {
-    turn = 0;
+    turn = 1;
     snake_blocks = [
-      { pos: new Vec2(-CONFIG.DRAW_WRAP, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(0, 0), t: 0 },
+      { pos: new Vec2(-CONFIG.DRAW_WRAP + 0, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(1, 0), t: 0 },
+      { pos: new Vec2(-CONFIG.DRAW_WRAP + 1, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(0, 0), t: 1 },
     ];
   } else {
     turn = 2;
