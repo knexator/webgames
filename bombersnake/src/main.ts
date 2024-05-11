@@ -12,6 +12,7 @@ import { generateGradient } from "./kommon/kolor";
 import triangle_pattern_url from "./images/triangle_pattern.png?url"
 
 // TODO: animated scarf not rounded right after corner
+// TODO: proper loading of assets
 
 const input = new Input();
 const canvas_ctx = document.querySelector<HTMLCanvasElement>("#ctx_canvas")!;
@@ -274,7 +275,7 @@ let cam_noise = noise.makeNoise3D(0);
 let cur_screen_shake = { x: 0, y: 0, actualMag: 0 };
 let tick_tock_interval_id: number | null = null;
 
-let game_state: "main_menu" | "playing" | "lost";
+let game_state: "loading_menu" | "main_menu" | "playing" | "lost";
 let turn: number;
 let snake_blocks: { pos: Vec2, in_dir: Vec2, out_dir: Vec2, t: number }[];
 let score: number;
@@ -287,7 +288,7 @@ let multiplier: number;
 let tick_or_tock: boolean;
 let touch_input_base_point: Vec2 | null;
 
-function loadMainMenu() {
+function resetToMainMenu() {
   stopTickTockSound();
   game_state = "main_menu";
   if (CONFIG.START_ON_BORDER) {
@@ -371,7 +372,31 @@ class Clock {
 
 type Collectable = Bomb | Multiplier | Clock;
 
-loadMainMenu();
+// Loading menu
+game_state = "loading_menu";
+if (CONFIG.START_ON_BORDER) {
+  turn = 1;
+  snake_blocks = [
+    { pos: new Vec2(-CONFIG.DRAW_WRAP + 0, BOARD_SIZE.y - 2), in_dir: new Vec2(-1, 0), out_dir: new Vec2(1, 0), t: 0 },
+    { pos: new Vec2(-CONFIG.DRAW_WRAP + 1, BOARD_SIZE.y - 2), in_dir: new Vec2(-1, 0), out_dir: new Vec2(0, 0), t: 1 },
+  ];
+} else {
+  turn = 2;
+  snake_blocks = [
+    { pos: new Vec2(6, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(1, 0), t: 0 },
+    { pos: new Vec2(7, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(1, 0), t: 1 },
+    { pos: new Vec2(8, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(0, 0), t: 2 },
+  ];
+}
+score = 0
+input_queue = [];
+cur_collectables = [new Bomb(BOARD_SIZE.sub(Vec2.both(2)))];
+turn_offset = 0.99; // always between 0..1
+exploding_cross_particles = [];
+collected_stuff_particles = [];
+multiplier = 1;
+tick_or_tock = false;
+touch_input_base_point = null;
 
 function findSpotWithoutWall(): Vec2 {
   let pos: Vec2;
@@ -427,7 +452,7 @@ function explodeBomb(k: number) {
     return true;
   });
   cur_screen_shake.actualMag = 5.0;
-  if (game_state === "main_menu") {
+  if (game_state === "main_menu" || game_state === "loading_menu") {
     cur_collectables[k] = new Bomb(modVec2(
       cur_bomb.pos.addX(-randomInt(3, BOARD_SIZE.x - 4)), BOARD_SIZE));
   } else {
@@ -507,7 +532,13 @@ function every_frame(cur_timestamp: number) {
 
   let bullet_time = false;
 
-  if (game_state === "main_menu") {
+  if (game_state === "loading_menu") {
+    turn_offset += delta_time / CONFIG.TURN_DURATION;
+
+    if (input.mouse.wasPressed(MouseButton.Left)) {
+      game_state = "main_menu";
+    }
+  } else if (game_state === "main_menu") {
     turn_offset += delta_time / CONFIG.TURN_DURATION;
 
     if (input.keyboard.wasPressed(KeyCode.KeyR)) {
@@ -515,7 +546,7 @@ function every_frame(cur_timestamp: number) {
     }
   } else if (game_state === "lost") {
     if (input.keyboard.wasPressed(KeyCode.KeyR)) {
-      loadMainMenu();
+      resetToMainMenu();
     }
   } else if (game_state === "playing") {
     if (input.mouse.isDown(MouseButton.Left)) {
@@ -570,6 +601,8 @@ function every_frame(cur_timestamp: number) {
     } else {
       turn_offset += delta_time / cur_turn_duration;
     }
+  } else {
+    throw new Error(`unhandled game state: ${game_state}`);
   }
 
   while (Math.abs(turn_offset) >= 1) {
@@ -1100,7 +1133,13 @@ function draw(bullet_time: boolean) {
 
   ctx.textAlign = "center";
   ctx.fillStyle = COLORS.TEXT;
-  if (game_state === "main_menu") {
+  if (game_state === "loading_menu") {
+    ctx.font = `${Math.floor(50 * TILE_SIZE / 32)}px KaphRegular`;
+    ctx.fillText(`BomberSnake`, canvas_ctx.width / 2, (MARGIN.y + BOARD_SIZE.y / 4) * TILE_SIZE);
+    ctx.font = `${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
+    ctx.fillText(`Click to start`, canvas_ctx.width / 2, (MARGIN.y + BOARD_SIZE.y * 3 / 4) * TILE_SIZE);
+    ctx.fillText(`By knexator & Pinchazumos`, canvas_ctx.width / 2, (MARGIN.y + BOARD_SIZE.y * 2 / 4) * TILE_SIZE);
+  } else if (game_state === "main_menu") {
     ctx.font = `${Math.floor(50 * TILE_SIZE / 32)}px KaphRegular`;
     ctx.fillText(`BomberSnake`, canvas_ctx.width / 2, (MARGIN.y + BOARD_SIZE.y / 4) * TILE_SIZE);
     ctx.font = `${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
@@ -1112,6 +1151,8 @@ function draw(bullet_time: boolean) {
     // ctx.fillText("", canvas.width / 2, canvas.height / 2);
   } else if (game_state === "playing") {
     // nothing
+  } else {
+    throw new Error(`unhandled game state: ${game_state}`);
   }
 
 
