@@ -1046,7 +1046,7 @@ function draw(bullet_time: boolean) {
     let t = remap(turn + turn_offset, particle.turn, particle.turn + 3, 0, 1);
     if (t > 1) return false;
     let dx = particle.center.x > BOARD_SIZE.x - 2 ? -1 : 1;
-    ctx.font = "bold 25px sans-serif";
+    ctx.font = `bold ${Math.floor(25 * TILE_SIZE / 32)}px sans-serif`;
     // text outline:
     // ctx.strokeStyle = "black";
     // ctx.strokeText(particle.text, (particle.center.x + dx) * TILE_SIZE, (particle.center.y + 1 - t * 1.5) * TILE_SIZE);
