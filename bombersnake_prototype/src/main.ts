@@ -11,6 +11,8 @@ import * as noise from './kommon/noise';
 import { generateGradient } from "./kommon/kolor";
 import triangle_pattern_url from "./images/triangle_pattern.png?url"
 
+// TODO: animated scarf not rounded right after corner
+
 const input = new Input();
 const canvas_ctx = document.querySelector<HTMLCanvasElement>("#ctx_canvas")!;
 const ctx = canvas_ctx.getContext("2d")!;
@@ -53,7 +55,7 @@ function soundUrl(name: string): string {
 }
 
 const BOARD_SIZE = new Vec2(16, 16);
-const MARGIN = 2;
+const MARGIN = new Vec2(1, 2);
 
 const is_phone = (function () {
   let check = false;
@@ -63,14 +65,14 @@ const is_phone = (function () {
 })();
 
 
-let TILE_SIZE = is_phone ? Math.floor(canvas_ctx.width / (BOARD_SIZE.x + MARGIN * 2)) : 32;
-let SWIPE_DIST = TILE_SIZE * 2;
+const container = document.querySelector("#canvas_container") as HTMLElement;
 
-if (!is_phone) {
-  const container = document.querySelector("#canvas_container") as HTMLElement;
-  container.style.width = `${TILE_SIZE * (BOARD_SIZE.x + MARGIN * 2)}px`
-  container.style.height = `${TILE_SIZE * (BOARD_SIZE.x + MARGIN * 2)}px`
-}
+const TILE_SIZE = is_phone ? Math.round(container.clientWidth / (BOARD_SIZE.x + MARGIN.x * 2)) : 32;
+const SWIPE_DIST = TILE_SIZE * 2;
+
+container.style.width = `${TILE_SIZE * (BOARD_SIZE.x + MARGIN.x * 2)}px`
+container.style.height = `${TILE_SIZE * (BOARD_SIZE.x + MARGIN.y * 2)}px`
+twgl.resizeCanvasToDisplaySize(canvas_ctx);
 
 // let CONFIG = {
 //   PAUSED: false,
@@ -100,6 +102,7 @@ if (!is_phone) {
 let CONFIG = {
   PAUSED: false,
   TURN_DURATION: .15,
+  ANIM_PERC: 0.3,
   CHEAT_INMORTAL: false,
   FUSE_DURATION: 0,
   PLAYER_CAN_EXPLODE: false,
@@ -136,6 +139,7 @@ let CONFIG = {
 const gui = new GUI();
 gui.add(CONFIG, "PAUSED");
 gui.add(CONFIG, "TURN_DURATION", .05, 1);
+gui.add(CONFIG, "ANIM_PERC", 0, 1);
 gui.add(CONFIG, "CHEAT_INMORTAL");
 gui.add(CONFIG, "FUSE_DURATION", 0, 10, 1);
 gui.add(CONFIG, "N_BOMBS", 1, 6, 1);
@@ -149,7 +153,7 @@ gui.add(CONFIG, "PLAYER_CAN_EXPLODE");
 gui.add(CONFIG, "SLOWDOWN", 1, 10);
 gui.add(CONFIG, "TOTAL_SLOWDOWN");
 gui.add(CONFIG, "ALWAYS_SLOWDOWN");
-gui.add(CONFIG, "DRAW_WRAP", 0, MARGIN, 1);
+gui.add(CONFIG, "DRAW_WRAP", 0, MARGIN.x, 1);
 gui.add(CONFIG, "DRAW_PATTERN");
 gui.add(CONFIG, "DRAW_SNAKE_BORDER");
 gui.add(CONFIG, "BORDER_SIZE", 0, .5);
@@ -286,9 +290,10 @@ let touch_input_base_point: Vec2 | null;
 function restart() {
   stopTickTockSound();
   if (CONFIG.START_ON_BORDER) {
-    turn = 0;
+    turn = 1;
     snake_blocks = [
-      { pos: new Vec2(-CONFIG.DRAW_WRAP, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(0, 0), t: 0 },
+      { pos: new Vec2(-CONFIG.DRAW_WRAP + 0, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(1, 0), t: 0 },
+      { pos: new Vec2(-CONFIG.DRAW_WRAP + 1, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(0, 0), t: 1 },
     ];
   } else {
     turn = 2;
@@ -458,13 +463,13 @@ function every_frame(cur_timestamp: number) {
   ctx.clearRect(0, 0, canvas_ctx.width, canvas_ctx.height);
   ctx.fillStyle = 'gray';
   ctx.fillRect(0, 0, canvas_ctx.width, canvas_ctx.height);
-  if (twgl.resizeCanvasToDisplaySize(canvas_ctx) && is_phone) {
+  // if (twgl.resizeCanvasToDisplaySize(canvas_ctx) && is_phone) {
     // if (or(twgl.resizeCanvasToDisplaySize(canvas_ctx), twgl.resizeCanvasToDisplaySize(canvas_gl))) {
     // resizing stuff
     // gl.viewport(0, 0, canvas_gl.width, canvas_gl.height);
-    TILE_SIZE = Math.floor(canvas_ctx.width / (BOARD_SIZE.x + MARGIN * 2));
-    SWIPE_DIST = TILE_SIZE * 2;
-  }
+  //   TILE_SIZE = Math.round(canvas_ctx.width / (BOARD_SIZE.x + MARGIN.x * 2));
+  //   SWIPE_DIST = TILE_SIZE * 2;
+  // }
 
   if (input.keyboard.wasPressed(KeyCode.KeyQ)) {
     CONFIG.PAUSED = !CONFIG.PAUSED;
@@ -485,7 +490,7 @@ function every_frame(cur_timestamp: number) {
   }
 
   const rect = canvas_ctx.getBoundingClientRect();
-  const raw_mouse_pos = new Vec2(input.mouse.clientX - rect.left - MARGIN * TILE_SIZE, input.mouse.clientY - rect.top - MARGIN * TILE_SIZE);
+  const raw_mouse_pos = new Vec2(input.mouse.clientX - rect.left - MARGIN.x * TILE_SIZE, input.mouse.clientY - rect.top - MARGIN.y * TILE_SIZE);
 
   if (input.keyboard.wasPressed(KeyCode.KeyR)) {
     restart();
@@ -511,7 +516,7 @@ function every_frame(cur_timestamp: number) {
     KeyCode.KeyA, KeyCode.ArrowLeft,
     KeyCode.KeyS, KeyCode.ArrowDown,
     KeyCode.KeyD, KeyCode.ArrowRight,
-  ].some(k => CONFIG.ALWAYS_SLOWDOWN ? input.keyboard.wasReleased(k) : input.keyboard.wasPressed(k))) {  
+  ].some(k => CONFIG.ALWAYS_SLOWDOWN ? input.keyboard.wasReleased(k) : input.keyboard.wasPressed(k))) {
     // if (game_state === "lost") {
     //   restart();
     // }
@@ -524,9 +529,9 @@ function every_frame(cur_timestamp: number) {
       (btnp([KeyCode.KeyS, KeyCode.ArrowDown]) ? 1 : 0)
       - (btnp([KeyCode.KeyW, KeyCode.ArrowUp]) ? 1 : 0),
     ));
-	
-    
-	if (game_state === "waiting") game_state = "main"
+
+
+    if (game_state === "waiting") game_state = "main"
   }
 
   let bullet_time = input.keyboard.isDown(KeyCode.Space);
@@ -655,7 +660,7 @@ function every_frame(cur_timestamp: number) {
             clock.active = false;
             clock.remaining_turns = CONFIG.CLOCK_FREQUENCY;
             stopTickTockSound();
-			//SOUNDS.clock_end.play();
+            //SOUNDS.clock_end.play();
           } else {
             clock.pos = findSpotWithoutWall();
             clock.active = true;
@@ -691,7 +696,7 @@ function draw(bullet_time: boolean) {
   }
   // ctx.fillRect(0, 0, BOARD_SIZE.x * TILE_SIZE, BOARD_SIZE.y * TILE_SIZE);
 
-  ctx.translate(MARGIN * TILE_SIZE, MARGIN * TILE_SIZE);
+  ctx.translate(MARGIN.x * TILE_SIZE, MARGIN.y * TILE_SIZE);
 
   if (CONFIG.CHECKERED_BACKGROUND !== "no") {
     for (let i = 0; i < BOARD_SIZE.x; i++) {
@@ -730,12 +735,21 @@ function draw(bullet_time: boolean) {
     snake_blocks.forEach((cur_block, k) => {
       if (CONFIG.DRAW_ROUNDED) {
         ctx.fillStyle = COLORS.SHADOW;
+        const is_scarf = CONFIG.SCARF === "full" && turn - cur_block.t === 1;
         if (cur_block.in_dir.equal(cur_block.out_dir.scale(-1))) {
-          fillTile(cur_block.pos.add(Vec2.both(CONFIG.SHADOW_DIST)));
+          if (is_scarf && turn_offset < CONFIG.ANIM_PERC) {
+            const center = cur_block.pos.add(Vec2.both(CONFIG.SHADOW_DIST)).addXY(.5, .5).add(cur_block.in_dir.scale((1 - turn_offset / CONFIG.ANIM_PERC) / 2));
+            fillTileCenterSize(center, Vec2.both(1));
+          } else {
+            fillTile(cur_block.pos.add(Vec2.both(CONFIG.SHADOW_DIST)));
+          }
         } else if (cur_block.out_dir.equal(Vec2.zero)) {
           let rounded_size = Math.min(.5, CONFIG.ROUNDED_SIZE);
           // let rounded_size = .5;
-          const center = cur_block.pos.addXY(.5, .5).add(Vec2.both(CONFIG.SHADOW_DIST));
+          let center = cur_block.pos.addXY(.5, .5).add(Vec2.both(CONFIG.SHADOW_DIST));
+          if (turn_offset < CONFIG.ANIM_PERC) {
+            center = center.add(cur_block.in_dir.scale(1 - turn_offset / CONFIG.ANIM_PERC));
+          }
           fillTileCenterSize(center.add(cur_block.in_dir.scale(rounded_size / 2)),
             new Vec2(
               cur_block.in_dir.x == 0 ? 1 : 1 - rounded_size,
@@ -847,16 +861,25 @@ function draw(bullet_time: boolean) {
   snake_blocks.forEach((cur_block, k) => {
     if (CONFIG.DRAW_ROUNDED) {
       ctx.fillStyle = CONFIG.CHECKERED_SNAKE ? (mod(cur_block.t, 2) == 1 ? COLORS.SNAKE_HEAD : COLORS.SNAKE_WALL) : CONFIG.DRAW_PATTERN ? triangle_pattern : COLORS.SNAKE[Math.max(0, Math.min(COLORS.SNAKE.length - 1, turn - cur_block.t))];
-      if (CONFIG.SCARF === "full" && turn - cur_block.t === 1) ctx.fillStyle = COLORS.SCARF_IN;
+      const is_scarf = CONFIG.SCARF === "full" && turn - cur_block.t === 1;
+      if (is_scarf) ctx.fillStyle = COLORS.SCARF_IN;
       if (cur_block.in_dir.equal(cur_block.out_dir.scale(-1))) {
-        fillTile(cur_block.pos);
+        if (is_scarf && turn_offset < CONFIG.ANIM_PERC) {
+          const center = cur_block.pos.addXY(.5, .5).add(cur_block.in_dir.scale(1 - turn_offset / CONFIG.ANIM_PERC));
+          fillTileCenterSize(center, Vec2.both(1));
+        } else {
+          fillTile(cur_block.pos);
+        }
       } else if (cur_block.out_dir.equal(Vec2.zero)) {
         if (CONFIG.HEAD_COLOR) {
           ctx.fillStyle = COLORS.HEAD;
         }
         let rounded_size = Math.min(.5, CONFIG.ROUNDED_SIZE);
         // let rounded_size = .5;
-        const center = cur_block.pos.addXY(.5, .5)
+        let center = cur_block.pos.addXY(.5, .5);
+        if (turn_offset < CONFIG.ANIM_PERC) {
+          center = center.add(cur_block.in_dir.scale(1 - turn_offset / CONFIG.ANIM_PERC));
+        }
         fillTileCenterSize(center.add(cur_block.in_dir.scale(rounded_size / 2)),
           new Vec2(
             cur_block.in_dir.x == 0 ? 1 : 1 - rounded_size,
@@ -897,6 +920,14 @@ function draw(bullet_time: boolean) {
         // ctx.fill();
       } else {
         const center = cur_block.pos.addXY(.5, .5)
+        if (is_scarf && turn_offset < CONFIG.ANIM_PERC) {
+          let anim_t = turn_offset / CONFIG.ANIM_PERC;
+          // center = center.add(cur_block.in_dir.scale(1 - ));
+          fillTileCenterSize(center.add(cur_block.in_dir.scale(.5 + (1 - anim_t) / 2)), new Vec2(
+            cur_block.in_dir.x == 0 ? 1 : 1 - anim_t,
+            cur_block.in_dir.y == 0 ? 1 : 1 - anim_t,
+          ));
+        }
         fillTileCenterSize(center.add(cur_block.in_dir.scale(CONFIG.ROUNDED_SIZE / 2)),
           new Vec2(
             cur_block.in_dir.x == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
@@ -1016,16 +1047,16 @@ function draw(bullet_time: boolean) {
     let t = remap(turn + turn_offset, particle.turn, particle.turn + 3, 0, 1);
     if (t > 1) return false;
     let dx = particle.center.x > BOARD_SIZE.x - 2 ? -1 : 1;
-    ctx.font = "bold 25px sans-serif";
-	// text outline:
+    ctx.font = `bold ${Math.floor(25 * TILE_SIZE / 32)}px sans-serif`;
+    // text outline:
     // ctx.strokeStyle = "black";
     // ctx.strokeText(particle.text, (particle.center.x + dx) * TILE_SIZE, (particle.center.y + 1 - t * 1.5) * TILE_SIZE);
     // text shadow
-     ctx.fillStyle = "black";
-    ctx.fillText(particle.text, (particle.center.x + dx + CONFIG.SHADOW_DIST*0.5) * TILE_SIZE, (particle.center.y + 1 - t * 1.5 + CONFIG.SHADOW_DIST*0.5) * TILE_SIZE);
+    ctx.fillStyle = "black";
+    ctx.fillText(particle.text, (particle.center.x + dx + CONFIG.SHADOW_DIST * 0.5) * TILE_SIZE, (particle.center.y + 1 - t * 1.5 + CONFIG.SHADOW_DIST * 0.5) * TILE_SIZE);
     // the text itself
     ctx.fillStyle = COLORS.TEXT;
-	
+
     ctx.fillText(particle.text, (particle.center.x + dx) * TILE_SIZE, (particle.center.y + 1 - t * 1.5) * TILE_SIZE);
     return true;
   });
@@ -1045,18 +1076,18 @@ function draw(bullet_time: boolean) {
 
   // draw borders to hide stuff
   ctx.fillStyle = "#555";
-  ctx.fillRect(0, 0, canvas_ctx.width, (MARGIN - CONFIG.DRAW_WRAP) * TILE_SIZE);
-  ctx.fillRect(0, 0, (MARGIN - CONFIG.DRAW_WRAP) * TILE_SIZE, canvas_ctx.height);
-  ctx.fillRect(0, (MARGIN + BOARD_SIZE.y + CONFIG.DRAW_WRAP) * TILE_SIZE, canvas_ctx.width, (MARGIN - CONFIG.DRAW_WRAP + 1) * TILE_SIZE);
-  ctx.fillRect((MARGIN + BOARD_SIZE.x + CONFIG.DRAW_WRAP) * TILE_SIZE, 0, (MARGIN - CONFIG.DRAW_WRAP + 1) * TILE_SIZE, canvas_ctx.height);
+  ctx.fillRect(0, 0, canvas_ctx.width, (MARGIN.y - CONFIG.DRAW_WRAP) * TILE_SIZE);
+  ctx.fillRect(0, 0, (MARGIN.x - CONFIG.DRAW_WRAP) * TILE_SIZE, canvas_ctx.height);
+  ctx.fillRect(0, (MARGIN.y + BOARD_SIZE.y + CONFIG.DRAW_WRAP) * TILE_SIZE, canvas_ctx.width, (MARGIN.y - CONFIG.DRAW_WRAP + 1) * TILE_SIZE);
+  ctx.fillRect((MARGIN.x + BOARD_SIZE.x + CONFIG.DRAW_WRAP) * TILE_SIZE, 0, (MARGIN.x - CONFIG.DRAW_WRAP + 1) * TILE_SIZE, canvas_ctx.height);
 
-  ctx.font = '30px sans-serif';
+  ctx.font = `${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
   ctx.textAlign = "center";
   ctx.fillStyle = COLORS.TEXT;
   if (game_state === "waiting") {
-    ctx.fillText("WASD or Arrow Keys to move", canvas_ctx.width / 2, (MARGIN + BOARD_SIZE.y / 4) * TILE_SIZE);
+    ctx.fillText("WASD or Arrow Keys to move", canvas_ctx.width / 2, (MARGIN.y + BOARD_SIZE.y / 4) * TILE_SIZE);
   } else if (game_state === "lost") {
-    ctx.fillText(`Score: ${score}`, canvas_ctx.width / 2, (MARGIN + BOARD_SIZE.y / 4) * TILE_SIZE);
+    ctx.fillText(`Score: ${score}`, canvas_ctx.width / 2, (MARGIN.y + BOARD_SIZE.y / 4) * TILE_SIZE);
     // ctx.fillText("", canvas.width / 2, canvas.height / 2);
   } else if (game_state === "main") {
     // nothing
@@ -1064,16 +1095,15 @@ function draw(bullet_time: boolean) {
 
 
   // draw UI bar
-  ctx.translate((MARGIN - CONFIG.DRAW_WRAP) * TILE_SIZE, (MARGIN - CONFIG.DRAW_WRAP - 1 - .2) * TILE_SIZE);
+  ctx.translate((MARGIN.x - CONFIG.DRAW_WRAP) * TILE_SIZE, (MARGIN.y - CONFIG.DRAW_WRAP - 1 - .2) * TILE_SIZE);
   ctx.fillStyle = "black";
   ctx.fillRect(0, 0, BOARD_SIZE.x * TILE_SIZE, TILE_SIZE);
   ctx.fillStyle = "white";
-  ctx.font = '30px sans-serif';
   ctx.textAlign = "left";
   ctx.textBaseline = "bottom";
   ctx.fillStyle = COLORS.TEXT;
   ctx.fillText(`Score: ${score}`, .2 * TILE_SIZE, TILE_SIZE);
-  ctx.drawImage(TEXTURES.multiplier, 12.5 * TILE_SIZE, 0);
+  ctx.drawImage(TEXTURES.multiplier, 12.5 * TILE_SIZE, 0, TILE_SIZE, TILE_SIZE);
   ctx.fillText(`x${multiplier}`, 13.6 * TILE_SIZE, TILE_SIZE);
 
 }
@@ -1167,7 +1197,7 @@ function rotQuarterB(value: Vec2): Vec2 {
 function drawTexture(top_left: Vec2, texture: HTMLImageElement) {
   for (let i = -1; i <= 1; i++) {
     for (let j = -1; j <= 1; j++) {
-      ctx.drawImage(texture, (top_left.x + i * BOARD_SIZE.x) * TILE_SIZE, (top_left.y + j * BOARD_SIZE.y) * TILE_SIZE);
+      ctx.drawImage(texture, (top_left.x + i * BOARD_SIZE.x) * TILE_SIZE, (top_left.y + j * BOARD_SIZE.y) * TILE_SIZE, TILE_SIZE, TILE_SIZE);
     }
   }
 }
@@ -1179,7 +1209,7 @@ function drawRotatedTexture(center: Vec2, texture: HTMLImageElement, angle_in_ra
 
       ctx.translate(px_center.x, px_center.y);
       ctx.rotate(angle_in_radians);
-      ctx.drawImage(texture, -TILE_SIZE / 2, -TILE_SIZE / 2);
+      ctx.drawImage(texture, -TILE_SIZE / 2, -TILE_SIZE / 2, TILE_SIZE, TILE_SIZE);
       ctx.rotate(-angle_in_radians);
       ctx.translate(-px_center.x, -px_center.y);
     }
@@ -1193,7 +1223,7 @@ function drawFlippedTexture(center: Vec2, texture: HTMLImageElement) {
 
       ctx.translate(px_center.x, px_center.y);
       ctx.scale(-1, 1);
-      ctx.drawImage(texture, -TILE_SIZE / 2, -TILE_SIZE / 2);
+      ctx.drawImage(texture, -TILE_SIZE / 2, -TILE_SIZE / 2, TILE_SIZE, TILE_SIZE);
       ctx.scale(-1, 1);
       ctx.translate(-px_center.x, -px_center.y);
     }
