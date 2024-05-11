@@ -1080,7 +1080,7 @@ function draw(bullet_time: boolean) {
   ctx.fillRect(0, (MARGIN + BOARD_SIZE.y + CONFIG.DRAW_WRAP) * TILE_SIZE, canvas_ctx.width, (MARGIN - CONFIG.DRAW_WRAP + 1) * TILE_SIZE);
   ctx.fillRect((MARGIN + BOARD_SIZE.x + CONFIG.DRAW_WRAP) * TILE_SIZE, 0, (MARGIN - CONFIG.DRAW_WRAP + 1) * TILE_SIZE, canvas_ctx.height);
 
-  ctx.font = '30px sans-serif';
+  ctx.font = `${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
   ctx.textAlign = "center";
   ctx.fillStyle = COLORS.TEXT;
   if (game_state === "waiting") {
@@ -1098,12 +1098,11 @@ function draw(bullet_time: boolean) {
   ctx.fillStyle = "black";
   ctx.fillRect(0, 0, BOARD_SIZE.x * TILE_SIZE, TILE_SIZE);
   ctx.fillStyle = "white";
-  ctx.font = '30px sans-serif';
   ctx.textAlign = "left";
   ctx.textBaseline = "bottom";
   ctx.fillStyle = COLORS.TEXT;
   ctx.fillText(`Score: ${score}`, .2 * TILE_SIZE, TILE_SIZE);
-  ctx.drawImage(TEXTURES.multiplier, 12.5 * TILE_SIZE, 0);
+  ctx.drawImage(TEXTURES.multiplier, 12.5 * TILE_SIZE, 0, TILE_SIZE, TILE_SIZE);
   ctx.fillText(`x${multiplier}`, 13.6 * TILE_SIZE, TILE_SIZE);
 
 }
@@ -1197,7 +1196,7 @@ function rotQuarterB(value: Vec2): Vec2 {
 function drawTexture(top_left: Vec2, texture: HTMLImageElement) {
   for (let i = -1; i <= 1; i++) {
     for (let j = -1; j <= 1; j++) {
-      ctx.drawImage(texture, (top_left.x + i * BOARD_SIZE.x) * TILE_SIZE, (top_left.y + j * BOARD_SIZE.y) * TILE_SIZE);
+      ctx.drawImage(texture, (top_left.x + i * BOARD_SIZE.x) * TILE_SIZE, (top_left.y + j * BOARD_SIZE.y) * TILE_SIZE, TILE_SIZE, TILE_SIZE);
     }
   }
 }
@@ -1209,7 +1208,7 @@ function drawRotatedTexture(center: Vec2, texture: HTMLImageElement, angle_in_ra
 
       ctx.translate(px_center.x, px_center.y);
       ctx.rotate(angle_in_radians);
-      ctx.drawImage(texture, -TILE_SIZE / 2, -TILE_SIZE / 2);
+      ctx.drawImage(texture, -TILE_SIZE / 2, -TILE_SIZE / 2, TILE_SIZE, TILE_SIZE);
       ctx.rotate(-angle_in_radians);
       ctx.translate(-px_center.x, -px_center.y);
     }
@@ -1223,7 +1222,7 @@ function drawFlippedTexture(center: Vec2, texture: HTMLImageElement) {
 
       ctx.translate(px_center.x, px_center.y);
       ctx.scale(-1, 1);
-      ctx.drawImage(texture, -TILE_SIZE / 2, -TILE_SIZE / 2);
+      ctx.drawImage(texture, -TILE_SIZE / 2, -TILE_SIZE / 2, TILE_SIZE, TILE_SIZE);
       ctx.scale(-1, 1);
       ctx.translate(-px_center.x, -px_center.y);
     }
