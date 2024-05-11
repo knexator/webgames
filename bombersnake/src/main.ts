@@ -55,7 +55,7 @@ function soundUrl(name: string): string {
 }
 
 const BOARD_SIZE = new Vec2(16, 16);
-const MARGIN = 2;
+const MARGIN = new Vec2(1, 2);
 
 const is_phone = (function () {
   let check = false;
@@ -65,14 +65,14 @@ const is_phone = (function () {
 })();
 
 
-let TILE_SIZE = is_phone ? Math.floor(canvas_ctx.width / (BOARD_SIZE.x + MARGIN * 2)) : 32;
-let SWIPE_DIST = TILE_SIZE * 2;
+const container = document.querySelector("#canvas_container") as HTMLElement;
 
-if (!is_phone) {
-  const container = document.querySelector("#canvas_container") as HTMLElement;
-  container.style.width = `${TILE_SIZE * (BOARD_SIZE.x + MARGIN * 2)}px`
-  container.style.height = `${TILE_SIZE * (BOARD_SIZE.x + MARGIN * 2)}px`
-}
+const TILE_SIZE = is_phone ? Math.round(container.clientWidth / (BOARD_SIZE.x + MARGIN.x * 2)) : 32;
+const SWIPE_DIST = TILE_SIZE * 2;
+
+container.style.width = `${TILE_SIZE * (BOARD_SIZE.x + MARGIN.x * 2)}px`
+container.style.height = `${TILE_SIZE * (BOARD_SIZE.x + MARGIN.y * 2)}px`
+twgl.resizeCanvasToDisplaySize(canvas_ctx);
 
 // let CONFIG = {
 //   PAUSED: false,
@@ -153,7 +153,7 @@ gui.add(CONFIG, "PLAYER_CAN_EXPLODE");
 gui.add(CONFIG, "SLOWDOWN", 1, 10);
 gui.add(CONFIG, "TOTAL_SLOWDOWN");
 gui.add(CONFIG, "ALWAYS_SLOWDOWN");
-gui.add(CONFIG, "DRAW_WRAP", 0, MARGIN, 1);
+gui.add(CONFIG, "DRAW_WRAP", 0, MARGIN.x, 1);
 gui.add(CONFIG, "DRAW_PATTERN");
 gui.add(CONFIG, "DRAW_SNAKE_BORDER");
 gui.add(CONFIG, "BORDER_SIZE", 0, .5);
@@ -462,13 +462,13 @@ function every_frame(cur_timestamp: number) {
   ctx.clearRect(0, 0, canvas_ctx.width, canvas_ctx.height);
   ctx.fillStyle = 'gray';
   ctx.fillRect(0, 0, canvas_ctx.width, canvas_ctx.height);
-  if (twgl.resizeCanvasToDisplaySize(canvas_ctx) && is_phone) {
+  // if (twgl.resizeCanvasToDisplaySize(canvas_ctx) && is_phone) {
     // if (or(twgl.resizeCanvasToDisplaySize(canvas_ctx), twgl.resizeCanvasToDisplaySize(canvas_gl))) {
     // resizing stuff
     // gl.viewport(0, 0, canvas_gl.width, canvas_gl.height);
-    TILE_SIZE = Math.floor(canvas_ctx.width / (BOARD_SIZE.x + MARGIN * 2));
-    SWIPE_DIST = TILE_SIZE * 2;
-  }
+  //   TILE_SIZE = Math.round(canvas_ctx.width / (BOARD_SIZE.x + MARGIN.x * 2));
+  //   SWIPE_DIST = TILE_SIZE * 2;
+  // }
 
   if (input.keyboard.wasPressed(KeyCode.KeyQ)) {
     CONFIG.PAUSED = !CONFIG.PAUSED;
@@ -489,7 +489,7 @@ function every_frame(cur_timestamp: number) {
   }
 
   const rect = canvas_ctx.getBoundingClientRect();
-  const raw_mouse_pos = new Vec2(input.mouse.clientX - rect.left - MARGIN * TILE_SIZE, input.mouse.clientY - rect.top - MARGIN * TILE_SIZE);
+  const raw_mouse_pos = new Vec2(input.mouse.clientX - rect.left - MARGIN.x * TILE_SIZE, input.mouse.clientY - rect.top - MARGIN.y * TILE_SIZE);
 
   if (input.keyboard.wasPressed(KeyCode.KeyR)) {
     restart();
@@ -695,7 +695,7 @@ function draw(bullet_time: boolean) {
   }
   // ctx.fillRect(0, 0, BOARD_SIZE.x * TILE_SIZE, BOARD_SIZE.y * TILE_SIZE);
 
-  ctx.translate(MARGIN * TILE_SIZE, MARGIN * TILE_SIZE);
+  ctx.translate(MARGIN.x * TILE_SIZE, MARGIN.y * TILE_SIZE);
 
   if (CONFIG.CHECKERED_BACKGROUND !== "no") {
     for (let i = 0; i < BOARD_SIZE.x; i++) {
@@ -1075,18 +1075,18 @@ function draw(bullet_time: boolean) {
 
   // draw borders to hide stuff
   ctx.fillStyle = "#555";
-  ctx.fillRect(0, 0, canvas_ctx.width, (MARGIN - CONFIG.DRAW_WRAP) * TILE_SIZE);
-  ctx.fillRect(0, 0, (MARGIN - CONFIG.DRAW_WRAP) * TILE_SIZE, canvas_ctx.height);
-  ctx.fillRect(0, (MARGIN + BOARD_SIZE.y + CONFIG.DRAW_WRAP) * TILE_SIZE, canvas_ctx.width, (MARGIN - CONFIG.DRAW_WRAP + 1) * TILE_SIZE);
-  ctx.fillRect((MARGIN + BOARD_SIZE.x + CONFIG.DRAW_WRAP) * TILE_SIZE, 0, (MARGIN - CONFIG.DRAW_WRAP + 1) * TILE_SIZE, canvas_ctx.height);
+  ctx.fillRect(0, 0, canvas_ctx.width, (MARGIN.y - CONFIG.DRAW_WRAP) * TILE_SIZE);
+  ctx.fillRect(0, 0, (MARGIN.x - CONFIG.DRAW_WRAP) * TILE_SIZE, canvas_ctx.height);
+  ctx.fillRect(0, (MARGIN.y + BOARD_SIZE.y + CONFIG.DRAW_WRAP) * TILE_SIZE, canvas_ctx.width, (MARGIN.y - CONFIG.DRAW_WRAP + 1) * TILE_SIZE);
+  ctx.fillRect((MARGIN.x + BOARD_SIZE.x + CONFIG.DRAW_WRAP) * TILE_SIZE, 0, (MARGIN.x - CONFIG.DRAW_WRAP + 1) * TILE_SIZE, canvas_ctx.height);
 
   ctx.font = `${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
   ctx.textAlign = "center";
   ctx.fillStyle = COLORS.TEXT;
   if (game_state === "waiting") {
-    ctx.fillText("WASD or Arrow Keys to move", canvas_ctx.width / 2, (MARGIN + BOARD_SIZE.y / 4) * TILE_SIZE);
+    ctx.fillText("WASD or Arrow Keys to move", canvas_ctx.width / 2, (MARGIN.y + BOARD_SIZE.y / 4) * TILE_SIZE);
   } else if (game_state === "lost") {
-    ctx.fillText(`Score: ${score}`, canvas_ctx.width / 2, (MARGIN + BOARD_SIZE.y / 4) * TILE_SIZE);
+    ctx.fillText(`Score: ${score}`, canvas_ctx.width / 2, (MARGIN.y + BOARD_SIZE.y / 4) * TILE_SIZE);
     // ctx.fillText("", canvas.width / 2, canvas.height / 2);
   } else if (game_state === "main") {
     // nothing
@@ -1094,7 +1094,7 @@ function draw(bullet_time: boolean) {
 
 
   // draw UI bar
-  ctx.translate((MARGIN - CONFIG.DRAW_WRAP) * TILE_SIZE, (MARGIN - CONFIG.DRAW_WRAP - 1 - .2) * TILE_SIZE);
+  ctx.translate((MARGIN.x - CONFIG.DRAW_WRAP) * TILE_SIZE, (MARGIN.y - CONFIG.DRAW_WRAP - 1 - .2) * TILE_SIZE);
   ctx.fillStyle = "black";
   ctx.fillRect(0, 0, BOARD_SIZE.x * TILE_SIZE, TILE_SIZE);
   ctx.fillStyle = "white";
