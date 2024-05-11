@@ -274,12 +274,12 @@ let cam_noise = noise.makeNoise3D(0);
 let cur_screen_shake = { x: 0, y: 0, actualMag: 0 };
 let tick_tock_interval_id: number | null = null;
 
+let game_state: "main_menu" | "playing" | "lost";
 let turn: number;
 let snake_blocks: { pos: Vec2, in_dir: Vec2, out_dir: Vec2, t: number }[];
 let score: number;
 let input_queue: Vec2[];
 let cur_collectables: Collectable[];
-let game_state: "waiting" | "main" | "lost";
 let turn_offset: number; // always between 0..1
 let exploding_cross_particles: { center: Vec2, turn: number }[];
 let collected_stuff_particles: { center: Vec2, text: string, turn: number }[];
@@ -287,13 +287,14 @@ let multiplier: number;
 let tick_or_tock: boolean;
 let touch_input_base_point: Vec2 | null;
 
-function restart() {
+function loadMainMenu() {
   stopTickTockSound();
+  game_state = "main_menu";
   if (CONFIG.START_ON_BORDER) {
     turn = 1;
     snake_blocks = [
-      { pos: new Vec2(-CONFIG.DRAW_WRAP + 0, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(1, 0), t: 0 },
-      { pos: new Vec2(-CONFIG.DRAW_WRAP + 1, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(0, 0), t: 1 },
+      { pos: new Vec2(-CONFIG.DRAW_WRAP + 0, BOARD_SIZE.y - 2), in_dir: new Vec2(-1, 0), out_dir: new Vec2(1, 0), t: 0 },
+      { pos: new Vec2(-CONFIG.DRAW_WRAP + 1, BOARD_SIZE.y - 2), in_dir: new Vec2(-1, 0), out_dir: new Vec2(0, 0), t: 1 },
     ];
   } else {
     turn = 2;
@@ -305,22 +306,29 @@ function restart() {
   }
   score = 0
   input_queue = [];
-  cur_collectables = [];
-  cur_collectables = [];
-  for (let k = 0; k < CONFIG.N_BOMBS; k++) {
-    cur_collectables.push(placeBomb());
-  }
-  for (let k = 0; k < CONFIG.N_MULTIPLIERS; k++) {
-    cur_collectables.push(placeMultiplier());
-  }
-  cur_collectables.push(new Clock());
-  game_state = "waiting";
+  cur_collectables = [new Bomb(BOARD_SIZE.sub(Vec2.both(2)))];
   turn_offset = 0.99; // always between 0..1
   exploding_cross_particles = [];
   collected_stuff_particles = [];
   multiplier = 1;
   tick_or_tock = false;
   touch_input_base_point = null;
+}
+
+function startGame() {
+  game_state = "playing";
+  score = 0
+  for (let k = cur_collectables.length; k < CONFIG.N_BOMBS; k++) {
+    cur_collectables.push(placeBomb());
+  }
+  for (let k = 0; k < CONFIG.N_MULTIPLIERS; k++) {
+    cur_collectables.push(placeMultiplier());
+  }
+  cur_collectables.push(new Clock());
+  multiplier = 1;
+  tick_or_tock = false;
+  touch_input_base_point = null;
+  // input_queue = [];
 }
 
 const triangle_pattern: CanvasPattern = await new Promise(resolve => {
@@ -363,7 +371,7 @@ class Clock {
 
 type Collectable = Bomb | Multiplier | Clock;
 
-restart();
+loadMainMenu();
 
 function findSpotWithoutWall(): Vec2 {
   let pos: Vec2;
@@ -418,10 +426,15 @@ function explodeBomb(k: number) {
     }
     return true;
   });
-  cur_collectables[k] = placeBomb();
   cur_screen_shake.actualMag = 5.0;
-  score += multiplier;
-  collected_stuff_particles.push({ center: cur_bomb.pos, text: '+' + multiplier.toString(), turn: turn });
+  if (game_state === "main_menu") {
+    cur_collectables[k] = new Bomb(modVec2(
+      cur_bomb.pos.addX(-randomInt(3, BOARD_SIZE.x - 4)), BOARD_SIZE));
+  } else {
+    cur_collectables[k] = placeBomb();
+    score += multiplier;
+    collected_stuff_particles.push({ center: cur_bomb.pos, text: '+' + multiplier.toString(), turn: turn });
+  }
   SOUNDS.bomb.play();
   exploding_cross_particles.push({ center: cur_bomb.pos, turn: turn });
 
@@ -464,9 +477,9 @@ function every_frame(cur_timestamp: number) {
   ctx.fillStyle = 'gray';
   ctx.fillRect(0, 0, canvas_ctx.width, canvas_ctx.height);
   // if (twgl.resizeCanvasToDisplaySize(canvas_ctx) && is_phone) {
-    // if (or(twgl.resizeCanvasToDisplaySize(canvas_ctx), twgl.resizeCanvasToDisplaySize(canvas_gl))) {
-    // resizing stuff
-    // gl.viewport(0, 0, canvas_gl.width, canvas_gl.height);
+  // if (or(twgl.resizeCanvasToDisplaySize(canvas_ctx), twgl.resizeCanvasToDisplaySize(canvas_gl))) {
+  // resizing stuff
+  // gl.viewport(0, 0, canvas_gl.width, canvas_gl.height);
   //   TILE_SIZE = Math.round(canvas_ctx.width / (BOARD_SIZE.x + MARGIN.x * 2));
   //   SWIPE_DIST = TILE_SIZE * 2;
   // }
@@ -492,58 +505,62 @@ function every_frame(cur_timestamp: number) {
   const rect = canvas_ctx.getBoundingClientRect();
   const raw_mouse_pos = new Vec2(input.mouse.clientX - rect.left - MARGIN.x * TILE_SIZE, input.mouse.clientY - rect.top - MARGIN.y * TILE_SIZE);
 
-  if (input.keyboard.wasPressed(KeyCode.KeyR)) {
-    restart();
-  }
+  let bullet_time = false;
 
-  if (input.mouse.isDown(MouseButton.Left)) {
-    if (touch_input_base_point === null) {
-      touch_input_base_point = raw_mouse_pos;
-    } else {
-      const delta = raw_mouse_pos.sub(touch_input_base_point);
-      if (delta.mag() > SWIPE_DIST) {
-        input_queue.push(roundToCardinalDirection(delta));
+  if (game_state === "main_menu") {
+    turn_offset += delta_time / CONFIG.TURN_DURATION;
+
+    if (input.keyboard.wasPressed(KeyCode.KeyR)) {
+      startGame();
+    }
+  } else if (game_state === "lost") {
+    if (input.keyboard.wasPressed(KeyCode.KeyR)) {
+      loadMainMenu();
+    }
+  } else if (game_state === "playing") {
+    if (input.mouse.isDown(MouseButton.Left)) {
+      if (touch_input_base_point === null) {
         touch_input_base_point = raw_mouse_pos;
+      } else {
+        const delta = raw_mouse_pos.sub(touch_input_base_point);
+        if (delta.mag() > SWIPE_DIST) {
+          input_queue.push(roundToCardinalDirection(delta));
+          touch_input_base_point = raw_mouse_pos;
+        }
       }
+    } else {
+      touch_input_base_point = null;
     }
-    if (game_state === "waiting") game_state = "main"
-  } else {
-    touch_input_base_point = null;
-  }
 
-  if ([
-    KeyCode.KeyW, KeyCode.ArrowUp,
-    KeyCode.KeyA, KeyCode.ArrowLeft,
-    KeyCode.KeyS, KeyCode.ArrowDown,
-    KeyCode.KeyD, KeyCode.ArrowRight,
-  ].some(k => CONFIG.ALWAYS_SLOWDOWN ? input.keyboard.wasReleased(k) : input.keyboard.wasPressed(k))) {
-    // if (game_state === "lost") {
-    //   restart();
-    // }
-    function btnp(ks: KeyCode[]) {
-      return ks.some(k => CONFIG.ALWAYS_SLOWDOWN ? input.keyboard.wasReleased(k) : input.keyboard.wasPressed(k));
-    }
-    input_queue.push(new Vec2(
-      (btnp([KeyCode.KeyD, KeyCode.ArrowRight]) ? 1 : 0)
-      - (btnp([KeyCode.KeyA, KeyCode.ArrowLeft]) ? 1 : 0),
-      (btnp([KeyCode.KeyS, KeyCode.ArrowDown]) ? 1 : 0)
-      - (btnp([KeyCode.KeyW, KeyCode.ArrowUp]) ? 1 : 0),
-    ));
-
-
-    if (game_state === "waiting") game_state = "main"
-  }
-
-  let bullet_time = input.keyboard.isDown(KeyCode.Space);
-  if (CONFIG.ALWAYS_SLOWDOWN) {
-    bullet_time = bullet_time || [
+    if ([
       KeyCode.KeyW, KeyCode.ArrowUp,
       KeyCode.KeyA, KeyCode.ArrowLeft,
       KeyCode.KeyS, KeyCode.ArrowDown,
       KeyCode.KeyD, KeyCode.ArrowRight,
-    ].some(k => input.keyboard.isDown(k));
-  }
-  if (game_state === "main") {
+    ].some(k => CONFIG.ALWAYS_SLOWDOWN ? input.keyboard.wasReleased(k) : input.keyboard.wasPressed(k))) {
+      // if (game_state === "lost") {
+      //   restart();
+      // }
+      function btnp(ks: KeyCode[]) {
+        return ks.some(k => CONFIG.ALWAYS_SLOWDOWN ? input.keyboard.wasReleased(k) : input.keyboard.wasPressed(k));
+      }
+      input_queue.push(new Vec2(
+        (btnp([KeyCode.KeyD, KeyCode.ArrowRight]) ? 1 : 0)
+        - (btnp([KeyCode.KeyA, KeyCode.ArrowLeft]) ? 1 : 0),
+        (btnp([KeyCode.KeyS, KeyCode.ArrowDown]) ? 1 : 0)
+        - (btnp([KeyCode.KeyW, KeyCode.ArrowUp]) ? 1 : 0),
+      ));
+    }
+
+    bullet_time = input.keyboard.isDown(KeyCode.Space);
+    if (CONFIG.ALWAYS_SLOWDOWN) {
+      bullet_time = bullet_time || [
+        KeyCode.KeyW, KeyCode.ArrowUp,
+        KeyCode.KeyA, KeyCode.ArrowLeft,
+        KeyCode.KeyS, KeyCode.ArrowDown,
+        KeyCode.KeyD, KeyCode.ArrowRight,
+      ].some(k => input.keyboard.isDown(k));
+    }
     let cur_turn_duration = CONFIG.TURN_DURATION;
     if (bullet_time) {
       cur_turn_duration *= CONFIG.SLOWDOWN;
@@ -1081,20 +1098,25 @@ function draw(bullet_time: boolean) {
   ctx.fillRect(0, (MARGIN.y + BOARD_SIZE.y + CONFIG.DRAW_WRAP) * TILE_SIZE, canvas_ctx.width, (MARGIN.y - CONFIG.DRAW_WRAP + 1) * TILE_SIZE);
   ctx.fillRect((MARGIN.x + BOARD_SIZE.x + CONFIG.DRAW_WRAP) * TILE_SIZE, 0, (MARGIN.x - CONFIG.DRAW_WRAP + 1) * TILE_SIZE, canvas_ctx.height);
 
-  ctx.font = `${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
   ctx.textAlign = "center";
   ctx.fillStyle = COLORS.TEXT;
-  if (game_state === "waiting") {
-    ctx.fillText("WASD or Arrow Keys to move", canvas_ctx.width / 2, (MARGIN.y + BOARD_SIZE.y / 4) * TILE_SIZE);
+  if (game_state === "main_menu") {
+    ctx.font = `${Math.floor(50 * TILE_SIZE / 32)}px KaphRegular`;
+    ctx.fillText(`BomberSnake`, canvas_ctx.width / 2, (MARGIN.y + BOARD_SIZE.y / 4) * TILE_SIZE);
+    ctx.font = `${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
+    ctx.fillText(`R to start`, canvas_ctx.width / 2, (MARGIN.y + BOARD_SIZE.y * 3 / 4) * TILE_SIZE);
   } else if (game_state === "lost") {
+    ctx.font = `${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
     ctx.fillText(`Score: ${score}`, canvas_ctx.width / 2, (MARGIN.y + BOARD_SIZE.y / 4) * TILE_SIZE);
+    ctx.fillText(`R to Restart`, canvas_ctx.width / 2, (MARGIN.y + BOARD_SIZE.y * 3 / 4) * TILE_SIZE);
     // ctx.fillText("", canvas.width / 2, canvas.height / 2);
-  } else if (game_state === "main") {
+  } else if (game_state === "playing") {
     // nothing
   }
 
 
   // draw UI bar
+  ctx.font = `${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
   ctx.translate((MARGIN.x - CONFIG.DRAW_WRAP) * TILE_SIZE, (MARGIN.y - CONFIG.DRAW_WRAP - 1 - .2) * TILE_SIZE);
   ctx.fillStyle = "black";
   ctx.fillRect(0, 0, BOARD_SIZE.x * TILE_SIZE, TILE_SIZE);
