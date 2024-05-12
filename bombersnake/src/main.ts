@@ -542,7 +542,8 @@ function every_frame(cur_timestamp: number) {
   }
 
   const rect = canvas_ctx.getBoundingClientRect();
-  const raw_mouse_pos = new Vec2(input.mouse.clientX - rect.left - MARGIN.x * TILE_SIZE, input.mouse.clientY - rect.top - MARGIN.y * TILE_SIZE);
+  const raw_mouse_pos = new Vec2(input.mouse.clientX - rect.left, input.mouse.clientY - rect.top);
+  const canvas_mouse_pos = raw_mouse_pos.sub(MARGIN.scale(TILE_SIZE));
 
   let bullet_time = false;
 
@@ -555,7 +556,6 @@ function every_frame(cur_timestamp: number) {
   } else if (game_state === "main_menu") {
     turn_offset += delta_time / CONFIG.TURN_DURATION;
 
-    // TODO: touch controls
     if ([
       KeyCode.KeyW, KeyCode.ArrowUp,
       KeyCode.KeyA, KeyCode.ArrowLeft,
@@ -597,6 +597,31 @@ function every_frame(cur_timestamp: number) {
       }
     }
 
+    // mouse moved
+    if (input.mouse.clientX !== input.mouse.prev_clientX || input.mouse.clientY !== input.mouse.prev_clientY) {
+      const menu_order = ["speed", "music", "start"] as const;
+      menu_focus = menu_order[argmin(menu_order.map(n => Math.abs(raw_mouse_pos.y - menuYCoordOf(n))))];
+    }
+
+    if (input.mouse.wasPressed(MouseButton.Left)) {
+      const dx = canvas_mouse_pos.x / (BOARD_SIZE.x * TILE_SIZE) < 1 / 3 ? -1 : 1;
+      switch (menu_focus) {
+        case 'speed':
+          game_speed += dx;
+          game_speed = mod(game_speed, 3);
+          break;
+        case 'music':
+          music_track += dx;
+          music_track = mod(music_track, 4);
+          break;
+        case 'start':
+          startGame();
+          break;
+        default:
+          break;
+      }
+    }
+
     if (input.keyboard.wasPressed(KeyCode.KeyR)) {
       startGame();
     }
@@ -607,12 +632,12 @@ function every_frame(cur_timestamp: number) {
   } else if (game_state === "playing") {
     if (input.mouse.isDown(MouseButton.Left)) {
       if (touch_input_base_point === null) {
-        touch_input_base_point = raw_mouse_pos;
+        touch_input_base_point = canvas_mouse_pos;
       } else {
-        const delta = raw_mouse_pos.sub(touch_input_base_point);
+        const delta = canvas_mouse_pos.sub(touch_input_base_point);
         if (delta.mag() > SWIPE_DIST) {
           input_queue.push(roundToCardinalDirection(delta));
-          touch_input_base_point = raw_mouse_pos;
+          touch_input_base_point = canvas_mouse_pos;
         }
       }
     } else {
