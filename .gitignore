@@ -10,6 +10,12 @@ sweet_buns
 thinky_shmup
 harvest
 aaa_template_vanilla
+hexlight
+recursive_cocina
+factory
+layers
+vau2
+vau_composable
 
 # weird github stuff so better to upload separately
 sphere_music
@@ -19,6 +25,8 @@ keyframes
 purgatory
 roots
 shaku_buns
+aquarium
+protos
 
 # maybe some day?
 online_game
@@ -28,9 +36,19 @@ parcel_test
 quantum_childminding
 rhino_express
 big_band
+crisp
+fantastic_console
+state_graph
+template_24
+template_opinionated
 
 # private stuff
 museum
+gui_practice
+ld54_post
+meta_simple
+sokoban
+sokoban_raw_webgl
 
 # other git repositories, don't include them
 Shaku
