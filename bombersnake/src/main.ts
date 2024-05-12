@@ -32,7 +32,9 @@ function loadImage(name: string): Promise<HTMLImageElement> {
 }
 
 const textures_async = await Promise.all(["bomb", "clock", "heart", "star"].flatMap(name => [loadImage(name), loadImage(name + 'B')])
-  .concat(["open", "KO", "closed"].map(n => loadImage("eye_" + n))));
+  .concat(["open", "KO", "closed"].map(s => loadImage("eye_" + s)))
+  .concat(["left", "right"].map(s => loadImage("menu_arrow_" + s)))
+);
 const TEXTURES = {
   bomb: textures_async[0],
   clock: textures_async[2],
@@ -48,7 +50,11 @@ const TEXTURES = {
     open: textures_async[8],
     KO: textures_async[9],
     closed: textures_async[10],
-  }
+  },
+  menu_arrow: {
+    left: textures_async[11],
+    right: textures_async[12],
+  },
 };
 
 function soundUrl(name: string): string {
@@ -237,6 +243,7 @@ const COLORS = {
   BACKGROUND_3: "#213636",
   BOMB: "#dd4646",
   TEXT: "#f4f4f4",
+  GRAY_TEXT: "#d4d4d4",
   SNAKE_HEAD: '#80c535',
   SNAKE_WALL: '#6aa32c',
   EXPLOSION: "#ffcd75",
@@ -287,6 +294,9 @@ let collected_stuff_particles: { center: Vec2, text: string, turn: number }[];
 let multiplier: number;
 let tick_or_tock: boolean;
 let touch_input_base_point: Vec2 | null;
+let game_speed: number;
+let music_track: number;
+let menu_focus: "speed" | "music" | "start";
 
 function resetToMainMenu() {
   stopTickTockSound();
@@ -314,6 +324,7 @@ function resetToMainMenu() {
   multiplier = 1;
   tick_or_tock = false;
   touch_input_base_point = null;
+  menu_focus = "start";
 }
 
 function startGame() {
@@ -397,6 +408,9 @@ collected_stuff_particles = [];
 multiplier = 1;
 tick_or_tock = false;
 touch_input_base_point = null;
+game_speed = 0;
+music_track = 0;
+menu_focus = "start";
 
 function findSpotWithoutWall(): Vec2 {
   let pos: Vec2;
@@ -540,6 +554,48 @@ function every_frame(cur_timestamp: number) {
     }
   } else if (game_state === "main_menu") {
     turn_offset += delta_time / CONFIG.TURN_DURATION;
+
+    // TODO: touch controls
+    if ([
+      KeyCode.KeyW, KeyCode.ArrowUp,
+      KeyCode.KeyA, KeyCode.ArrowLeft,
+      KeyCode.KeyS, KeyCode.ArrowDown,
+      KeyCode.KeyD, KeyCode.ArrowRight,
+      KeyCode.Space
+    ].some(k => input.keyboard.wasPressed(k))) {
+      function btnp(ks: KeyCode[]) {
+        return ks.some(k => CONFIG.ALWAYS_SLOWDOWN ? input.keyboard.wasReleased(k) : input.keyboard.wasPressed(k));
+      }
+      let delta = new Vec2(
+        (btnp([KeyCode.KeyD, KeyCode.ArrowRight, KeyCode.Space]) ? 1 : 0)
+        - (btnp([KeyCode.KeyA, KeyCode.ArrowLeft]) ? 1 : 0),
+        (btnp([KeyCode.KeyS, KeyCode.ArrowDown]) ? 1 : 0)
+        - (btnp([KeyCode.KeyW, KeyCode.ArrowUp]) ? 1 : 0),
+      );
+      const menu_order = ["speed", "music", "start"] as const;
+      if (delta.y != 0) {
+        const cur_index = menu_order.indexOf(menu_focus);
+        if (cur_index === -1) throw new Error("unreachable");
+        menu_focus = menu_order[mod(cur_index + delta.y, menu_order.length)];
+      }
+      if (delta.x !== 0) {
+        switch (menu_focus) {
+          case 'speed':
+            game_speed += delta.x;
+            game_speed = mod(game_speed, 3);
+            break;
+          case 'music':
+            music_track += delta.x;
+            music_track = mod(music_track, 4);
+            break;
+          case 'start':
+            startGame();
+            break;
+          default:
+            break;
+        }
+      }
+    }
 
     if (input.keyboard.wasPressed(KeyCode.KeyR)) {
       startGame();
@@ -1132,18 +1188,37 @@ function draw(bullet_time: boolean) {
   ctx.fillRect((MARGIN.x + BOARD_SIZE.x + CONFIG.DRAW_WRAP) * TILE_SIZE, 0, (MARGIN.x - CONFIG.DRAW_WRAP + 1) * TILE_SIZE, canvas_ctx.height);
 
   ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
   ctx.fillStyle = COLORS.TEXT;
   if (game_state === "loading_menu") {
     ctx.font = `${Math.floor(50 * TILE_SIZE / 32)}px KaphRegular`;
-    ctx.fillText(`BomberSnake`, canvas_ctx.width / 2, (MARGIN.y + BOARD_SIZE.y / 4) * TILE_SIZE);
+    ctx.fillText(`BomberSnake`, canvas_ctx.width / 2, (MARGIN.y + BOARD_SIZE.y * .15) * TILE_SIZE);
     ctx.font = `${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
-    ctx.fillText(`Click to start`, canvas_ctx.width / 2, (MARGIN.y + BOARD_SIZE.y * 3 / 4) * TILE_SIZE);
-    ctx.fillText(`By knexator & Pinchazumos`, canvas_ctx.width / 2, (MARGIN.y + BOARD_SIZE.y * 2 / 4) * TILE_SIZE);
+    ctx.fillText(`Click anywhere to`, canvas_ctx.width / 2, menuYCoordOf("start") - 1 * TILE_SIZE);
+    ctx.fillText(`Start!`, canvas_ctx.width / 2, menuYCoordOf("start"));
+    ctx.fillText(`By knexator & Pinchazumos`, canvas_ctx.width / 2, (MARGIN.y + BOARD_SIZE.y * .8) * TILE_SIZE);
   } else if (game_state === "main_menu") {
     ctx.font = `${Math.floor(50 * TILE_SIZE / 32)}px KaphRegular`;
-    ctx.fillText(`BomberSnake`, canvas_ctx.width / 2, (MARGIN.y + BOARD_SIZE.y / 4) * TILE_SIZE);
+    ctx.fillText(`BomberSnake`, canvas_ctx.width / 2, (MARGIN.y + BOARD_SIZE.y * .15) * TILE_SIZE);
+
+    ctx.fillStyle = menu_focus === "speed" ? COLORS.TEXT : COLORS.GRAY_TEXT;
     ctx.font = `${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
-    ctx.fillText(`R to start`, canvas_ctx.width / 2, (MARGIN.y + BOARD_SIZE.y * 3 / 4) * TILE_SIZE);
+    ctx.fillText(`Speed: ${game_speed}`, canvas_ctx.width / 2, menuYCoordOf("speed"));
+
+    ctx.fillStyle = menu_focus === "music" ? COLORS.TEXT : COLORS.GRAY_TEXT;
+    ctx.font = `${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
+    ctx.fillText(`Music: ${music_track}`, canvas_ctx.width / 2, menuYCoordOf("music"));
+
+    if (menu_focus !== "start") {
+      drawMenuArrow(menu_focus, false);
+      drawMenuArrow(menu_focus, true);
+    }
+
+    ctx.fillStyle = menu_focus === "start" ? COLORS.TEXT : COLORS.GRAY_TEXT;
+    ctx.font = `${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
+    ctx.fillText(`Start!`, canvas_ctx.width / 2, menuYCoordOf("start"));
+
+    // TODO: WASD/Arrows to play
   } else if (game_state === "lost") {
     ctx.font = `${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
     ctx.fillText(`Score: ${score}`, canvas_ctx.width / 2, (MARGIN.y + BOARD_SIZE.y / 4) * TILE_SIZE);
@@ -1171,9 +1246,48 @@ function draw(bullet_time: boolean) {
 
 }
 
+function menuYCoordOf(setting: "speed" | "music" | "start"): number {
+  let s = 0;
+  switch (setting) {
+    case "speed":
+      s = .3;
+      break;
+    case "music":
+      s = .4;
+      break;
+    case "start":
+      s = .6;
+      break;
+    default:
+      break;
+  }
+  return (MARGIN.y + BOARD_SIZE.y * s) * TILE_SIZE;
+}
+
 function lose() {
   stopTickTockSound();
   game_state = "lost";
+}
+
+function drawMenuArrow(setting: "speed" | "music", left: boolean): void {
+  ctx.fillStyle = COLORS.TEXT;
+  const pos = menuArrowPos(setting, left);
+  // TODO
+  const size = menuArrowSize();
+  ctx.drawImage(left ? TEXTURES.menu_arrow.left : TEXTURES.menu_arrow.right, pos.x - size.x / 2, pos.y - size.y / 2, size.x, size.y);
+  // ctx.fillRect(pos.x, pos.y, 100, 100);
+  // ctx.fillRect(pos.x, pos.y, 10, 10);
+}
+
+function menuArrowSize(): Vec2 {
+  // TODO
+  return new Vec2(1, 1).scale(TILE_SIZE);
+}
+
+function menuArrowPos(setting: "speed" | "music", left: boolean): Vec2 {
+  return new Vec2(
+    canvas_ctx.width / 2 + (left ? -1 : 1) * 4 * TILE_SIZE,
+    menuYCoordOf(setting));
 }
 
 ////// library stuff
