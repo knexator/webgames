@@ -67,7 +67,7 @@ function soundUrl(name: string): string {
 }
 
 const BOARD_SIZE = new Vec2(16, 16);
-const MARGIN = new Vec2(1, 2);
+const MARGIN = new Vec2(1, 3);
 
 const is_phone = (function () {
   let check = false;
@@ -130,6 +130,7 @@ let CONFIG = {
   TOTAL_SLOWDOWN: false,
   ALWAYS_SLOWDOWN: false,
   DRAW_WRAP: 0,
+  MUFFLED_WRAP: true,
   DRAW_PATTERN: false,
   DRAW_SNAKE_BORDER: false,
   BORDER_SIZE: .2,
@@ -168,6 +169,7 @@ gui.add(CONFIG, "SLOWDOWN", 1, 10);
 gui.add(CONFIG, "TOTAL_SLOWDOWN");
 gui.add(CONFIG, "ALWAYS_SLOWDOWN");
 gui.add(CONFIG, "DRAW_WRAP", 0, MARGIN.x, 1);
+gui.add(CONFIG, "MUFFLED_WRAP");
 gui.add(CONFIG, "DRAW_PATTERN");
 gui.add(CONFIG, "DRAW_SNAKE_BORDER");
 gui.add(CONFIG, "BORDER_SIZE", 0, .5);
@@ -1219,6 +1221,28 @@ function draw(bullet_time: boolean) {
   ctx.fillRect(0, (MARGIN.y + BOARD_SIZE.y + CONFIG.DRAW_WRAP) * TILE_SIZE, canvas_ctx.width, (MARGIN.y - CONFIG.DRAW_WRAP + 1) * TILE_SIZE);
   ctx.fillRect((MARGIN.x + BOARD_SIZE.x + CONFIG.DRAW_WRAP) * TILE_SIZE, 0, (MARGIN.x - CONFIG.DRAW_WRAP + 1) * TILE_SIZE, canvas_ctx.height);
 
+  if (CONFIG.MUFFLED_WRAP) {
+    ctx.save();
+    ctx.translate(MARGIN.x * TILE_SIZE, MARGIN.y * TILE_SIZE);
+
+    let region = new Path2D();
+    region.rect(-CONFIG.DRAW_WRAP * TILE_SIZE, -CONFIG.DRAW_WRAP * TILE_SIZE,
+      (BOARD_SIZE.x + CONFIG.DRAW_WRAP * 2) * TILE_SIZE,
+      (BOARD_SIZE.y + CONFIG.DRAW_WRAP * 2) * TILE_SIZE);
+    region.rect(0, 0,
+      (BOARD_SIZE.x) * TILE_SIZE,
+      (BOARD_SIZE.y) * TILE_SIZE);
+    ctx.clip(region, "evenodd");
+
+    ctx.fillStyle = "#505050CC";
+    ctx.fillRect(-CONFIG.DRAW_WRAP * TILE_SIZE, -CONFIG.DRAW_WRAP * TILE_SIZE,
+      (BOARD_SIZE.x + CONFIG.DRAW_WRAP * 2) * TILE_SIZE,
+      (BOARD_SIZE.y + CONFIG.DRAW_WRAP * 2) * TILE_SIZE);
+    ctx.clip();
+
+    ctx.restore();
+  }
+
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillStyle = COLORS.TEXT;
@@ -1265,7 +1289,7 @@ function draw(bullet_time: boolean) {
 
   // draw UI bar
   ctx.font = `${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
-  ctx.translate((MARGIN.x - CONFIG.DRAW_WRAP) * TILE_SIZE, (MARGIN.y - CONFIG.DRAW_WRAP - 1 - .2) * TILE_SIZE);
+  ctx.translate(MARGIN.x * TILE_SIZE, (MARGIN.y - CONFIG.DRAW_WRAP - 1 - .2) * TILE_SIZE);
   ctx.fillStyle = "black";
   ctx.fillRect(0, 0, BOARD_SIZE.x * TILE_SIZE, TILE_SIZE);
   ctx.fillStyle = "white";
@@ -1288,7 +1312,7 @@ function draw(bullet_time: boolean) {
       anyBlockAt(new Vec2(0, head_position.y)) ? TEXTURES.border_arrow.red : TEXTURES.border_arrow.white, 0, new Vec2(.5, 1));
     drawRotatedTextureNoWrap(new Vec2(head_position.x, -1).add(Vec2.both(.5)),
       anyBlockAt(new Vec2(head_position.x, BOARD_SIZE.y - 1)) ? TEXTURES.border_arrow.red : TEXTURES.border_arrow.white, -Math.PI / 2, new Vec2(.5, 1));
-    drawRotatedTextureNoWrap(new Vec2(head_position.x, BOARD_SIZE.y).add(Vec2.both(.5)), 
+    drawRotatedTextureNoWrap(new Vec2(head_position.x, BOARD_SIZE.y).add(Vec2.both(.5)),
       anyBlockAt(new Vec2(head_position.x, 1)) ? TEXTURES.border_arrow.red : TEXTURES.border_arrow.white, Math.PI / 2, new Vec2(.5, 1));
   }
 }
