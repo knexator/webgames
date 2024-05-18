@@ -34,7 +34,7 @@ function loadImage(name: string): Promise<HTMLImageElement> {
 const textures_async = await Promise.all(["bomb", "clock", "heart", "star"].flatMap(name => [loadImage(name), loadImage(name + 'B')])
   .concat(["open", "KO", "closed"].map(s => loadImage("eye_" + s)))
   .concat(["left", "right"].map(s => loadImage("menu_arrow_" + s)))
-  .concat([loadImage("side_arrow_R")])
+  .concat([loadImage("side_arrow_W"), loadImage("side_arrow_R")])
 );
 const TEXTURES = {
   bomb: textures_async[0],
@@ -56,7 +56,10 @@ const TEXTURES = {
     left: textures_async[11],
     right: textures_async[12],
   },
-  border_arrow: textures_async[13],
+  border_arrow: {
+    white: textures_async[13],
+    red: textures_async[14],
+  }
 };
 
 function soundUrl(name: string): string {
@@ -1279,10 +1282,14 @@ function draw(bullet_time: boolean) {
     ctx.translate(MARGIN.x * TILE_SIZE, MARGIN.y * TILE_SIZE);
     ctx.fillStyle = 'red';
     const head_position = snake_blocks[snake_blocks.length - 1].pos;
-    drawRotatedTextureNoWrap(new Vec2(-1, head_position.y).add(Vec2.both(.5)), TEXTURES.border_arrow, Math.PI, new Vec2(.5, 1));
-    drawRotatedTextureNoWrap(new Vec2(BOARD_SIZE.x, head_position.y).add(Vec2.both(.5)), TEXTURES.border_arrow, 0, new Vec2(.5, 1));
-    drawRotatedTextureNoWrap(new Vec2(head_position.x, -1).add(Vec2.both(.5)), TEXTURES.border_arrow, -Math.PI / 2, new Vec2(.5, 1));
-    drawRotatedTextureNoWrap(new Vec2(head_position.x, BOARD_SIZE.y).add(Vec2.both(.5)), TEXTURES.border_arrow, Math.PI / 2, new Vec2(.5, 1));
+    drawRotatedTextureNoWrap(new Vec2(-1, head_position.y).add(Vec2.both(.5)),
+      anyBlockAt(new Vec2(BOARD_SIZE.x - 1, head_position.y)) ? TEXTURES.border_arrow.red : TEXTURES.border_arrow.white, Math.PI, new Vec2(.5, 1));
+    drawRotatedTextureNoWrap(new Vec2(BOARD_SIZE.x, head_position.y).add(Vec2.both(.5)),
+      anyBlockAt(new Vec2(0, head_position.y)) ? TEXTURES.border_arrow.red : TEXTURES.border_arrow.white, 0, new Vec2(.5, 1));
+    drawRotatedTextureNoWrap(new Vec2(head_position.x, -1).add(Vec2.both(.5)),
+      anyBlockAt(new Vec2(head_position.x, BOARD_SIZE.y - 1)) ? TEXTURES.border_arrow.red : TEXTURES.border_arrow.white, -Math.PI / 2, new Vec2(.5, 1));
+    drawRotatedTextureNoWrap(new Vec2(head_position.x, BOARD_SIZE.y).add(Vec2.both(.5)), 
+      anyBlockAt(new Vec2(head_position.x, 1)) ? TEXTURES.border_arrow.red : TEXTURES.border_arrow.white, Math.PI / 2, new Vec2(.5, 1));
   }
 }
 
@@ -1505,5 +1512,9 @@ function textTile(text: string, pos: Vec2) {
       ctx.fillText(text, (pos.x + .5 + i * BOARD_SIZE.x) * TILE_SIZE, (pos.y + .8 + j * BOARD_SIZE.y) * TILE_SIZE);
     }
   }
+}
+
+function anyBlockAt(pos: Vec2): boolean {
+  return snake_blocks.some(b => pos.equal(b.pos));
 }
 
