@@ -34,6 +34,7 @@ function loadImage(name: string): Promise<HTMLImageElement> {
 const textures_async = await Promise.all(["bomb", "clock", "heart", "star"].flatMap(name => [loadImage(name), loadImage(name + 'B')])
   .concat(["open", "KO", "closed"].map(s => loadImage("eye_" + s)))
   .concat(["left", "right"].map(s => loadImage("menu_arrow_" + s)))
+  .concat([loadImage("side_arrow_R")])
 );
 const TEXTURES = {
   bomb: textures_async[0],
@@ -55,6 +56,7 @@ const TEXTURES = {
     left: textures_async[11],
     right: textures_async[12],
   },
+  border_arrow: textures_async[13],
 };
 
 function soundUrl(name: string): string {
@@ -110,6 +112,7 @@ let CONFIG = {
   PAUSED: false,
   TURN_DURATION: .15,
   ANIM_PERC: 0.3,
+  BORDER_ARROWS: false,
   CHEAT_INMORTAL: false,
   FUSE_DURATION: 0,
   PLAYER_CAN_EXPLODE: false,
@@ -147,6 +150,7 @@ const gui = new GUI();
 gui.add(CONFIG, "PAUSED");
 gui.add(CONFIG, "TURN_DURATION", .05, 1);
 gui.add(CONFIG, "ANIM_PERC", 0, 1);
+gui.add(CONFIG, "BORDER_ARROWS");
 gui.add(CONFIG, "CHEAT_INMORTAL");
 gui.add(CONFIG, "FUSE_DURATION", 0, 10, 1);
 gui.add(CONFIG, "N_BOMBS", 1, 6, 1);
@@ -1269,6 +1273,17 @@ function draw(bullet_time: boolean) {
   ctx.drawImage(TEXTURES.multiplier, 12.5 * TILE_SIZE, 0, TILE_SIZE, TILE_SIZE);
   ctx.fillText(`x${multiplier}`, 13.6 * TILE_SIZE, TILE_SIZE);
 
+  // extra arrows
+  if (CONFIG.BORDER_ARROWS) {
+    ctx.resetTransform();
+    ctx.translate(MARGIN.x * TILE_SIZE, MARGIN.y * TILE_SIZE);
+    ctx.fillStyle = 'red';
+    const head_position = snake_blocks[snake_blocks.length - 1].pos;
+    drawRotatedTextureNoWrap(new Vec2(-1, head_position.y).add(Vec2.both(.5)), TEXTURES.border_arrow, Math.PI, new Vec2(.5, 1));
+    drawRotatedTextureNoWrap(new Vec2(BOARD_SIZE.x, head_position.y).add(Vec2.both(.5)), TEXTURES.border_arrow, 0, new Vec2(.5, 1));
+    drawRotatedTextureNoWrap(new Vec2(head_position.x, -1).add(Vec2.both(.5)), TEXTURES.border_arrow, -Math.PI / 2, new Vec2(.5, 1));
+    drawRotatedTextureNoWrap(new Vec2(head_position.x, BOARD_SIZE.y).add(Vec2.both(.5)), TEXTURES.border_arrow, Math.PI / 2, new Vec2(.5, 1));
+  }
 }
 
 function menuYCoordOf(setting: "speed" | "music" | "start"): number {
@@ -1404,16 +1419,20 @@ function drawTexture(top_left: Vec2, texture: HTMLImageElement) {
   }
 }
 
+function drawRotatedTextureNoWrap(center: Vec2, texture: HTMLImageElement, angle_in_radians: number, size: Vec2 = Vec2.one) {
+  const px_center = center.scale(TILE_SIZE);
+
+  ctx.translate(px_center.x, px_center.y);
+  ctx.rotate(angle_in_radians);
+  ctx.drawImage(texture, -TILE_SIZE / 2, -TILE_SIZE / 2, TILE_SIZE * size.x, TILE_SIZE * size.y);
+  ctx.rotate(-angle_in_radians);
+  ctx.translate(-px_center.x, -px_center.y);
+}
+
 function drawRotatedTexture(center: Vec2, texture: HTMLImageElement, angle_in_radians: number) {
   for (let i = -1; i <= 1; i++) {
     for (let j = -1; j <= 1; j++) {
-      const px_center = center.add(BOARD_SIZE.mul(new Vec2(i, j))).scale(TILE_SIZE);
-
-      ctx.translate(px_center.x, px_center.y);
-      ctx.rotate(angle_in_radians);
-      ctx.drawImage(texture, -TILE_SIZE / 2, -TILE_SIZE / 2, TILE_SIZE, TILE_SIZE);
-      ctx.rotate(-angle_in_radians);
-      ctx.translate(-px_center.x, -px_center.y);
+      drawRotatedTextureNoWrap(center.add(BOARD_SIZE.mul(new Vec2(i, j))), texture, angle_in_radians);
     }
   }
 }
