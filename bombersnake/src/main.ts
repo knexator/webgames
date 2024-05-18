@@ -67,7 +67,7 @@ function soundUrl(name: string): string {
 }
 
 const BOARD_SIZE = new Vec2(16, 16);
-const MARGIN = new Vec2(1, 3);
+const MARGIN = new Vec2(2, 4);
 
 const is_phone = (function () {
   let check = false;
@@ -313,8 +313,8 @@ function resetToMainMenu() {
   if (CONFIG.START_ON_BORDER) {
     turn = 1;
     snake_blocks = [
-      { pos: new Vec2(-CONFIG.DRAW_WRAP + 0, BOARD_SIZE.y - 2), in_dir: new Vec2(-1, 0), out_dir: new Vec2(1, 0), t: 0 },
-      { pos: new Vec2(-CONFIG.DRAW_WRAP + 1, BOARD_SIZE.y - 2), in_dir: new Vec2(-1, 0), out_dir: new Vec2(0, 0), t: 1 },
+      { pos: new Vec2(0, BOARD_SIZE.y - 2), in_dir: new Vec2(-1, 0), out_dir: new Vec2(1, 0), t: 0 },
+      { pos: new Vec2(1, BOARD_SIZE.y - 2), in_dir: new Vec2(-1, 0), out_dir: new Vec2(0, 0), t: 1 },
     ];
   } else {
     turn = 2;
