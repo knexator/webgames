@@ -226,6 +226,7 @@ const SOUNDS = {
     volume: 2.5,
   }),
 };
+Howler.volume(.75);
 
 const INITIAL_VOLUME = objectMap(SOUNDS, x => x.volume());
 
