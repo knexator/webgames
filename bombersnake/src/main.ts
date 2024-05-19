@@ -953,7 +953,7 @@ function draw(bullet_time: boolean) {
       } else if (cur_collectable instanceof Clock) {
         const clock = cur_collectable;
         if (clock.active) {
-          drawTexture(clock.pos, TEXTURES.shadow.clock);
+          drawTexture(clock.pos.add(Vec2.both(CONFIG.SHADOW_DIST)), TEXTURES.shadow.clock);
         }
       } else {
         throw new Error();
