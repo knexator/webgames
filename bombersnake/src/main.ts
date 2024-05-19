@@ -292,7 +292,7 @@ let cam_noise = noise.makeNoise3D(0);
 let cur_screen_shake = { x: 0, y: 0, actualMag: 0 };
 let tick_tock_interval_id: number | null = null;
 
-let game_state: "loading_menu" | "main_menu" | "playing" | "lost";
+let game_state: "loading_menu" | "pause_menu" | "playing" | "lost";
 let turn: number;
 let snake_blocks: { pos: Vec2, in_dir: Vec2, out_dir: Vec2, t: number }[];
 let score: number;
@@ -308,9 +308,9 @@ let game_speed: number;
 let music_track: number;
 let menu_focus: "speed" | "music" | "start";
 
-function resetToMainMenu() {
+function restartGame() {
   stopTickTockSound();
-  game_state = "main_menu";
+  game_state = "playing";
   if (CONFIG.START_ON_BORDER) {
     turn = 1;
     snake_blocks = [
@@ -327,19 +327,7 @@ function resetToMainMenu() {
   }
   score = 0
   input_queue = [];
-  cur_collectables = [new Bomb(BOARD_SIZE.sub(Vec2.both(2)))];
-  turn_offset = 0.99; // always between 0..1
-  exploding_cross_particles = [];
-  collected_stuff_particles = [];
-  multiplier = 1;
-  tick_or_tock = false;
-  touch_input_base_point = null;
-  menu_focus = "start";
-}
-
-function startGame() {
-  game_state = "playing";
-  score = 0
+  cur_collectables = [];
   for (let k = cur_collectables.length; k < CONFIG.N_BOMBS; k++) {
     cur_collectables.push(placeBomb());
   }
@@ -347,10 +335,13 @@ function startGame() {
     cur_collectables.push(placeMultiplier());
   }
   cur_collectables.push(new Clock());
+  turn_offset = 0.99; // always between 0..1
+  exploding_cross_particles = [];
+  collected_stuff_particles = [];
   multiplier = 1;
   tick_or_tock = false;
   touch_input_base_point = null;
-  // input_queue = [];
+  menu_focus = "start";
 }
 
 const triangle_pattern: CanvasPattern = await new Promise(resolve => {
@@ -476,14 +467,9 @@ function explodeBomb(k: number) {
     return true;
   });
   cur_screen_shake.actualMag = 5.0;
-  if (game_state === "main_menu" || game_state === "loading_menu") {
-    cur_collectables[k] = new Bomb(modVec2(
-      cur_bomb.pos.addX(-randomInt(3, BOARD_SIZE.x - 4)), BOARD_SIZE));
-  } else {
-    cur_collectables[k] = placeBomb();
-    score += multiplier;
-    collected_stuff_particles.push({ center: cur_bomb.pos, text: '+' + multiplier.toString(), turn: turn });
-  }
+  cur_collectables[k] = placeBomb();
+  score += multiplier;
+  collected_stuff_particles.push({ center: cur_bomb.pos, text: '+' + multiplier.toString(), turn: turn });
   SOUNDS.bomb.play();
   exploding_cross_particles.push({ center: cur_bomb.pos, turn: turn });
 
@@ -558,13 +544,20 @@ function every_frame(cur_timestamp: number) {
   let bullet_time = false;
 
   if (game_state === "loading_menu") {
-    turn_offset += delta_time / CONFIG.TURN_DURATION;
+    // turn_offset += delta_time / CONFIG.TURN_DURATION;
 
     if (input.mouse.wasPressed(MouseButton.Left)) {
-      game_state = "main_menu";
+      for (let k = cur_collectables.length; k < CONFIG.N_BOMBS; k++) {
+        cur_collectables.push(placeBomb());
+      }
+      for (let k = 0; k < CONFIG.N_MULTIPLIERS; k++) {
+        cur_collectables.push(placeMultiplier());
+      }
+      cur_collectables.push(new Clock());
+      game_state = "playing";
     }
-  } else if (game_state === "main_menu") {
-    turn_offset += delta_time / CONFIG.TURN_DURATION;
+  } else if (game_state === "pause_menu") {
+    // turn_offset += delta_time / CONFIG.TURN_DURATION;
 
     if ([
       KeyCode.KeyW, KeyCode.ArrowUp,
@@ -599,7 +592,7 @@ function every_frame(cur_timestamp: number) {
             music_track = mod(music_track, 4);
             break;
           case 'start':
-            startGame();
+            game_state = 'playing';
             break;
           default:
             break;
@@ -625,19 +618,23 @@ function every_frame(cur_timestamp: number) {
           music_track = mod(music_track, 4);
           break;
         case 'start':
-          startGame();
+          game_state = 'playing';
           break;
         default:
           break;
       }
     }
 
-    if (input.keyboard.wasPressed(KeyCode.KeyR)) {
-      startGame();
+    if (input.keyboard.wasPressed(KeyCode.Escape)) {
+      game_state = 'playing';
     }
   } else if (game_state === "lost") {
     if (input.keyboard.wasPressed(KeyCode.KeyR)) {
-      resetToMainMenu();
+      restartGame();
+    }
+    else if (input.keyboard.wasPressed(KeyCode.Escape)) {
+      restartGame();
+      game_state = "pause_menu";
     }
   } else if (game_state === "playing") {
     if (input.mouse.isDown(MouseButton.Left)) {
@@ -691,6 +688,10 @@ function every_frame(cur_timestamp: number) {
       // no advance
     } else {
       turn_offset += delta_time / cur_turn_duration;
+    }
+
+    if (input.keyboard.wasPressed(KeyCode.Escape)) {
+      game_state = "pause_menu";
     }
   } else {
     throw new Error(`unhandled game state: ${game_state}`);
@@ -1254,7 +1255,7 @@ function draw(bullet_time: boolean) {
     ctx.fillText(`Click anywhere to`, canvas_ctx.width / 2, menuYCoordOf("start") - 1 * TILE_SIZE);
     ctx.fillText(`Start!`, canvas_ctx.width / 2, menuYCoordOf("start"));
     ctx.fillText(`By knexator & Pinchazumos`, canvas_ctx.width / 2, (MARGIN.y + BOARD_SIZE.y * .8) * TILE_SIZE);
-  } else if (game_state === "main_menu") {
+  } else if (game_state === "pause_menu") {
     ctx.font = `${Math.floor(50 * TILE_SIZE / 32)}px KaphRegular`;
     ctx.fillText(`BomberSnake`, canvas_ctx.width / 2, (MARGIN.y + BOARD_SIZE.y * .15) * TILE_SIZE);
 
@@ -1273,7 +1274,7 @@ function draw(bullet_time: boolean) {
 
     ctx.fillStyle = menu_focus === "start" ? COLORS.TEXT : COLORS.GRAY_TEXT;
     ctx.font = `${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
-    ctx.fillText(`Start!`, canvas_ctx.width / 2, menuYCoordOf("start"));
+    ctx.fillText(`Resume`, canvas_ctx.width / 2, menuYCoordOf("start"));
 
     // TODO: WASD/Arrows to play
   } else if (game_state === "lost") {
