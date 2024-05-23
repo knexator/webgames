@@ -35,6 +35,7 @@ const textures_async = await Promise.all(["bomb", "clock", "heart", "star"].flat
   .concat(["open", "KO", "closed"].map(s => loadImage("eye_" + s)))
   .concat(["left", "right"].map(s => loadImage("menu_arrow_" + s)))
   .concat([loadImage("side_arrow_W"), loadImage("side_arrow_R")])
+  .concat([loadImage("title_color"), loadImage("title_B")])
 );
 const TEXTURES = {
   bomb: textures_async[0],
@@ -59,15 +60,16 @@ const TEXTURES = {
   border_arrow: {
     white: textures_async[13],
     red: textures_async[14],
-  }
+  },
+  logo: {
+    main: textures_async[15],
+    shadow: textures_async[16],
+  },
 };
 
 function soundUrl(name: string): string {
   return new URL(`./sounds/${name}`, import.meta.url).href;
 }
-
-const BOARD_SIZE = new Vec2(16, 16);
-const MARGIN = new Vec2(2, 4);
 
 const is_phone = (function () {
   let check = false;
@@ -76,11 +78,12 @@ const is_phone = (function () {
   return check;
 })();
 
+const BOARD_SIZE = new Vec2(16, 16);
+const MARGIN = is_phone ? new Vec2(0, 5) : new Vec2(2, 4);
 
 const container = document.querySelector("#canvas_container") as HTMLElement;
 
 const TILE_SIZE = is_phone ? Math.round(container.clientWidth / (BOARD_SIZE.x + MARGIN.x * 2)) : 32;
-const SWIPE_DIST = TILE_SIZE * 2;
 
 container.style.width = `${TILE_SIZE * (BOARD_SIZE.x + MARGIN.x * 2)}px`
 container.style.height = `${TILE_SIZE * (BOARD_SIZE.x + MARGIN.y * 2)}px`
@@ -112,6 +115,7 @@ twgl.resizeCanvasToDisplaySize(canvas_ctx);
 // }
 
 let CONFIG = {
+  SWIPE_DIST: 2,
   PAUSED: false,
   TURN_DURATION: .15,
   ANIM_PERC: 0.3,
@@ -151,6 +155,7 @@ let CONFIG = {
 }
 
 const gui = new GUI();
+gui.add(CONFIG, "SWIPE_DIST", 0, 2);
 gui.add(CONFIG, "PAUSED");
 gui.add(CONFIG, "TURN_DURATION", .05, 1);
 gui.add(CONFIG, "ANIM_PERC", 0, 1);
@@ -187,7 +192,7 @@ gui.add(CONFIG, "SCARF_BORDER_WIDTH", 0, .5);
 gui.add(CONFIG, "HEAD_COLOR");
 gui.add(CONFIG, "START_ON_BORDER");
 gui.add(CONFIG, "EXPLOSION_CIRCLE");
-gui.hide();
+// gui.hide();
 
 const SOUNDS = {
   music: new Howl({
@@ -500,6 +505,21 @@ function stopTickTockSound(): void {
   }
 }
 
+document.querySelector<HTMLButtonElement>("#menu_button")!.addEventListener("click", _ => {
+  game_state = "pause_menu";
+  touch_input_base_point = null;
+});
+
+document.querySelector<HTMLButtonElement>("#restart_button")!.addEventListener("click", _ => {
+  restartGame();
+  touch_input_base_point = null;
+});
+
+document.querySelector<HTMLButtonElement>("#sliders_button")!.addEventListener("click", _ => {
+  gui.show(gui._hidden);
+  touch_input_base_point = null;
+});
+
 let last_timestamp = 0;
 // main loop; game logic lives here
 function every_frame(cur_timestamp: number) {
@@ -642,7 +662,7 @@ function every_frame(cur_timestamp: number) {
         touch_input_base_point = canvas_mouse_pos;
       } else {
         const delta = canvas_mouse_pos.sub(touch_input_base_point);
-        if (delta.mag() > SWIPE_DIST) {
+        if (delta.mag() > CONFIG.SWIPE_DIST * TILE_SIZE) {
           input_queue.push(roundToCardinalDirection(delta));
           touch_input_base_point = canvas_mouse_pos;
         }
@@ -707,9 +727,10 @@ function every_frame(cur_timestamp: number) {
     let next_input: Vec2 | null = null;
     while (input_queue.length > 0) {
       let maybe_next_input = input_queue.shift()!;
-      if (Math.abs(maybe_next_input.x) + Math.abs(maybe_next_input.y) !== 1 ||
-        maybe_next_input.equal(last_block.in_dir)) {
-        // unvalid input
+      if (Math.abs(maybe_next_input.x) + Math.abs(maybe_next_input.y) !== 1 
+        || maybe_next_input.equal(last_block.in_dir) 
+        || maybe_next_input.equal(last_block.in_dir.scale(-1))) {
+        // ignore input
       } else {
         next_input = maybe_next_input;
         break;
@@ -1249,6 +1270,7 @@ function draw(bullet_time: boolean) {
   ctx.textBaseline = "middle";
   ctx.fillStyle = COLORS.TEXT;
   if (game_state === "loading_menu") {
+    // TODO: use logo image
     ctx.font = `${Math.floor(50 * TILE_SIZE / 32)}px KaphRegular`;
     ctx.fillText(`BomberSnake`, canvas_ctx.width / 2, (MARGIN.y + BOARD_SIZE.y * .15) * TILE_SIZE);
     ctx.font = `${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
