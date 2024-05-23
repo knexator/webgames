@@ -115,7 +115,8 @@ twgl.resizeCanvasToDisplaySize(canvas_ctx);
 // }
 
 let CONFIG = {
-  SWIPE_DIST: 2,
+  SWIPE_DIST: 1,
+  SWIPE_MARGIN: 1,
   PAUSED: false,
   TURN_DURATION: .15,
   ANIM_PERC: 0.3,
@@ -156,6 +157,7 @@ let CONFIG = {
 
 const gui = new GUI();
 gui.add(CONFIG, "SWIPE_DIST", 0, 2);
+gui.add(CONFIG, "SWIPE_MARGIN", 1, 3);
 gui.add(CONFIG, "PAUSED");
 gui.add(CONFIG, "TURN_DURATION", .05, 1);
 gui.add(CONFIG, "ANIM_PERC", 0, 1);
@@ -192,7 +194,7 @@ gui.add(CONFIG, "SCARF_BORDER_WIDTH", 0, .5);
 gui.add(CONFIG, "HEAD_COLOR");
 gui.add(CONFIG, "START_ON_BORDER");
 gui.add(CONFIG, "EXPLOSION_CIRCLE");
-// gui.hide();
+gui.hide();
 
 const SOUNDS = {
   music: new Howl({
@@ -576,6 +578,7 @@ function every_frame(cur_timestamp: number) {
       }
       cur_collectables.push(new Clock());
       game_state = "playing";
+      document.body.requestFullscreen();
     }
   } else if (game_state === "pause_menu") {
     // turn_offset += delta_time / CONFIG.TURN_DURATION;
@@ -663,8 +666,9 @@ function every_frame(cur_timestamp: number) {
         touch_input_base_point = canvas_mouse_pos;
       } else {
         const delta = canvas_mouse_pos.sub(touch_input_base_point);
-        if (delta.mag() > CONFIG.SWIPE_DIST * TILE_SIZE) {
-          input_queue.push(roundToCardinalDirection(delta));
+        const dir = getDirFromDelta(delta);
+        if (dir !== null) {
+          input_queue.push(dir);
           touch_input_base_point = canvas_mouse_pos;
         }
       }
@@ -1445,6 +1449,20 @@ if (loading_screen_element) {
   }, { once: true });
 } else {
   animation_id = requestAnimationFrame(every_frame);
+}
+
+function getDirFromDelta(delta: Vec2): Vec2 | null {
+  if (delta.mag() < CONFIG.SWIPE_DIST * TILE_SIZE) return null;
+
+  if (Math.abs(delta.x) * CONFIG.SWIPE_MARGIN > Math.abs(delta.y)) {
+    return new Vec2(Math.sign(delta.x), 0);
+  }
+
+  if (Math.abs(delta.y) * CONFIG.SWIPE_MARGIN > Math.abs(delta.x)) {
+    return new Vec2(0, Math.sign(delta.y));
+  }
+  
+  return null;
 }
 
 function roundToCardinalDirection(v: Vec2): Vec2 {
