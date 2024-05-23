@@ -261,7 +261,7 @@ const COLORS = {
   BACKGROUND_3: "#213636",
   BOMB: "#dd4646",
   TEXT: "#f4f4f4",
-  GRAY_TEXT: "#d4d4d4",
+  GRAY_TEXT: "#b4b4b4",
   SNAKE_HEAD: '#80c535',
   SNAKE_WALL: '#6aa32c',
   EXPLOSION: "#ffcd75",
@@ -578,7 +578,6 @@ function every_frame(cur_timestamp: number) {
       }
       cur_collectables.push(new Clock());
       game_state = "playing";
-      document.body.requestFullscreen();
     }
   } else if (game_state === "pause_menu") {
     // turn_offset += delta_time / CONFIG.TURN_DURATION;
@@ -732,8 +731,8 @@ function every_frame(cur_timestamp: number) {
     let next_input: Vec2 | null = null;
     while (input_queue.length > 0) {
       let maybe_next_input = input_queue.shift()!;
-      if (Math.abs(maybe_next_input.x) + Math.abs(maybe_next_input.y) !== 1 
-        || maybe_next_input.equal(last_block.in_dir) 
+      if (Math.abs(maybe_next_input.x) + Math.abs(maybe_next_input.y) !== 1
+        || maybe_next_input.equal(last_block.in_dir)
         || maybe_next_input.equal(last_block.in_dir.scale(-1))) {
         // ignore input
       } else {
@@ -1275,16 +1274,15 @@ function draw(bullet_time: boolean) {
   ctx.textBaseline = "middle";
   ctx.fillStyle = COLORS.TEXT;
   if (game_state === "loading_menu") {
-    // TODO: use logo image
-    ctx.font = `${Math.floor(50 * TILE_SIZE / 32)}px KaphRegular`;
-    ctx.fillText(`BomberSnake`, canvas_ctx.width / 2, (MARGIN.y + BOARD_SIZE.y * .15) * TILE_SIZE);
+    ctx.fillStyle = (last_timestamp % 1000 < 500) ? COLORS.TEXT : COLORS.GRAY_TEXT;
+    drawImageCentered(TEXTURES.logo.main, new Vec2(canvas_ctx.width / 2, menuYCoordOf("logo")));
     ctx.font = `${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
     ctx.fillText(`Click anywhere to`, canvas_ctx.width / 2, menuYCoordOf("start") - 1 * TILE_SIZE);
     ctx.fillText(`Start!`, canvas_ctx.width / 2, menuYCoordOf("start"));
+    ctx.fillStyle = COLORS.TEXT;
     ctx.fillText(`By knexator & Pinchazumos`, canvas_ctx.width / 2, (MARGIN.y + BOARD_SIZE.y * .8) * TILE_SIZE);
   } else if (game_state === "pause_menu") {
-    ctx.font = `${Math.floor(50 * TILE_SIZE / 32)}px KaphRegular`;
-    ctx.fillText(`BomberSnake`, canvas_ctx.width / 2, (MARGIN.y + BOARD_SIZE.y * .15) * TILE_SIZE);
+    drawImageCentered(TEXTURES.logo.main, new Vec2(canvas_ctx.width / 2, menuYCoordOf("logo")));
 
     ctx.fillStyle = menu_focus === "speed" ? COLORS.TEXT : COLORS.GRAY_TEXT;
     ctx.font = `${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
@@ -1346,9 +1344,12 @@ function draw(bullet_time: boolean) {
   }
 }
 
-function menuYCoordOf(setting: "speed" | "music" | "start"): number {
+function menuYCoordOf(setting: "speed" | "music" | "start" | "logo"): number {
   let s = 0;
   switch (setting) {
+    case "logo":
+      s = .15;
+      break;
     case "speed":
       s = .3;
       break;
@@ -1359,7 +1360,7 @@ function menuYCoordOf(setting: "speed" | "music" | "start"): number {
       s = .6;
       break;
     default:
-      break;
+      throw new Error("unhandled");
   }
   return (MARGIN.y + BOARD_SIZE.y * s) * TILE_SIZE;
 }
@@ -1372,11 +1373,7 @@ function lose() {
 function drawMenuArrow(setting: "speed" | "music", left: boolean): void {
   ctx.fillStyle = COLORS.TEXT;
   const pos = menuArrowPos(setting, left);
-  // TODO
-  const size = menuArrowSize();
-  ctx.drawImage(left ? TEXTURES.menu_arrow.left : TEXTURES.menu_arrow.right, pos.x - size.x / 2, pos.y - size.y / 2, size.x, size.y);
-  // ctx.fillRect(pos.x, pos.y, 100, 100);
-  // ctx.fillRect(pos.x, pos.y, 10, 10);
+  drawImageCentered(left ? TEXTURES.menu_arrow.left : TEXTURES.menu_arrow.right, pos);
 }
 
 function menuArrowSize(): Vec2 {
@@ -1461,7 +1458,7 @@ function getDirFromDelta(delta: Vec2): Vec2 | null {
   if (Math.abs(delta.y) * CONFIG.SWIPE_MARGIN > Math.abs(delta.x)) {
     return new Vec2(0, Math.sign(delta.y));
   }
-  
+
   return null;
 }
 
@@ -1585,3 +1582,8 @@ function anyBlockAt(pos: Vec2): boolean {
   return snake_blocks.some(b => pos.equal(b.pos));
 }
 
+function drawImageCentered(image: HTMLImageElement, center: Vec2) {
+  const display_size = new Vec2(image.width, image.height).scale(TILE_SIZE / 32);
+  const offset = center.sub(display_size.scale(.5));
+  ctx.drawImage(image, offset.x, offset.y, display_size.x, display_size.y);
+}
