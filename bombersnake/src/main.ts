@@ -1296,14 +1296,36 @@ function draw(bullet_time: boolean) {
     ctx.fillText(`By knexator & Pinchazumos`, canvas_ctx.width / 2, (MARGIN.y + BOARD_SIZE.y * .72) * TILE_SIZE);
   } else if (game_state === "pause_menu") {
     
+	
+	
+	ctx.fillStyle = "black";
+    ctx.font = `bold ${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
+    ctx.fillText(`Speed: ${game_speed}`, canvas_ctx.width / 2 +CONFIG.SHADOW_TEXT, menuYCoordOf("speed") +CONFIG.SHADOW_TEXT);
 
+    ctx.font = `bold ${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
+    ctx.fillText(`Song: ${music_track}`, canvas_ctx.width / 2 +CONFIG.SHADOW_TEXT, menuYCoordOf("music") +CONFIG.SHADOW_TEXT);
+
+    if (menu_focus !== "start") {
+      drawMenuArrow(menu_focus, false);
+      drawMenuArrow(menu_focus, true);
+    }
+	ctx.fillStyle = "black";
+    ctx.font = `bold ${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
+    ctx.fillText(`Resume`, canvas_ctx.width / 2 +CONFIG.SHADOW_TEXT, menuYCoordOf("resume") +CONFIG.SHADOW_TEXT);
+	
+	
+	
+	
+	
+	
+	
     ctx.fillStyle = menu_focus === "speed" ? COLORS.TEXT : COLORS.GRAY_TEXT;
-    ctx.font = `${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
+    ctx.font = `bold ${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
     ctx.fillText(`Speed: ${game_speed}`, canvas_ctx.width / 2, menuYCoordOf("speed"));
 
     ctx.fillStyle = menu_focus === "music" ? COLORS.TEXT : COLORS.GRAY_TEXT;
-    ctx.font = `${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
-    ctx.fillText(`Music: ${music_track}`, canvas_ctx.width / 2, menuYCoordOf("music"));
+    ctx.font = `bold ${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
+    ctx.fillText(`Song: ${music_track}`, canvas_ctx.width / 2, menuYCoordOf("music"));
 
     if (menu_focus !== "start") {
       drawMenuArrow(menu_focus, false);
@@ -1311,8 +1333,8 @@ function draw(bullet_time: boolean) {
     }
 
     ctx.fillStyle = menu_focus === "start" ? COLORS.TEXT : COLORS.GRAY_TEXT;
-    ctx.font = `${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
-    ctx.fillText(`Resume`, canvas_ctx.width / 2, menuYCoordOf("start"));
+    ctx.font = `bold ${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
+    ctx.fillText(`Resume`, canvas_ctx.width / 2, menuYCoordOf("resume"));
 
     // TODO: WASD/Arrows to play
   } else if (game_state === "lost") {
@@ -1379,6 +1401,9 @@ function menuYCoordOf(setting: "speed" | "music" | "start" | "logo"): number {
     case "start":
       s = .47;
       break;
+	case "resume":
+      s = .53;
+      break;
     default:
       throw new Error("unhandled");
   }
@@ -1403,7 +1428,7 @@ function menuArrowSize(): Vec2 {
 
 function menuArrowPos(setting: "speed" | "music", left: boolean): Vec2 {
   return new Vec2(
-    canvas_ctx.width / 2 + (left ? -1 : 1) * 4 * TILE_SIZE,
+    canvas_ctx.width / 2 + (left ? -1 : 1) * 3 * TILE_SIZE,
     menuYCoordOf(setting));
 }
 
