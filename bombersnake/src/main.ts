@@ -119,17 +119,18 @@ let CONFIG = {
   SWIPE_MARGIN: 1,
   PAUSED: false,
   TURN_DURATION: .15,
-  ANIM_PERC: 0.3,
+  ANIM_PERC: 0.2,
   BORDER_ARROWS: false,
   CHEAT_INMORTAL: false,
   FUSE_DURATION: 0,
   PLAYER_CAN_EXPLODE: false,
   N_BOMBS: 3,
   N_MULTIPLIERS: 1,
-  CLOCK_DURATION: 20,
-  CLOCK_FREQUENCY: 50,
+  CLOCK_VALUE: 4,
+  CLOCK_DURATION: 25,
+  CLOCK_FREQUENCY: 55,
   TICKTOCK_SPEED: 400,
-  MUSIC_DURING_TICKTOCK: .2,
+  MUSIC_DURING_TICKTOCK: .25,
   LUCK: 5,
   SLOWDOWN: 3,
   TOTAL_SLOWDOWN: false,
@@ -148,6 +149,7 @@ let CONFIG = {
   CHECKERED_BACKGROUND: "3_v2" as "no" | "2" | "3" | "3_v2",
   SHADOW: true,
   SHADOW_DIST: .2,
+  SHADOW_TEXT: 3,
   SCARF: "full" as "no" | "half" | "full",
   SCARF_BORDER_WIDTH: 0,
   HEAD_COLOR: true,
@@ -795,7 +797,7 @@ function every_frame(cur_timestamp: number) {
       } else if (cur_collectable instanceof Clock) {
         const clock = cur_collectable;
         if (clock.active) {
-          let clock_score = 3 * multiplier;
+          let clock_score = CONFIG.CLOCK_VALUE * multiplier;
           collected_stuff_particles.push({ center: cur_collectable.pos, text: '+' + clock_score.toString(), turn: turn });
           clock.remaining_turns = 0;
           score += clock_score;
@@ -1274,15 +1276,26 @@ function draw(bullet_time: boolean) {
   ctx.textBaseline = "middle";
   ctx.fillStyle = COLORS.TEXT;
   if (game_state === "loading_menu") {
-    ctx.fillStyle = (last_timestamp % 1000 < 500) ? COLORS.TEXT : COLORS.GRAY_TEXT;
+	
+	drawImageCentered(TEXTURES.logo.shadow, new Vec2(canvas_ctx.width / 2 + CONFIG.SHADOW_TEXT*2, menuYCoordOf("logo") + CONFIG.SHADOW_TEXT*2));
     drawImageCentered(TEXTURES.logo.main, new Vec2(canvas_ctx.width / 2, menuYCoordOf("logo")));
-    ctx.font = `${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
+	
+	
+	ctx.font = `bold ${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
+	
+	ctx.fillStyle= "black";
+	ctx.fillText(`Click anywhere to`, canvas_ctx.width / 2 + CONFIG.SHADOW_TEXT, menuYCoordOf("start") - 1 * TILE_SIZE + CONFIG.SHADOW_TEXT);
+    ctx.fillText(`Start!`, canvas_ctx.width / 2 + CONFIG.SHADOW_TEXT, menuYCoordOf("start") + CONFIG.SHADOW_TEXT);
+    ctx.fillText(`By knexator & Pinchazumos`, canvas_ctx.width / 2  + CONFIG.SHADOW_TEXT, (MARGIN.y + BOARD_SIZE.y * .72) * TILE_SIZE  + CONFIG.SHADOW_TEXT);
+  
+    ctx.fillStyle = (last_timestamp % 1000 < 500) ? COLORS.TEXT : COLORS.GRAY_TEXT;
+	    
     ctx.fillText(`Click anywhere to`, canvas_ctx.width / 2, menuYCoordOf("start") - 1 * TILE_SIZE);
     ctx.fillText(`Start!`, canvas_ctx.width / 2, menuYCoordOf("start"));
     ctx.fillStyle = COLORS.TEXT;
-    ctx.fillText(`By knexator & Pinchazumos`, canvas_ctx.width / 2, (MARGIN.y + BOARD_SIZE.y * .8) * TILE_SIZE);
+    ctx.fillText(`By knexator & Pinchazumos`, canvas_ctx.width / 2, (MARGIN.y + BOARD_SIZE.y * .72) * TILE_SIZE);
   } else if (game_state === "pause_menu") {
-    drawImageCentered(TEXTURES.logo.main, new Vec2(canvas_ctx.width / 2, menuYCoordOf("logo")));
+    
 
     ctx.fillStyle = menu_focus === "speed" ? COLORS.TEXT : COLORS.GRAY_TEXT;
     ctx.font = `${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
@@ -1303,9 +1316,16 @@ function draw(bullet_time: boolean) {
 
     // TODO: WASD/Arrows to play
   } else if (game_state === "lost") {
-    ctx.font = `${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
+  
+    ctx.font = `bold ${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
+	ctx.fillStyle = "black";
+    ctx.fillText(`Score: ${score}`, canvas_ctx.width / 2 + CONFIG.SHADOW_TEXT, (MARGIN.y + BOARD_SIZE.y / 4) * TILE_SIZE + CONFIG.SHADOW_TEXT);
+    ctx.fillText(`R to Restart`, canvas_ctx.width / 2 + CONFIG.SHADOW_TEXT, (MARGIN.y + BOARD_SIZE.y * 3 / 4) * TILE_SIZE + CONFIG.SHADOW_TEXT);
+	
+	ctx.fillStyle = COLORS.TEXT;
     ctx.fillText(`Score: ${score}`, canvas_ctx.width / 2, (MARGIN.y + BOARD_SIZE.y / 4) * TILE_SIZE);
     ctx.fillText(`R to Restart`, canvas_ctx.width / 2, (MARGIN.y + BOARD_SIZE.y * 3 / 4) * TILE_SIZE);
+	
     // ctx.fillText("", canvas.width / 2, canvas.height / 2);
   } else if (game_state === "playing") {
     // nothing
@@ -1357,7 +1377,7 @@ function menuYCoordOf(setting: "speed" | "music" | "start" | "logo"): number {
       s = .4;
       break;
     case "start":
-      s = .6;
+      s = .47;
       break;
     default:
       throw new Error("unhandled");
