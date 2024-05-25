@@ -217,10 +217,18 @@ export class KeyboardListener {
 
     private onKeyDown(ev: KeyboardEvent) {
         this.pressed.add(ev.code as KeyCode);
+        if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(ev.code)) {
+            ev.preventDefault();
+            return false;
+        }
     }
 
     private onKeyUp(ev: KeyboardEvent) {
         this.pressed.delete(ev.code as KeyCode);
+        if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(ev.code)) {
+            ev.preventDefault();
+            return false;
+        }
     }
 }
 

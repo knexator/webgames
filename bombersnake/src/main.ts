@@ -79,7 +79,7 @@ const is_phone = (function () {
 })();
 
 const BOARD_SIZE = new Vec2(16, 16);
-const MARGIN = is_phone ? new Vec2(0, 5) : new Vec2(2, 4);
+const MARGIN = is_phone ? new Vec2(0, 2) : new Vec2(2, 4);
 
 const container = document.querySelector("#canvas_container") as HTMLElement;
 
