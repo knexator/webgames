@@ -16,8 +16,8 @@
             background-color: #555;
             touch-action: none;
             display: flex;
-            justify-content: center;
-            /* align-items: center; */
+            flex-direction: column;
+            align-items: center;
         }
 
         #canvas_container {
@@ -78,6 +78,12 @@
             position: absolute;
             bottom: 0;
         }
+
+        .flex-square {
+            flex-grow: 1;
+            background-color: #333;
+            position: relative;
+        }
     </style>
     <script defer type="module" src="main.ts"></script>
 </head>
@@ -88,11 +94,12 @@
         <!-- <canvas id="gl_canvas"></canvas> -->
         <canvas id="ctx_canvas"></canvas>
     </div>
-    <div id="mobile_buttons">
+    <img class="flex-square" hidden src="./images/dpad.svg" id="dpad">
+    <!-- <div id="mobile_buttons">
         <button id="menu_button">menu</button>
         <button id="restart_button">restart</button>
         <button id="sliders_button">sliders</button>
-    </div>
+    </div> -->
     <!-- <div style="font-family: KaphRegular;">BomberSnake<div> -->
 </body>
 

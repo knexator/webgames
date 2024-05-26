@@ -85,9 +85,25 @@ const container = document.querySelector("#canvas_container") as HTMLElement;
 
 const TILE_SIZE = is_phone ? Math.round(container.clientWidth / (BOARD_SIZE.x + MARGIN.x * 2)) : 32;
 
+// TODO: proper margin.y
 container.style.width = `${TILE_SIZE * (BOARD_SIZE.x + MARGIN.x * 2)}px`
-container.style.height = `${TILE_SIZE * (BOARD_SIZE.x + MARGIN.y * 2)}px`
+container.style.height = `${TILE_SIZE * (BOARD_SIZE.y + MARGIN.y)}px`
 twgl.resizeCanvasToDisplaySize(canvas_ctx);
+
+const dpad = document.querySelector("#dpad") as HTMLElement;
+if (is_phone) {
+  dpad.hidden = false;
+  const dpad_size = new Vec2(dpad.clientWidth, dpad.clientHeight);
+  dpad.addEventListener("pointerdown", ev => {
+    if (game_state === 'playing') {
+      const place = new Vec2(ev.offsetX, ev.offsetY).sub(dpad_size.scale(.5));
+      const dir = roundToCardinalDirection(place);
+      input_queue.push(dir);
+    }
+  });
+} else {
+  dpad.remove();
+}
 
 // let CONFIG = {
 //   PAUSED: false,
@@ -115,6 +131,7 @@ twgl.resizeCanvasToDisplaySize(canvas_ctx);
 // }
 
 let CONFIG = {
+  SWIPE_CONTROLS: false,
   SWIPE_DIST: 1,
   SWIPE_MARGIN: 1,
   PAUSED: false,
@@ -158,44 +175,47 @@ let CONFIG = {
 }
 
 const gui = new GUI();
-gui.add(CONFIG, "SWIPE_DIST", 0, 2);
-gui.add(CONFIG, "SWIPE_MARGIN", 1, 3);
-gui.add(CONFIG, "PAUSED");
-gui.add(CONFIG, "TURN_DURATION", .05, 1);
-gui.add(CONFIG, "ANIM_PERC", 0, 1);
-gui.add(CONFIG, "BORDER_ARROWS");
-gui.add(CONFIG, "CHEAT_INMORTAL");
-gui.add(CONFIG, "FUSE_DURATION", 0, 10, 1);
-gui.add(CONFIG, "N_BOMBS", 1, 6, 1);
-gui.add(CONFIG, "N_MULTIPLIERS", 1, 2, 1);
-gui.add(CONFIG, "CLOCK_DURATION", 1, 100, 1);
-gui.add(CONFIG, "CLOCK_FREQUENCY", 1, 100, 1);
-gui.add(CONFIG, "TICKTOCK_SPEED", 300, 600);
-gui.add(CONFIG, "MUSIC_DURING_TICKTOCK", 0, 1);
-gui.add(CONFIG, "LUCK", 1, 15, 1);
-gui.add(CONFIG, "PLAYER_CAN_EXPLODE");
-gui.add(CONFIG, "SLOWDOWN", 1, 10);
-gui.add(CONFIG, "TOTAL_SLOWDOWN");
-gui.add(CONFIG, "ALWAYS_SLOWDOWN");
-gui.add(CONFIG, "DRAW_WRAP", 0, MARGIN.x);
-gui.add(CONFIG, "MUFFLED_WRAP");
-gui.add(CONFIG, "DRAW_PATTERN");
-gui.add(CONFIG, "DRAW_SNAKE_BORDER");
-gui.add(CONFIG, "BORDER_SIZE", 0, .5);
-gui.add(CONFIG, "GRIDLINE");
-gui.add(CONFIG, "GRIDLINE_OVER");
-gui.add(CONFIG, "GRIDLINE_WIDTH", 0, .5);
-gui.add(CONFIG, "DRAW_ROUNDED");
-gui.add(CONFIG, "ROUNDED_SIZE", 0, 1);
-gui.add(CONFIG, "CHECKERED_SNAKE");
-gui.add(CONFIG, "CHECKERED_BACKGROUND", ["no", "2", "3", "3_v2"]);
-gui.add(CONFIG, "SHADOW");
-gui.add(CONFIG, "SHADOW_DIST", 0, .5);
-gui.add(CONFIG, "SCARF", ["no", "half", "full"]);
-gui.add(CONFIG, "SCARF_BORDER_WIDTH", 0, .5);
-gui.add(CONFIG, "HEAD_COLOR");
-gui.add(CONFIG, "START_ON_BORDER");
-gui.add(CONFIG, "EXPLOSION_CIRCLE");
+{
+  gui.add(CONFIG, "SWIPE_CONTROLS");
+  gui.add(CONFIG, "SWIPE_DIST", 0, 2);
+  gui.add(CONFIG, "SWIPE_MARGIN", 1, 3);
+  gui.add(CONFIG, "PAUSED");
+  gui.add(CONFIG, "TURN_DURATION", .05, 1);
+  gui.add(CONFIG, "ANIM_PERC", 0, 1);
+  gui.add(CONFIG, "BORDER_ARROWS");
+  gui.add(CONFIG, "CHEAT_INMORTAL");
+  gui.add(CONFIG, "FUSE_DURATION", 0, 10, 1);
+  gui.add(CONFIG, "N_BOMBS", 1, 6, 1);
+  gui.add(CONFIG, "N_MULTIPLIERS", 1, 2, 1);
+  gui.add(CONFIG, "CLOCK_DURATION", 1, 100, 1);
+  gui.add(CONFIG, "CLOCK_FREQUENCY", 1, 100, 1);
+  gui.add(CONFIG, "TICKTOCK_SPEED", 300, 600);
+  gui.add(CONFIG, "MUSIC_DURING_TICKTOCK", 0, 1);
+  gui.add(CONFIG, "LUCK", 1, 15, 1);
+  gui.add(CONFIG, "PLAYER_CAN_EXPLODE");
+  gui.add(CONFIG, "SLOWDOWN", 1, 10);
+  gui.add(CONFIG, "TOTAL_SLOWDOWN");
+  gui.add(CONFIG, "ALWAYS_SLOWDOWN");
+  gui.add(CONFIG, "DRAW_WRAP", 0, MARGIN.x);
+  gui.add(CONFIG, "MUFFLED_WRAP");
+  gui.add(CONFIG, "DRAW_PATTERN");
+  gui.add(CONFIG, "DRAW_SNAKE_BORDER");
+  gui.add(CONFIG, "BORDER_SIZE", 0, .5);
+  gui.add(CONFIG, "GRIDLINE");
+  gui.add(CONFIG, "GRIDLINE_OVER");
+  gui.add(CONFIG, "GRIDLINE_WIDTH", 0, .5);
+  gui.add(CONFIG, "DRAW_ROUNDED");
+  gui.add(CONFIG, "ROUNDED_SIZE", 0, 1);
+  gui.add(CONFIG, "CHECKERED_SNAKE");
+  gui.add(CONFIG, "CHECKERED_BACKGROUND", ["no", "2", "3", "3_v2"]);
+  gui.add(CONFIG, "SHADOW");
+  gui.add(CONFIG, "SHADOW_DIST", 0, .5);
+  gui.add(CONFIG, "SCARF", ["no", "half", "full"]);
+  gui.add(CONFIG, "SCARF_BORDER_WIDTH", 0, .5);
+  gui.add(CONFIG, "HEAD_COLOR");
+  gui.add(CONFIG, "START_ON_BORDER");
+  gui.add(CONFIG, "EXPLOSION_CIRCLE");
+}
 gui.hide();
 
 const SOUNDS = {
@@ -276,20 +296,22 @@ const COLORS = {
   SNAKE: [] as string[],
 };
 
-gui.addColor(COLORS, "BORDER");
-gui.addColor(COLORS, "BACKGROUND");
-gui.addColor(COLORS, "BACKGROUND_2");
-gui.addColor(COLORS, "BACKGROUND_3");
-gui.addColor(COLORS, "BOMB");
-gui.addColor(COLORS, "SNAKE_HEAD");
-gui.addColor(COLORS, "SNAKE_WALL");
-gui.addColor(COLORS, "EXPLOSION");
-gui.addColor(COLORS, "MULTIPLIER");
-gui.addColor(COLORS, "GRIDLINE");
-gui.addColor(COLORS, "SHADOW");
-gui.addColor(COLORS, "SCARF_OUT");
-gui.addColor(COLORS, "SCARF_IN");
-gui.addColor(COLORS, "HEAD");
+{
+  gui.addColor(COLORS, "BORDER");
+  gui.addColor(COLORS, "BACKGROUND");
+  gui.addColor(COLORS, "BACKGROUND_2");
+  gui.addColor(COLORS, "BACKGROUND_3");
+  gui.addColor(COLORS, "BOMB");
+  gui.addColor(COLORS, "SNAKE_HEAD");
+  gui.addColor(COLORS, "SNAKE_WALL");
+  gui.addColor(COLORS, "EXPLOSION");
+  gui.addColor(COLORS, "MULTIPLIER");
+  gui.addColor(COLORS, "GRIDLINE");
+  gui.addColor(COLORS, "SHADOW");
+  gui.addColor(COLORS, "SCARF_OUT");
+  gui.addColor(COLORS, "SCARF_IN");
+  gui.addColor(COLORS, "HEAD");
+}
 
 COLORS.SNAKE = generateGradient(COLORS.SNAKE_WALL, COLORS.SNAKE_HEAD, 4);
 gui.onChange(event => {
@@ -510,17 +532,17 @@ function stopTickTockSound(): void {
   }
 }
 
-document.querySelector<HTMLButtonElement>("#menu_button")!.addEventListener("click", _ => {
+document.querySelector<HTMLButtonElement>("#menu_button")?.addEventListener("click", _ => {
   game_state = "pause_menu";
   touch_input_base_point = null;
 });
 
-document.querySelector<HTMLButtonElement>("#restart_button")!.addEventListener("click", _ => {
+document.querySelector<HTMLButtonElement>("#restart_button")?.addEventListener("click", _ => {
   restartGame();
   touch_input_base_point = null;
 });
 
-document.querySelector<HTMLButtonElement>("#sliders_button")!.addEventListener("click", _ => {
+document.querySelector<HTMLButtonElement>("#sliders_button")?.addEventListener("click", _ => {
   gui.show(gui._hidden);
   touch_input_base_point = null;
 });
@@ -661,20 +683,31 @@ function every_frame(cur_timestamp: number) {
       restartGame();
       game_state = "pause_menu";
     }
+    if (input.mouse.wasPressed(MouseButton.Left)) {
+      restartGame();
+    }
   } else if (game_state === "playing") {
-    if (input.mouse.isDown(MouseButton.Left)) {
-      if (touch_input_base_point === null) {
-        touch_input_base_point = canvas_mouse_pos;
-      } else {
-        const delta = canvas_mouse_pos.sub(touch_input_base_point);
-        const dir = getDirFromDelta(delta);
-        if (dir !== null) {
-          input_queue.push(dir);
+    if (CONFIG.SWIPE_CONTROLS) {
+      if (input.mouse.isDown(MouseButton.Left)) {
+        if (touch_input_base_point === null) {
           touch_input_base_point = canvas_mouse_pos;
+        } else {
+          const delta = canvas_mouse_pos.sub(touch_input_base_point);
+          const dir = getDirFromDelta(delta);
+          if (dir !== null) {
+            input_queue.push(dir);
+            touch_input_base_point = canvas_mouse_pos;
+          }
         }
+      } else {
+        touch_input_base_point = null;
       }
     } else {
-      touch_input_base_point = null;
+      if (input.mouse.wasPressed(MouseButton.Left)) {
+        if (canvas_mouse_pos.y < BOARD_SIZE.y * TILE_SIZE) {
+          game_state = "pause_menu";
+        }
+      }
     }
 
     if ([
@@ -1276,49 +1309,43 @@ function draw(bullet_time: boolean) {
   ctx.textBaseline = "middle";
   ctx.fillStyle = COLORS.TEXT;
   if (game_state === "loading_menu") {
-	
-	drawImageCentered(TEXTURES.logo.shadow, new Vec2(canvas_ctx.width / 2 + CONFIG.SHADOW_TEXT*2, menuYCoordOf("logo") + CONFIG.SHADOW_TEXT*2));
+
+    drawImageCentered(TEXTURES.logo.shadow, new Vec2(canvas_ctx.width / 2 + CONFIG.SHADOW_TEXT * 2, menuYCoordOf("logo") + CONFIG.SHADOW_TEXT * 2));
     drawImageCentered(TEXTURES.logo.main, new Vec2(canvas_ctx.width / 2, menuYCoordOf("logo")));
-	
-	
-	ctx.font = `bold ${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
-	
-	ctx.fillStyle= "black";
-	ctx.fillText(`Click anywhere to`, canvas_ctx.width / 2 + CONFIG.SHADOW_TEXT, menuYCoordOf("start") - 1 * TILE_SIZE + CONFIG.SHADOW_TEXT);
+
+
+    ctx.font = `bold ${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
+
+    ctx.fillStyle = "black";
+    ctx.fillText(`Click anywhere to`, canvas_ctx.width / 2 + CONFIG.SHADOW_TEXT, menuYCoordOf("start") - 1 * TILE_SIZE + CONFIG.SHADOW_TEXT);
     ctx.fillText(`Start!`, canvas_ctx.width / 2 + CONFIG.SHADOW_TEXT, menuYCoordOf("start") + CONFIG.SHADOW_TEXT);
-    ctx.fillText(`By knexator & Pinchazumos`, canvas_ctx.width / 2  + CONFIG.SHADOW_TEXT, (MARGIN.y + BOARD_SIZE.y * .72) * TILE_SIZE  + CONFIG.SHADOW_TEXT);
-  
+    ctx.fillText(`By knexator & Pinchazumos`, canvas_ctx.width / 2 + CONFIG.SHADOW_TEXT, (MARGIN.y + BOARD_SIZE.y * .72) * TILE_SIZE + CONFIG.SHADOW_TEXT);
+
     ctx.fillStyle = (last_timestamp % 1000 < 500) ? COLORS.TEXT : COLORS.GRAY_TEXT;
-	    
+
     ctx.fillText(`Click anywhere to`, canvas_ctx.width / 2, menuYCoordOf("start") - 1 * TILE_SIZE);
     ctx.fillText(`Start!`, canvas_ctx.width / 2, menuYCoordOf("start"));
     ctx.fillStyle = COLORS.TEXT;
     ctx.fillText(`By knexator & Pinchazumos`, canvas_ctx.width / 2, (MARGIN.y + BOARD_SIZE.y * .72) * TILE_SIZE);
   } else if (game_state === "pause_menu") {
-    
-	
-	
-	ctx.fillStyle = "black";
+
+
+
+    ctx.fillStyle = "black";
     ctx.font = `bold ${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
-    ctx.fillText(`Speed: ${game_speed}`, canvas_ctx.width / 2 +CONFIG.SHADOW_TEXT, menuYCoordOf("speed") +CONFIG.SHADOW_TEXT);
+    ctx.fillText(`Speed: ${game_speed}`, canvas_ctx.width / 2 + CONFIG.SHADOW_TEXT, menuYCoordOf("speed") + CONFIG.SHADOW_TEXT);
 
     ctx.font = `bold ${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
-    ctx.fillText(`Song: ${music_track}`, canvas_ctx.width / 2 +CONFIG.SHADOW_TEXT, menuYCoordOf("music") +CONFIG.SHADOW_TEXT);
+    ctx.fillText(`Song: ${music_track}`, canvas_ctx.width / 2 + CONFIG.SHADOW_TEXT, menuYCoordOf("music") + CONFIG.SHADOW_TEXT);
 
     if (menu_focus !== "start") {
       drawMenuArrow(menu_focus, false);
       drawMenuArrow(menu_focus, true);
     }
-	ctx.fillStyle = "black";
+    ctx.fillStyle = "black";
     ctx.font = `bold ${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
-    ctx.fillText(`Resume`, canvas_ctx.width / 2 +CONFIG.SHADOW_TEXT, menuYCoordOf("resume") +CONFIG.SHADOW_TEXT);
-	
-	
-	
-	
-	
-	
-	
+    ctx.fillText(`Resume`, canvas_ctx.width / 2 + CONFIG.SHADOW_TEXT, menuYCoordOf("resume") + CONFIG.SHADOW_TEXT);
+
     ctx.fillStyle = menu_focus === "speed" ? COLORS.TEXT : COLORS.GRAY_TEXT;
     ctx.font = `bold ${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
     ctx.fillText(`Speed: ${game_speed}`, canvas_ctx.width / 2, menuYCoordOf("speed"));
@@ -1338,16 +1365,16 @@ function draw(bullet_time: boolean) {
 
     // TODO: WASD/Arrows to play
   } else if (game_state === "lost") {
-  
+
     ctx.font = `bold ${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
-	ctx.fillStyle = "black";
+    ctx.fillStyle = "black";
     ctx.fillText(`Score: ${score}`, canvas_ctx.width / 2 + CONFIG.SHADOW_TEXT, (MARGIN.y + BOARD_SIZE.y / 4) * TILE_SIZE + CONFIG.SHADOW_TEXT);
     ctx.fillText(`R to Restart`, canvas_ctx.width / 2 + CONFIG.SHADOW_TEXT, (MARGIN.y + BOARD_SIZE.y * 3 / 4) * TILE_SIZE + CONFIG.SHADOW_TEXT);
-	
-	ctx.fillStyle = COLORS.TEXT;
+
+    ctx.fillStyle = COLORS.TEXT;
     ctx.fillText(`Score: ${score}`, canvas_ctx.width / 2, (MARGIN.y + BOARD_SIZE.y / 4) * TILE_SIZE);
     ctx.fillText(`R to Restart`, canvas_ctx.width / 2, (MARGIN.y + BOARD_SIZE.y * 3 / 4) * TILE_SIZE);
-	
+
     // ctx.fillText("", canvas.width / 2, canvas.height / 2);
   } else if (game_state === "playing") {
     // nothing
@@ -1386,7 +1413,7 @@ function draw(bullet_time: boolean) {
   }
 }
 
-function menuYCoordOf(setting: "speed" | "music" | "start" | "logo"): number {
+function menuYCoordOf(setting: "resume" | "speed" | "music" | "start" | "logo"): number {
   let s = 0;
   switch (setting) {
     case "logo":
@@ -1401,7 +1428,7 @@ function menuYCoordOf(setting: "speed" | "music" | "start" | "logo"): number {
     case "start":
       s = .47;
       break;
-	case "resume":
+    case "resume":
       s = .53;
       break;
     default:
