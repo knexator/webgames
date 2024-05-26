@@ -79,15 +79,16 @@ const is_phone = (function () {
 })();
 
 const BOARD_SIZE = new Vec2(16, 16);
-const MARGIN = is_phone ? new Vec2(0, 2) : new Vec2(2, 4);
+let MARGIN = .3;
+const TOP_OFFSET = 2;
 
 const container = document.querySelector("#canvas_container") as HTMLElement;
 
-const TILE_SIZE = is_phone ? Math.round(container.clientWidth / (BOARD_SIZE.x + MARGIN.x * 2)) : 32;
+const TILE_SIZE = is_phone ? Math.round(container.clientWidth / (BOARD_SIZE.x + MARGIN * 2)) : 32;
+MARGIN = Math.round(TILE_SIZE * MARGIN) / TILE_SIZE;
 
-// TODO: proper margin.y
-container.style.width = `${TILE_SIZE * (BOARD_SIZE.x + MARGIN.x * 2)}px`
-container.style.height = `${TILE_SIZE * (BOARD_SIZE.y + MARGIN.y)}px`
+container.style.width = `${TILE_SIZE * (BOARD_SIZE.x + MARGIN * 2)}px`
+container.style.height = `${TILE_SIZE * (BOARD_SIZE.y + MARGIN * 2 + TOP_OFFSET)}px`
 twgl.resizeCanvasToDisplaySize(canvas_ctx);
 
 const dpad = document.querySelector("#dpad") as HTMLElement;
@@ -152,8 +153,8 @@ let CONFIG = {
   SLOWDOWN: 3,
   TOTAL_SLOWDOWN: false,
   ALWAYS_SLOWDOWN: false,
-  DRAW_WRAP: 0,
-  MUFFLED_WRAP: true,
+  DRAW_WRAP: 0.25,
+  MUFFLED_WRAP: false,
   DRAW_PATTERN: false,
   DRAW_SNAKE_BORDER: false,
   BORDER_SIZE: .2,
@@ -196,7 +197,7 @@ const gui = new GUI();
   gui.add(CONFIG, "SLOWDOWN", 1, 10);
   gui.add(CONFIG, "TOTAL_SLOWDOWN");
   gui.add(CONFIG, "ALWAYS_SLOWDOWN");
-  gui.add(CONFIG, "DRAW_WRAP", 0, MARGIN.x);
+  gui.add(CONFIG, "DRAW_WRAP", 0, MARGIN);
   gui.add(CONFIG, "MUFFLED_WRAP");
   gui.add(CONFIG, "DRAW_PATTERN");
   gui.add(CONFIG, "DRAW_SNAKE_BORDER");
@@ -421,8 +422,8 @@ game_state = "loading_menu";
 if (CONFIG.START_ON_BORDER) {
   turn = 1;
   snake_blocks = [
-    { pos: new Vec2(-CONFIG.DRAW_WRAP + 0, BOARD_SIZE.y - 2), in_dir: new Vec2(-1, 0), out_dir: new Vec2(1, 0), t: 0 },
-    { pos: new Vec2(-CONFIG.DRAW_WRAP + 1, BOARD_SIZE.y - 2), in_dir: new Vec2(-1, 0), out_dir: new Vec2(0, 0), t: 1 },
+    { pos: new Vec2(0, BOARD_SIZE.y - 2), in_dir: new Vec2(-1, 0), out_dir: new Vec2(1, 0), t: 0 },
+    { pos: new Vec2(1, BOARD_SIZE.y - 2), in_dir: new Vec2(-1, 0), out_dir: new Vec2(0, 0), t: 1 },
   ];
 } else {
   turn = 2;
@@ -586,7 +587,7 @@ function every_frame(cur_timestamp: number) {
 
   const rect = canvas_ctx.getBoundingClientRect();
   const raw_mouse_pos = new Vec2(input.mouse.clientX - rect.left, input.mouse.clientY - rect.top);
-  const canvas_mouse_pos = raw_mouse_pos.sub(MARGIN.scale(TILE_SIZE));
+  const canvas_mouse_pos = raw_mouse_pos.sub(Vec2.both(MARGIN * TILE_SIZE).addY(TOP_OFFSET * TILE_SIZE));
 
   let bullet_time = false;
 
@@ -898,7 +899,7 @@ function draw(bullet_time: boolean) {
   }
   // ctx.fillRect(0, 0, BOARD_SIZE.x * TILE_SIZE, BOARD_SIZE.y * TILE_SIZE);
 
-  ctx.translate(MARGIN.x * TILE_SIZE, MARGIN.y * TILE_SIZE);
+  ctx.translate(MARGIN * TILE_SIZE, (MARGIN + TOP_OFFSET) * TILE_SIZE);
 
   if (CONFIG.CHECKERED_BACKGROUND !== "no") {
     for (let i = 0; i < BOARD_SIZE.x; i++) {
@@ -1278,14 +1279,14 @@ function draw(bullet_time: boolean) {
 
   // draw borders to hide stuff
   ctx.fillStyle = "#555";
-  ctx.fillRect(0, 0, canvas_ctx.width, (MARGIN.y - CONFIG.DRAW_WRAP) * TILE_SIZE);
-  ctx.fillRect(0, 0, (MARGIN.x - CONFIG.DRAW_WRAP) * TILE_SIZE, canvas_ctx.height);
-  ctx.fillRect(0, (MARGIN.y + BOARD_SIZE.y + CONFIG.DRAW_WRAP) * TILE_SIZE, canvas_ctx.width, (MARGIN.y - CONFIG.DRAW_WRAP + 1) * TILE_SIZE);
-  ctx.fillRect((MARGIN.x + BOARD_SIZE.x + CONFIG.DRAW_WRAP) * TILE_SIZE, 0, (MARGIN.x - CONFIG.DRAW_WRAP + 1) * TILE_SIZE, canvas_ctx.height);
+  ctx.fillRect(0, 0, canvas_ctx.width, (TOP_OFFSET + MARGIN - CONFIG.DRAW_WRAP) * TILE_SIZE);
+  ctx.fillRect(0, 0, (MARGIN - CONFIG.DRAW_WRAP) * TILE_SIZE, canvas_ctx.height);
+  ctx.fillRect(0, (TOP_OFFSET + MARGIN + BOARD_SIZE.y + CONFIG.DRAW_WRAP) * TILE_SIZE, canvas_ctx.width, (TOP_OFFSET + MARGIN - CONFIG.DRAW_WRAP + 1) * TILE_SIZE);
+  ctx.fillRect((MARGIN + BOARD_SIZE.x + CONFIG.DRAW_WRAP) * TILE_SIZE, 0, (MARGIN - CONFIG.DRAW_WRAP + 1) * TILE_SIZE, canvas_ctx.height);
 
   if (CONFIG.MUFFLED_WRAP) {
     ctx.save();
-    ctx.translate(MARGIN.x * TILE_SIZE, MARGIN.y * TILE_SIZE);
+    ctx.translate(MARGIN * TILE_SIZE, (MARGIN + TOP_OFFSET) * TILE_SIZE);
 
     let region = new Path2D();
     region.rect(-CONFIG.DRAW_WRAP * TILE_SIZE, -CONFIG.DRAW_WRAP * TILE_SIZE,
@@ -1319,14 +1320,14 @@ function draw(bullet_time: boolean) {
     ctx.fillStyle = "black";
     ctx.fillText(`Click anywhere to`, canvas_ctx.width / 2 + CONFIG.SHADOW_TEXT, menuYCoordOf("start") - 1 * TILE_SIZE + CONFIG.SHADOW_TEXT);
     ctx.fillText(`Start!`, canvas_ctx.width / 2 + CONFIG.SHADOW_TEXT, menuYCoordOf("start") + CONFIG.SHADOW_TEXT);
-    ctx.fillText(`By knexator & Pinchazumos`, canvas_ctx.width / 2 + CONFIG.SHADOW_TEXT, (MARGIN.y + BOARD_SIZE.y * .72) * TILE_SIZE + CONFIG.SHADOW_TEXT);
+    ctx.fillText(`By knexator & Pinchazumos`, canvas_ctx.width / 2 + CONFIG.SHADOW_TEXT, (MARGIN + TOP_OFFSET + BOARD_SIZE.y * .72) * TILE_SIZE + CONFIG.SHADOW_TEXT);
 
     ctx.fillStyle = (last_timestamp % 1000 < 500) ? COLORS.TEXT : COLORS.GRAY_TEXT;
 
     ctx.fillText(`Click anywhere to`, canvas_ctx.width / 2, menuYCoordOf("start") - 1 * TILE_SIZE);
     ctx.fillText(`Start!`, canvas_ctx.width / 2, menuYCoordOf("start"));
     ctx.fillStyle = COLORS.TEXT;
-    ctx.fillText(`By knexator & Pinchazumos`, canvas_ctx.width / 2, (MARGIN.y + BOARD_SIZE.y * .72) * TILE_SIZE);
+    ctx.fillText(`By knexator & Pinchazumos`, canvas_ctx.width / 2, (MARGIN + TOP_OFFSET + BOARD_SIZE.y * .72) * TILE_SIZE);
   } else if (game_state === "pause_menu") {
 
 
@@ -1368,12 +1369,12 @@ function draw(bullet_time: boolean) {
 
     ctx.font = `bold ${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
     ctx.fillStyle = "black";
-    ctx.fillText(`Score: ${score}`, canvas_ctx.width / 2 + CONFIG.SHADOW_TEXT, (MARGIN.y + BOARD_SIZE.y / 4) * TILE_SIZE + CONFIG.SHADOW_TEXT);
-    ctx.fillText(`R to Restart`, canvas_ctx.width / 2 + CONFIG.SHADOW_TEXT, (MARGIN.y + BOARD_SIZE.y * 3 / 4) * TILE_SIZE + CONFIG.SHADOW_TEXT);
+    ctx.fillText(`Score: ${score}`, canvas_ctx.width / 2 + CONFIG.SHADOW_TEXT, (TOP_OFFSET + MARGIN + BOARD_SIZE.y / 4) * TILE_SIZE + CONFIG.SHADOW_TEXT);
+    ctx.fillText(`R to Restart`, canvas_ctx.width / 2 + CONFIG.SHADOW_TEXT, (TOP_OFFSET + MARGIN + BOARD_SIZE.y * 3 / 4) * TILE_SIZE + CONFIG.SHADOW_TEXT);
 
     ctx.fillStyle = COLORS.TEXT;
-    ctx.fillText(`Score: ${score}`, canvas_ctx.width / 2, (MARGIN.y + BOARD_SIZE.y / 4) * TILE_SIZE);
-    ctx.fillText(`R to Restart`, canvas_ctx.width / 2, (MARGIN.y + BOARD_SIZE.y * 3 / 4) * TILE_SIZE);
+    ctx.fillText(`Score: ${score}`, canvas_ctx.width / 2, (TOP_OFFSET + MARGIN + BOARD_SIZE.y / 4) * TILE_SIZE);
+    ctx.fillText(`R to Restart`, canvas_ctx.width / 2, (TOP_OFFSET + MARGIN + BOARD_SIZE.y * 3 / 4) * TILE_SIZE);
 
     // ctx.fillText("", canvas.width / 2, canvas.height / 2);
   } else if (game_state === "playing") {
@@ -1385,9 +1386,9 @@ function draw(bullet_time: boolean) {
 
   // draw UI bar
   ctx.font = `${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
-  ctx.translate(MARGIN.x * TILE_SIZE, (MARGIN.y - CONFIG.DRAW_WRAP - 1 - .2) * TILE_SIZE);
+  ctx.translate(MARGIN * TILE_SIZE, (TOP_OFFSET + MARGIN - CONFIG.DRAW_WRAP - 1 - .2) * TILE_SIZE);
   ctx.fillStyle = "black";
-  ctx.fillRect(0, 0, BOARD_SIZE.x * TILE_SIZE, TILE_SIZE);
+  ctx.fillRect(-CONFIG.DRAW_WRAP * TILE_SIZE, 0, (BOARD_SIZE.x + CONFIG.DRAW_WRAP * 2) * TILE_SIZE, TILE_SIZE);
   ctx.fillStyle = "white";
   ctx.textAlign = "left";
   ctx.textBaseline = "bottom";
@@ -1399,7 +1400,7 @@ function draw(bullet_time: boolean) {
   // extra arrows
   if (CONFIG.BORDER_ARROWS) {
     ctx.resetTransform();
-    ctx.translate(MARGIN.x * TILE_SIZE, MARGIN.y * TILE_SIZE);
+    ctx.translate(MARGIN * TILE_SIZE, (TOP_OFFSET + MARGIN) * TILE_SIZE);
     ctx.fillStyle = 'red';
     const head_position = snake_blocks[snake_blocks.length - 1].pos;
     drawRotatedTextureNoWrap(new Vec2(-1, head_position.y).add(Vec2.both(.5)),
@@ -1434,7 +1435,7 @@ function menuYCoordOf(setting: "resume" | "speed" | "music" | "start" | "logo"):
     default:
       throw new Error("unhandled");
   }
-  return (MARGIN.y + BOARD_SIZE.y * s) * TILE_SIZE;
+  return (TOP_OFFSET + MARGIN + BOARD_SIZE.y * s) * TILE_SIZE;
 }
 
 function lose() {
