@@ -36,6 +36,7 @@ const textures_async = await Promise.all(["bomb", "clock", "heart", "star"].flat
   .concat(["left", "right"].map(s => loadImage("menu_arrow_" + s)))
   .concat([loadImage("side_arrow_W"), loadImage("side_arrow_R")])
   .concat([loadImage("title_color"), loadImage("title_B")])
+  .concat([loadImage("pause"), loadImage("title_B")])
 );
 const TEXTURES = {
   bomb: textures_async[0],
@@ -65,6 +66,7 @@ const TEXTURES = {
     main: textures_async[15],
     shadow: textures_async[16],
   },
+  pause_text: textures_async[17],
 };
 
 function soundUrl(name: string): string {
@@ -1330,7 +1332,7 @@ function draw(bullet_time: boolean) {
     ctx.fillText(`By knexator & Pinchazumos`, canvas_ctx.width / 2, (MARGIN + TOP_OFFSET + BOARD_SIZE.y * .72) * TILE_SIZE);
   } else if (game_state === "pause_menu") {
 
-
+	drawImageCentered(TEXTURES.pause_text, new Vec2(canvas_ctx.width / 2, menuYCoordOf("logo")));
 
     ctx.fillStyle = "black";
     ctx.font = `bold ${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
@@ -1421,16 +1423,16 @@ function menuYCoordOf(setting: "resume" | "speed" | "music" | "start" | "logo"):
       s = .15;
       break;
     case "speed":
-      s = .3;
+      s = .36;
       break;
     case "music":
-      s = .4;
+      s = .45;
       break;
     case "start":
       s = .47;
       break;
     case "resume":
-      s = .53;
+      s = .6;
       break;
     default:
       throw new Error("unhandled");
