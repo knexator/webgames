@@ -14,6 +14,10 @@ import triangle_pattern_url from "./images/triangle_pattern.png?url"
 // TODO: animated scarf not rounded right after corner
 // TODO: proper loading of assets
 
+// TODO: haptic
+// TODO: slide move
+// TODO: only have 2 buttons on tap
+
 const input = new Input();
 const canvas_ctx = document.querySelector<HTMLCanvasElement>("#ctx_canvas")!;
 const ctx = canvas_ctx.getContext("2d")!;
@@ -98,6 +102,13 @@ if (is_phone) {
   dpad.hidden = false;
   const dpad_size = new Vec2(dpad.clientWidth, dpad.clientHeight);
   dpad.addEventListener("pointerdown", ev => {
+    if (game_state === 'playing') {
+      const place = new Vec2(ev.offsetX, ev.offsetY).sub(dpad_size.scale(.5));
+      const dir = roundToCardinalDirection(place);
+      input_queue.push(dir);
+    }
+  });
+  dpad.addEventListener("pointermove", ev => {
     if (game_state === 'playing') {
       const place = new Vec2(ev.offsetX, ev.offsetY).sub(dpad_size.scale(.5));
       const dir = roundToCardinalDirection(place);
@@ -1332,7 +1343,7 @@ function draw(bullet_time: boolean) {
     ctx.fillText(`By knexator & Pinchazumos`, canvas_ctx.width / 2, (MARGIN + TOP_OFFSET + BOARD_SIZE.y * .72) * TILE_SIZE);
   } else if (game_state === "pause_menu") {
 
-	drawImageCentered(TEXTURES.pause_text, new Vec2(canvas_ctx.width / 2, menuYCoordOf("logo")));
+    drawImageCentered(TEXTURES.pause_text, new Vec2(canvas_ctx.width / 2, menuYCoordOf("logo")));
 
     ctx.fillStyle = "black";
     ctx.font = `bold ${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
