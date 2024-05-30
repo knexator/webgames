@@ -102,14 +102,14 @@ if (is_phone) {
   dpad.hidden = false;
   const dpad_size = new Vec2(dpad.clientWidth, dpad.clientHeight);
   dpad.addEventListener("pointerdown", ev => {
-    if (game_state === 'playing') {
+    if (!CONFIG.SWIPE_CONTROLS && game_state === 'playing') {
       const place = new Vec2(ev.offsetX, ev.offsetY).sub(dpad_size.scale(.5));
       const dir = roundToCardinalDirection(place);
       input_queue.push(dir);
     }
   });
   dpad.addEventListener("pointermove", ev => {
-    if (game_state === 'playing') {
+    if (!CONFIG.SWIPE_CONTROLS && game_state === 'playing') {
       const place = new Vec2(ev.offsetX, ev.offsetY).sub(dpad_size.scale(.5));
       const dir = roundToCardinalDirection(place);
       input_queue.push(dir);
@@ -145,7 +145,7 @@ if (is_phone) {
 // }
 
 let CONFIG = {
-  SWIPE_CONTROLS: false,
+  SWIPE_CONTROLS: true,
   SWIPE_DIST: 1,
   SWIPE_MARGIN: 1,
   PAUSED: false,
@@ -702,7 +702,9 @@ function every_frame(cur_timestamp: number) {
     }
   } else if (game_state === "playing") {
     if (CONFIG.SWIPE_CONTROLS) {
-      if (input.mouse.isDown(MouseButton.Left)) {
+      if (input.mouse.wasPressed(MouseButton.Left) && canvas_mouse_pos.y < BOARD_SIZE.y * TILE_SIZE) {
+        game_state = "pause_menu";
+      } else if (input.mouse.isDown(MouseButton.Left)) {
         if (touch_input_base_point === null) {
           touch_input_base_point = canvas_mouse_pos;
         } else {
