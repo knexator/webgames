@@ -234,8 +234,38 @@ gui.hide();
 
 const SOUNDS = {
   music: new Howl({
-    src: [soundUrl('music.ogg')],
+    src: [soundUrl('song1.ogg')],
     autoplay: true,
+    loop: true,
+    volume: .5,
+  }),
+  song1: new Howl({
+    src: [soundUrl('song1.ogg')],
+    loop: true,
+    volume: .5,
+  }),
+  song2: new Howl({
+    src: [soundUrl('song2.mp3')],
+    loop: true,
+    volume: .5,
+  }),
+  song3: new Howl({
+    src: [soundUrl('song3.ogg')],
+    loop: true,
+    volume: .5,
+  }),
+  song4: new Howl({
+    src: [soundUrl('song4.ogg')],
+    loop: true,
+    volume: .5,
+  }),
+  song5: new Howl({
+    src: [soundUrl('song5.mp3')],
+    loop: true,
+    volume: .5,
+  }),
+  song6: new Howl({
+    src: [soundUrl('song6.ogg')],
     loop: true,
     volume: .5,
   }),
