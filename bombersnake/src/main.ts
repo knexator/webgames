@@ -610,6 +610,15 @@ function every_frame(cur_timestamp: number) {
   //   SWIPE_DIST = TILE_SIZE * 2;
   // }
 
+  if (input.keyboard.wasPressed(KeyCode.KeyT)) {
+    fetch(`http://dreamlo.com/lb/-HkIeRvNC0GMueaYC7mG2gSvfvURE4n0CJLwwfSGkTAQ/add/player${Math.floor(cur_timestamp / 1000)}/101`);
+    fetch(`http://dreamlo.com/lb/6659f0d0778d3c3fe0b504ff/json`).then(res => {
+      res.json().then(x => {
+        console.log(x);
+      });
+    });
+  }
+
   if (input.keyboard.wasPressed(KeyCode.KeyQ)) {
     CONFIG.PAUSED = !CONFIG.PAUSED;
   }
