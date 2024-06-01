@@ -85,7 +85,7 @@ const is_phone = (function () {
 })();
 
 const BOARD_SIZE = new Vec2(16, 16);
-let MARGIN = .3;
+let MARGIN = 2;
 const TOP_OFFSET = 2;
 
 const container = document.querySelector("#canvas_container") as HTMLElement;
@@ -166,8 +166,8 @@ let CONFIG = {
   SLOWDOWN: 3,
   TOTAL_SLOWDOWN: false,
   ALWAYS_SLOWDOWN: false,
-  DRAW_WRAP: 0.25,
-  MUFFLED_WRAP: false,
+  DRAW_WRAP: 1.8,
+  MUFFLED_WRAP: true,
   DRAW_PATTERN: false,
   DRAW_SNAKE_BORDER: false,
   BORDER_SIZE: .2,
