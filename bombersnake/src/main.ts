@@ -180,7 +180,6 @@ let CONFIG = {
   GRIDLINE_WIDTH: .05,
   DRAW_ROUNDED: true,
   ROUNDED_SIZE: .5,
-  CHECKERED_SNAKE: true,
   CHECKERED_BACKGROUND: "3_v2" as "no" | "2" | "3" | "3_v2",
   SHADOW: true,
   SHADOW_DIST: .2,
@@ -342,9 +341,7 @@ const GRAYSCALE = {
   SCARF_OUT: "#545454",
   SCARF_IN: "#545454",
   HEAD: "#848484",
-  SNAKE: [] as string[],
 };
-GRAYSCALE.SNAKE = generateGradient(GRAYSCALE.SNAKE_WALL, GRAYSCALE.SNAKE_HEAD, 4);
 
 const COLORS = {
   BORDER: "#8ccbf2",
@@ -363,7 +360,6 @@ const COLORS = {
   SCARF_OUT: "#2d3ba4",
   SCARF_IN: "#547e2a",
   HEAD: "#85ce36",
-  SNAKE: [] as string[],
 };
 
 {
@@ -382,13 +378,6 @@ const COLORS = {
   gui.addColor(COLORS, "SCARF_IN");
   gui.addColor(COLORS, "HEAD");
 }
-
-COLORS.SNAKE = generateGradient(COLORS.SNAKE_WALL, COLORS.SNAKE_HEAD, 4);
-gui.onChange(event => {
-  if (event.object === COLORS) {
-    COLORS.SNAKE = generateGradient(COLORS.SNAKE_WALL, COLORS.SNAKE_HEAD, 4);
-  }
-});
 
 let cam_noise = noise.makeNoise3D(0);
 let cur_screen_shake = { x: 0, y: 0, actualMag: 0 };
@@ -982,18 +971,21 @@ function draw(bullet_time: boolean) {
   ctx.translate(MARGIN * TILE_SIZE, (MARGIN + TOP_OFFSET) * TILE_SIZE);
 
   if (CONFIG.CHECKERED_BACKGROUND !== "no") {
+    let fill: keyof typeof COLORS;
     for (let i = 0; i < BOARD_SIZE.x; i++) {
       for (let j = 0; j < BOARD_SIZE.y; j++) {
         if (CONFIG.CHECKERED_BACKGROUND === "2") {
-          ctx.fillStyle = mod(i + j, 2) === 0 ? COLORS.BACKGROUND : COLORS.BACKGROUND_2;
+          fill = mod(i + j, 2) === 0 ? "BACKGROUND" : "BACKGROUND_2";
         } else if (CONFIG.CHECKERED_BACKGROUND === "3") {
-          ctx.fillStyle = mod(i + j, 2) === 0 ? COLORS.BACKGROUND_3
-            : mod(i, 2) === 0 ? COLORS.BACKGROUND : COLORS.BACKGROUND_2;
+          fill = mod(i + j, 2) === 0 ? "BACKGROUND_3"
+            : mod(i, 2) === 0 ? "BACKGROUND" : "BACKGROUND_2";
         } else if (CONFIG.CHECKERED_BACKGROUND === "3_v2") {
-          ctx.fillStyle = mod(i + j, 2) === 0 ? COLORS.BACKGROUND_3
-            : mod(i + j + 1, 4) === 0 ? COLORS.BACKGROUND : COLORS.BACKGROUND_2;
+          fill = mod(i + j, 2) === 0 ? "BACKGROUND_3"
+            : mod(i + j + 1, 4) === 0 ? "BACKGROUND" : "BACKGROUND_2";
+        } else {
+          throw new Error("unreachable");
         }
-        fillTile(new Vec2(i, j));
+        fillTile(new Vec2(i, j), fill);
       }
     }
   }
@@ -1024,7 +1016,7 @@ function draw(bullet_time: boolean) {
             const center = cur_block.pos.add(Vec2.both(CONFIG.SHADOW_DIST)).addXY(.5, .5).add(cur_block.in_dir.scale((1 - turn_offset / CONFIG.ANIM_PERC) / 2));
             fillTileCenterSize(center, Vec2.both(1));
           } else {
-            fillTile(cur_block.pos.add(Vec2.both(CONFIG.SHADOW_DIST)));
+            fillTile(cur_block.pos.add(Vec2.both(CONFIG.SHADOW_DIST)), "SHADOW");
           }
         } else if (cur_block.out_dir.equal(Vec2.zero)) {
           let rounded_size = Math.min(.5, CONFIG.ROUNDED_SIZE);
@@ -1072,7 +1064,7 @@ function draw(bullet_time: boolean) {
         }
       } else {
         ctx.fillStyle = COLORS.SHADOW;
-        fillTile(cur_block.pos.add(Vec2.both(CONFIG.SHADOW_DIST)));
+        fillTile(cur_block.pos.add(Vec2.both(CONFIG.SHADOW_DIST)), "SHADOW");
       }
     });
 
@@ -1132,10 +1124,10 @@ function draw(bullet_time: boolean) {
     }
 
     for (let y = 0; y < BOARD_SIZE.y; y++) {
-      fillTile(new Vec2(particle.center.x, y));
+      fillTile(new Vec2(particle.center.x, y), "EXPLOSION");
     }
     for (let x = 0; x < BOARD_SIZE.y; x++) {
-      fillTile(new Vec2(x, particle.center.y));
+      fillTile(new Vec2(x, particle.center.y), "EXPLOSION");
     }
     return true;
   });
@@ -1143,18 +1135,22 @@ function draw(bullet_time: boolean) {
   // snake body
   snake_blocks.forEach((cur_block, k) => {
     if (CONFIG.DRAW_ROUNDED) {
-      ctx.fillStyle = CONFIG.CHECKERED_SNAKE ? (mod(cur_block.t, 2) == 1 ? COLORS.SNAKE_HEAD : COLORS.SNAKE_WALL) : CONFIG.DRAW_PATTERN ? triangle_pattern : COLORS.SNAKE[Math.max(0, Math.min(COLORS.SNAKE.length - 1, turn - cur_block.t))];
+      let fill: keyof typeof COLORS = mod(cur_block.t, 2) == 1 ? "SNAKE_HEAD" : "SNAKE_WALL";
       const is_scarf = CONFIG.SCARF === "full" && turn - cur_block.t === 1;
-      if (is_scarf) ctx.fillStyle = COLORS.SCARF_IN;
+      if (is_scarf) {
+        fill = "SCARF_IN";
+      }
+      ctx.fillStyle = COLORS[fill];
       if (cur_block.in_dir.equal(cur_block.out_dir.scale(-1))) {
         if (is_scarf && turn_offset < CONFIG.ANIM_PERC) {
           const center = cur_block.pos.addXY(.5, .5).add(cur_block.in_dir.scale(1 - turn_offset / CONFIG.ANIM_PERC));
           fillTileCenterSize(center, Vec2.both(1));
         } else {
-          fillTile(cur_block.pos);
+          fillTile(cur_block.pos, fill);
         }
       } else if (cur_block.out_dir.equal(Vec2.zero)) {
         if (CONFIG.HEAD_COLOR) {
+          fill = "HEAD";
           ctx.fillStyle = COLORS.HEAD;
         }
         let rounded_size = Math.min(.5, CONFIG.ROUNDED_SIZE);
@@ -1231,32 +1227,10 @@ function draw(bullet_time: boolean) {
         ctx.restore();
       }
     } else {
-      if (CONFIG.DRAW_SNAKE_BORDER) {
-        ctx.fillStyle = COLORS.BORDER;
-        fillTile(cur_block.pos);
-        ctx.fillStyle = CONFIG.CHECKERED_SNAKE ? (mod(cur_block.t, 2) == 1 ? COLORS.SNAKE_HEAD : COLORS.SNAKE_WALL) : CONFIG.DRAW_PATTERN ? triangle_pattern : COLORS.SNAKE[Math.max(0, Math.min(COLORS.SNAKE.length - 1, turn - cur_block.t))];
-        if (CONFIG.SCARF === "full" && turn - cur_block.t === 1) ctx.fillStyle = COLORS.SCARF_IN;
-        const center = cur_block.pos.addXY(.5, .5)
-        fillTileCenterSize(center, Vec2.both(1 - CONFIG.BORDER_SIZE));
-        fillTileCenterSize(
-          center.add(cur_block.in_dir.scale(.5 - CONFIG.BORDER_SIZE / 2)),
-          new Vec2(
-            cur_block.in_dir.x == 0 ? 1 - CONFIG.BORDER_SIZE : CONFIG.BORDER_SIZE,
-            cur_block.in_dir.y == 0 ? 1 - CONFIG.BORDER_SIZE : CONFIG.BORDER_SIZE
-          )
-        );
-        fillTileCenterSize(
-          center.add(cur_block.out_dir.scale(.5 - CONFIG.BORDER_SIZE / 2)),
-          new Vec2(
-            cur_block.out_dir.x == 0 ? 1 - CONFIG.BORDER_SIZE : CONFIG.BORDER_SIZE,
-            cur_block.out_dir.y == 0 ? 1 - CONFIG.BORDER_SIZE : CONFIG.BORDER_SIZE
-          )
-        );
-      } else {
-        ctx.fillStyle = CONFIG.CHECKERED_SNAKE ? (mod(cur_block.t, 2) == 1 ? COLORS.SNAKE_HEAD : COLORS.SNAKE_WALL) : CONFIG.DRAW_PATTERN ? triangle_pattern : COLORS.SNAKE[Math.max(0, Math.min(COLORS.SNAKE.length - 1, turn - cur_block.t))];
-        if (CONFIG.SCARF === "full" && turn - cur_block.t === 1) ctx.fillStyle = COLORS.SCARF_IN;
-        fillTile(cur_block.pos);
-      }
+      const fill: keyof typeof COLORS = mod(cur_block.t, 2) == 1 ? "SNAKE_HEAD" : "SNAKE_WALL";
+      ctx.fillStyle = COLORS[fill];
+      if (CONFIG.SCARF === "full" && turn - cur_block.t === 1) ctx.fillStyle = COLORS.SCARF_IN;
+      fillTile(cur_block.pos, fill);
     }
   });
 
@@ -1364,7 +1338,7 @@ function draw(bullet_time: boolean) {
   ctx.fillRect(0, (TOP_OFFSET + MARGIN + BOARD_SIZE.y + CONFIG.DRAW_WRAP) * TILE_SIZE, canvas_ctx.width, (TOP_OFFSET + MARGIN - CONFIG.DRAW_WRAP + 1) * TILE_SIZE);
   ctx.fillRect((MARGIN + BOARD_SIZE.x + CONFIG.DRAW_WRAP) * TILE_SIZE, 0, (MARGIN - CONFIG.DRAW_WRAP + 1) * TILE_SIZE, canvas_ctx.height);
 
-  if (CONFIG.WRAP_STYLE != 'normal') {
+  if (false && CONFIG.WRAP_STYLE != 'normal') {
     ctx.save();
     ctx.translate(MARGIN * TILE_SIZE, (MARGIN + TOP_OFFSET) * TILE_SIZE);
 
@@ -1679,9 +1653,21 @@ function drawFlippedTexture(center: Vec2, texture: HTMLImageElement) {
   }
 }
 
-function fillTile(pos: Vec2) {
+function setFill(normal: boolean, type: keyof typeof COLORS): void {
+  if (CONFIG.WRAP_STYLE === 'normal') {
+    normal = true;
+  }
+  if (normal) {
+    ctx.fillStyle = COLORS[type];
+  } else {
+    ctx.fillStyle = GRAYSCALE[type];
+  }
+}
+
+function fillTile(pos: Vec2, type: keyof typeof COLORS) {
   for (let i = -1; i <= 1; i++) {
     for (let j = -1; j <= 1; j++) {
+      setFill(i === 0 && j === 0, type);
       ctx.fillRect((pos.x + i * BOARD_SIZE.x) * TILE_SIZE, (pos.y + j * BOARD_SIZE.y) * TILE_SIZE, TILE_SIZE, TILE_SIZE);
     }
   }
