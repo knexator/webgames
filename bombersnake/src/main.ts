@@ -41,6 +41,7 @@ const textures_async = await Promise.all(["bomb", "clock", "heart", "star"].flat
   .concat([loadImage("side_arrow_W"), loadImage("side_arrow_R")])
   .concat([loadImage("title_color"), loadImage("title_B")])
   .concat([loadImage("pause"), loadImage("title_B")])
+  .concat([loadImage("bomb_G")])
 );
 const TEXTURES = {
   bomb: textures_async[0],
@@ -52,6 +53,9 @@ const TEXTURES = {
     clock: textures_async[3],
     heart: textures_async[5],
     multiplier: textures_async[7],
+  },
+  gray: {
+    bomb: textures_async[18],
   },
   eye: {
     open: textures_async[8],
@@ -167,7 +171,7 @@ let CONFIG = {
   TOTAL_SLOWDOWN: false,
   ALWAYS_SLOWDOWN: false,
   DRAW_WRAP: 1.8,
-  MUFFLED_WRAP: true,
+  WRAP_STYLE: "no_items" as "normal" | "gray" | "no_items",
   DRAW_PATTERN: false,
   DRAW_SNAKE_BORDER: false,
   BORDER_SIZE: .2,
@@ -211,7 +215,7 @@ const gui = new GUI();
   gui.add(CONFIG, "TOTAL_SLOWDOWN");
   gui.add(CONFIG, "ALWAYS_SLOWDOWN");
   gui.add(CONFIG, "DRAW_WRAP", 0, MARGIN);
-  gui.add(CONFIG, "MUFFLED_WRAP");
+  gui.add(CONFIG, "WRAP_STYLE", ["normal", "gray", "no_items"]);
   gui.add(CONFIG, "DRAW_PATTERN");
   gui.add(CONFIG, "DRAW_SNAKE_BORDER");
   gui.add(CONFIG, "BORDER_SIZE", 0, .5);
@@ -1338,7 +1342,7 @@ function draw(bullet_time: boolean) {
   ctx.fillRect(0, (TOP_OFFSET + MARGIN + BOARD_SIZE.y + CONFIG.DRAW_WRAP) * TILE_SIZE, canvas_ctx.width, (TOP_OFFSET + MARGIN - CONFIG.DRAW_WRAP + 1) * TILE_SIZE);
   ctx.fillRect((MARGIN + BOARD_SIZE.x + CONFIG.DRAW_WRAP) * TILE_SIZE, 0, (MARGIN - CONFIG.DRAW_WRAP + 1) * TILE_SIZE, canvas_ctx.height);
 
-  if (CONFIG.MUFFLED_WRAP) {
+  if (CONFIG.WRAP_STYLE != 'normal') {
     ctx.save();
     ctx.translate(MARGIN * TILE_SIZE, (MARGIN + TOP_OFFSET) * TILE_SIZE);
 
@@ -1610,9 +1614,13 @@ function rotQuarterB(value: Vec2): Vec2 {
 }
 
 function drawTexture(top_left: Vec2, texture: HTMLImageElement) {
-  for (let i = -1; i <= 1; i++) {
-    for (let j = -1; j <= 1; j++) {
-      ctx.drawImage(texture, (top_left.x + i * BOARD_SIZE.x) * TILE_SIZE, (top_left.y + j * BOARD_SIZE.y) * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+  if (CONFIG.WRAP_STYLE === 'no_items') {
+    ctx.drawImage(texture, top_left.x * TILE_SIZE, top_left.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+  } else {
+    for (let i = -1; i <= 1; i++) {
+      for (let j = -1; j <= 1; j++) {
+        ctx.drawImage(texture, (top_left.x + i * BOARD_SIZE.x) * TILE_SIZE, (top_left.y + j * BOARD_SIZE.y) * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+      }
     }
   }
 }
