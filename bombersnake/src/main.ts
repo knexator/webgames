@@ -324,6 +324,28 @@ const INITIAL_VOLUME = objectMap(SOUNDS, x => x.volume());
 //   SNAKE: [] as string[],
 // };
 
+const GRAYSCALE = {
+  BORDER: "#8ccbf2",
+  BACKGROUND: "#323232",
+  BACKGROUND_2: "#363636",
+  BACKGROUND_3: "#2F2F2F",
+  BOMB: "#696969",
+  TEXT: "#f4f4f4",
+  GRAY_TEXT: "#b4b4b4",
+  SNAKE_HEAD: '#848484',
+  SNAKE_WALL: '#7E7E7E',
+  //SNAKE_WALL2: '#686868',
+  EXPLOSION: "#D4D4D4",
+  MULTIPLIER: "#f4f4f4",
+  GRIDLINE: "#2f324b",
+  SHADOW: "#000000",
+  SCARF_OUT: "#545454",
+  SCARF_IN: "#545454",
+  HEAD: "#848484",
+  SNAKE: [] as string[],
+};
+GRAYSCALE.SNAKE = generateGradient(GRAYSCALE.SNAKE_WALL, GRAYSCALE.SNAKE_HEAD, 4);
+
 const COLORS = {
   BORDER: "#8ccbf2",
   BACKGROUND: "#203c3c",
@@ -623,10 +645,10 @@ function every_frame(cur_timestamp: number) {
     });
   }
 
-  if (input.keyboard.wasPressed(KeyCode.KeyQ)) {
+  /*if (input.keyboard.wasPressed(KeyCode.KeyQ)) {
     CONFIG.PAUSED = !CONFIG.PAUSED;
   }
-
+*/
   if (input.keyboard.wasPressed(KeyCode.KeyH)) {
     gui.show(gui._hidden);
   }
