@@ -41,7 +41,7 @@ const textures_async = await Promise.all(["bomb", "clock", "heart", "star"].flat
   .concat([loadImage("side_arrow_W"), loadImage("side_arrow_R")])
   .concat([loadImage("title_color"), loadImage("title_B")])
   .concat([loadImage("pause"), loadImage("title_B")])
-  .concat([loadImage("bomb_G")])
+  .concat([loadImage("bomb_G"), loadImage("clock_G"), loadImage("star_G")])
 );
 const TEXTURES = {
   bomb: textures_async[0],
@@ -55,7 +55,9 @@ const TEXTURES = {
     multiplier: textures_async[7],
   },
   gray: {
-    bomb: textures_async[18],
+    bomb: textures_async[19],
+    clock: textures_async[20],
+    multiplier: textures_async[21],
   },
   eye: {
     open: textures_async[8],
@@ -171,7 +173,7 @@ let CONFIG = {
   TOTAL_SLOWDOWN: false,
   ALWAYS_SLOWDOWN: false,
   DRAW_WRAP: 1.8,
-  WRAP_STYLE: "no_items" as "normal" | "gray" | "no_items",
+  WRAP_STYLE: "gray" as "normal" | "gray" | "no_items",
   ROUNDED_SIZE: .5,
   CHECKERED_BACKGROUND: "3_v2" as "no" | "2" | "3" | "3_v2",
   SHADOW: true,
@@ -1034,7 +1036,7 @@ function draw(bullet_time: boolean) {
       const cur_collectable = cur_collectables[k];
       if (cur_collectable instanceof Bomb) {
         const cur_bomb = cur_collectable;
-        drawTexture(cur_bomb.pos.add(Vec2.both(CONFIG.SHADOW_DIST)), TEXTURES.shadow.bomb);
+        drawItem(cur_bomb.pos.add(Vec2.both(CONFIG.SHADOW_DIST)), 'bomb', true);
         // ctx.fillStyle = COLORS.SHADOW;
         // fillTile(cur_bomb.pos.add(Vec2.both(CONFIG.SHADOW_DIST)));
         if (cur_bomb.ticking || CONFIG.FUSE_DURATION > 0) {
@@ -1044,11 +1046,11 @@ function draw(bullet_time: boolean) {
       } else if (cur_collectable instanceof Multiplier) {
         // ctx.fillStyle = COLORS.SHADOW;
         // fillTile(cur_collectable.pos.add(Vec2.both(CONFIG.SHADOW_DIST));
-        drawTexture(cur_collectable.pos.add(Vec2.both(CONFIG.SHADOW_DIST)), TEXTURES.shadow.multiplier);
+        drawItem(cur_collectable.pos.add(Vec2.both(CONFIG.SHADOW_DIST)), 'multiplier', true);
       } else if (cur_collectable instanceof Clock) {
         const clock = cur_collectable;
         if (clock.active) {
-          drawTexture(clock.pos.add(Vec2.both(CONFIG.SHADOW_DIST)), TEXTURES.shadow.clock);
+          drawItem(clock.pos.add(Vec2.both(CONFIG.SHADOW_DIST)), 'clock', true);
         }
       } else {
         throw new Error();
@@ -1095,94 +1097,94 @@ function draw(bullet_time: boolean) {
 
   // snake body
   snake_blocks.forEach((cur_block, k) => {
-      let fill: keyof typeof COLORS = mod(cur_block.t, 2) == 1 ? "SNAKE_HEAD" : "SNAKE_WALL";
-      const is_scarf = CONFIG.SCARF === "full" && turn - cur_block.t === 1;
-      if (is_scarf) {
-        fill = "SCARF_IN";
-      }
-      ctx.fillStyle = COLORS[fill];
-      if (cur_block.in_dir.equal(cur_block.out_dir.scale(-1))) {
-        if (is_scarf && turn_offset < CONFIG.ANIM_PERC) {
-          const center = cur_block.pos.addXY(.5, .5).add(cur_block.in_dir.scale(1 - turn_offset / CONFIG.ANIM_PERC));
-          fillTileCenterSize(center, Vec2.both(1), fill);
-        } else {
-          fillTile(cur_block.pos, fill);
-        }
-      } else if (cur_block.out_dir.equal(Vec2.zero)) {
-        if (CONFIG.HEAD_COLOR) {
-          fill = "HEAD";
-          ctx.fillStyle = COLORS.HEAD;
-        }
-        let rounded_size = Math.min(.5, CONFIG.ROUNDED_SIZE);
-        // let rounded_size = .5;
-        let center = cur_block.pos.addXY(.5, .5);
-        if (turn_offset < CONFIG.ANIM_PERC) {
-          center = center.add(cur_block.in_dir.scale(1 - turn_offset / CONFIG.ANIM_PERC));
-        }
-        fillTileCenterSize(center.add(cur_block.in_dir.scale(rounded_size / 2)),
-          new Vec2(
-            cur_block.in_dir.x == 0 ? 1 : 1 - rounded_size,
-            cur_block.in_dir.y == 0 ? 1 : 1 - rounded_size,
-          ), fill
-        )
-        fillTileCenterSize(center,
-          new Vec2(
-            cur_block.in_dir.y == 0 ? 1 : 1 - rounded_size * 2,
-            cur_block.in_dir.x == 0 ? 1 : 1 - rounded_size * 2,
-          ), fill
-        )
-        fillCircle(center.add(cur_block.in_dir.add(rotQuarterA(cur_block.in_dir)).scale(rounded_size - .5)), rounded_size, fill);
-        fillCircle(center.add(cur_block.in_dir.add(rotQuarterB(cur_block.in_dir)).scale(rounded_size - .5)), rounded_size, fill);
-
-        // eye
-        let eye_texture = game_state === "lost"
-          ? TEXTURES.eye.KO
-          : false
-            ? TEXTURES.eye.closed
-            : TEXTURES.eye.open;
-        if (cur_block.in_dir.equal(new Vec2(1, 0))) {
-          drawFlippedTexture(center, eye_texture);
-        } else {
-          drawRotatedTexture(center, eye_texture,
-            Math.atan2(-cur_block.in_dir.y, -cur_block.in_dir.x));
-        }
-        // drawTexture(cur_block.pos, game_state === "lost" ? textures.eye.KO : textures.eye.open);
-        // ctx.beginPath();
-        // ctx.fillStyle = "white";
-        // drawCircle(center.add(cur_block.in_dir.scale(-.1)), .3);
-        // ctx.fill();
-        // ctx.beginPath();
-        // ctx.fillStyle = "black";
-        // drawCircle(center.add(cur_block.in_dir.scale(-.2)), .1);
-        // ctx.fill();
+    let fill: keyof typeof COLORS = mod(cur_block.t, 2) == 1 ? "SNAKE_HEAD" : "SNAKE_WALL";
+    const is_scarf = CONFIG.SCARF === "full" && turn - cur_block.t === 1;
+    if (is_scarf) {
+      fill = "SCARF_IN";
+    }
+    ctx.fillStyle = COLORS[fill];
+    if (cur_block.in_dir.equal(cur_block.out_dir.scale(-1))) {
+      if (is_scarf && turn_offset < CONFIG.ANIM_PERC) {
+        const center = cur_block.pos.addXY(.5, .5).add(cur_block.in_dir.scale(1 - turn_offset / CONFIG.ANIM_PERC));
+        fillTileCenterSize(center, Vec2.both(1), fill);
       } else {
-        const center = cur_block.pos.addXY(.5, .5)
-        if (is_scarf && turn_offset < CONFIG.ANIM_PERC) {
-          let anim_t = turn_offset / CONFIG.ANIM_PERC;
-          // center = center.add(cur_block.in_dir.scale(1 - ));
-          fillTileCenterSize(center.add(cur_block.in_dir.scale(.5 + (1 - anim_t) / 2)), new Vec2(
-            cur_block.in_dir.x == 0 ? 1 : 1 - anim_t,
-            cur_block.in_dir.y == 0 ? 1 : 1 - anim_t,
-          ), fill);
-        }
-        fillTileCenterSize(center.add(cur_block.in_dir.scale(CONFIG.ROUNDED_SIZE / 2)),
-          new Vec2(
-            cur_block.in_dir.x == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
-            cur_block.in_dir.y == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
-          ), fill
-        )
-        fillTileCenterSize(center.add(cur_block.out_dir.scale(CONFIG.ROUNDED_SIZE / 2)),
-          new Vec2(
-            cur_block.out_dir.x == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
-            cur_block.out_dir.y == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
-          ), fill
-        )
-        ctx.save();
-        ctx.beginPath();
-        ctx.clip(tileRegion(cur_block.pos));
-        fillCircle(center.add(cur_block.in_dir.add(cur_block.out_dir).scale(CONFIG.ROUNDED_SIZE - .5)), CONFIG.ROUNDED_SIZE, fill);
-        ctx.restore();
+        fillTile(cur_block.pos, fill);
       }
+    } else if (cur_block.out_dir.equal(Vec2.zero)) {
+      if (CONFIG.HEAD_COLOR) {
+        fill = "HEAD";
+        ctx.fillStyle = COLORS.HEAD;
+      }
+      let rounded_size = Math.min(.5, CONFIG.ROUNDED_SIZE);
+      // let rounded_size = .5;
+      let center = cur_block.pos.addXY(.5, .5);
+      if (turn_offset < CONFIG.ANIM_PERC) {
+        center = center.add(cur_block.in_dir.scale(1 - turn_offset / CONFIG.ANIM_PERC));
+      }
+      fillTileCenterSize(center.add(cur_block.in_dir.scale(rounded_size / 2)),
+        new Vec2(
+          cur_block.in_dir.x == 0 ? 1 : 1 - rounded_size,
+          cur_block.in_dir.y == 0 ? 1 : 1 - rounded_size,
+        ), fill
+      )
+      fillTileCenterSize(center,
+        new Vec2(
+          cur_block.in_dir.y == 0 ? 1 : 1 - rounded_size * 2,
+          cur_block.in_dir.x == 0 ? 1 : 1 - rounded_size * 2,
+        ), fill
+      )
+      fillCircle(center.add(cur_block.in_dir.add(rotQuarterA(cur_block.in_dir)).scale(rounded_size - .5)), rounded_size, fill);
+      fillCircle(center.add(cur_block.in_dir.add(rotQuarterB(cur_block.in_dir)).scale(rounded_size - .5)), rounded_size, fill);
+
+      // eye
+      let eye_texture = game_state === "lost"
+        ? TEXTURES.eye.KO
+        : false
+          ? TEXTURES.eye.closed
+          : TEXTURES.eye.open;
+      if (cur_block.in_dir.equal(new Vec2(1, 0))) {
+        drawFlippedTexture(center, eye_texture);
+      } else {
+        drawRotatedTexture(center, eye_texture,
+          Math.atan2(-cur_block.in_dir.y, -cur_block.in_dir.x));
+      }
+      // drawTexture(cur_block.pos, game_state === "lost" ? textures.eye.KO : textures.eye.open);
+      // ctx.beginPath();
+      // ctx.fillStyle = "white";
+      // drawCircle(center.add(cur_block.in_dir.scale(-.1)), .3);
+      // ctx.fill();
+      // ctx.beginPath();
+      // ctx.fillStyle = "black";
+      // drawCircle(center.add(cur_block.in_dir.scale(-.2)), .1);
+      // ctx.fill();
+    } else {
+      const center = cur_block.pos.addXY(.5, .5)
+      if (is_scarf && turn_offset < CONFIG.ANIM_PERC) {
+        let anim_t = turn_offset / CONFIG.ANIM_PERC;
+        // center = center.add(cur_block.in_dir.scale(1 - ));
+        fillTileCenterSize(center.add(cur_block.in_dir.scale(.5 + (1 - anim_t) / 2)), new Vec2(
+          cur_block.in_dir.x == 0 ? 1 : 1 - anim_t,
+          cur_block.in_dir.y == 0 ? 1 : 1 - anim_t,
+        ), fill);
+      }
+      fillTileCenterSize(center.add(cur_block.in_dir.scale(CONFIG.ROUNDED_SIZE / 2)),
+        new Vec2(
+          cur_block.in_dir.x == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
+          cur_block.in_dir.y == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
+        ), fill
+      )
+      fillTileCenterSize(center.add(cur_block.out_dir.scale(CONFIG.ROUNDED_SIZE / 2)),
+        new Vec2(
+          cur_block.out_dir.x == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
+          cur_block.out_dir.y == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
+        ), fill
+      )
+      ctx.save();
+      ctx.beginPath();
+      ctx.clip(tileRegion(cur_block.pos));
+      fillCircle(center.add(cur_block.in_dir.add(cur_block.out_dir).scale(CONFIG.ROUNDED_SIZE - .5)), CONFIG.ROUNDED_SIZE, fill);
+      ctx.restore();
+    }
   });
 
   if (CONFIG.SCARF !== "no") {
@@ -1215,7 +1217,7 @@ function draw(bullet_time: boolean) {
     const cur_collectable = cur_collectables[k];
     if (cur_collectable instanceof Bomb) {
       const cur_bomb = cur_collectable;
-      drawTexture(cur_bomb.pos, TEXTURES.bomb);
+      drawItem(cur_bomb.pos, 'bomb');
       // ctx.fillStyle = COLORS.BOMB;
       // fillTile(cur_bomb.pos);
       if (cur_bomb.ticking || CONFIG.FUSE_DURATION > 0) {
@@ -1225,25 +1227,30 @@ function draw(bullet_time: boolean) {
     } else if (cur_collectable instanceof Multiplier) {
       // ctx.fillStyle = COLORS.MULTIPLIER;
       // fillTile(cur_collectable.pos);
-      drawTexture(cur_collectable.pos, TEXTURES.multiplier);
+      drawItem(cur_collectable.pos, 'multiplier');
     } else if (cur_collectable instanceof Clock) {
       const clock = cur_collectable;
       if (clock.active) {
-        drawTexture(clock.pos, TEXTURES.clock);
-        ctx.strokeStyle = "black";
-        ctx.beginPath();
-        const center = clock.pos.add(Vec2.both(.5));
-        const hand_delta = Vec2.fromTurns(
-          remap(clock.remaining_turns - turn_offset, 0, CONFIG.CLOCK_DURATION, -1 / 4, -5 / 4)
-        ).scale(.3);
-        moveTo(center.scale(TILE_SIZE));
-        lineTo(center.add(hand_delta).scale(TILE_SIZE));
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.fillStyle = "black";
-        drawCircleNoWrap(center, .05);
-        drawCircleNoWrap(center.add(hand_delta), .05);
-        ctx.fill();
+        drawItem(clock.pos, 'clock');
+        for (let i = -1; i <= 1; i++) {
+          for (let j = -1; j <= 1; j++) {
+            if (CONFIG.WRAP_STYLE === 'no_items' && (i !== 0 || j !== 0)) continue;
+            ctx.strokeStyle = "black";
+            ctx.beginPath();
+            const center = clock.pos.add(Vec2.both(.5)).add(new Vec2(i * BOARD_SIZE.x, j * BOARD_SIZE.y));
+            const hand_delta = Vec2.fromTurns(
+              remap(clock.remaining_turns - turn_offset, 0, CONFIG.CLOCK_DURATION, -1 / 4, -5 / 4)
+            ).scale(.3);
+            moveTo(center.scale(TILE_SIZE));
+            lineTo(center.add(hand_delta).scale(TILE_SIZE));
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.fillStyle = "black";
+            drawCircleNoWrap(center, .05);
+            drawCircleNoWrap(center.add(hand_delta), .05);
+            ctx.fill();
+          }
+        }
       }
     } else {
       throw new Error();
@@ -1549,13 +1556,18 @@ function rotQuarterB(value: Vec2): Vec2 {
   return new Vec2(-value.y, value.x);
 }
 
-function drawTexture(top_left: Vec2, texture: HTMLImageElement) {
+function drawItem(top_left: Vec2, item: "bomb" | "multiplier" | "clock", is_shadow: boolean = false) {
   if (CONFIG.WRAP_STYLE === 'no_items') {
-    ctx.drawImage(texture, top_left.x * TILE_SIZE, top_left.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+    ctx.drawImage(is_shadow ? TEXTURES.shadow[item] : TEXTURES[item], top_left.x * TILE_SIZE, top_left.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
   } else {
     for (let i = -1; i <= 1; i++) {
       for (let j = -1; j <= 1; j++) {
-        ctx.drawImage(texture, (top_left.x + i * BOARD_SIZE.x) * TILE_SIZE, (top_left.y + j * BOARD_SIZE.y) * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+        ctx.drawImage(is_shadow
+          ? TEXTURES.shadow[item]
+          : (CONFIG.WRAP_STYLE === "gray" && (i !== 0 || j !== 0))
+            ? TEXTURES.gray[item]
+            : TEXTURES[item],
+          (top_left.x + i * BOARD_SIZE.x) * TILE_SIZE, (top_left.y + j * BOARD_SIZE.y) * TILE_SIZE, TILE_SIZE, TILE_SIZE);
       }
     }
   }
