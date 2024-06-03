@@ -151,7 +151,7 @@ if (is_phone) {
 // }
 
 let CONFIG = {
-  SWIPE_CONTROLS: true,
+  SWIPE_CONTROLS: false,
   SWIPE_DIST: 1,
   SWIPE_MARGIN: 1,
   PAUSED: false,
