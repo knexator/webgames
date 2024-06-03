@@ -1442,6 +1442,19 @@ function menuYCoordOf(setting: "resume" | "speed" | "music" | "start" | "logo"):
 function lose() {
   stopTickTockSound();
   game_state = "lost";
+
+  //   const img_data = canvas_ctx.toDataURL('image/png');
+  //   console.log(img_data);
+  draw(false);
+  canvas_ctx.toBlob(async (blob) => {
+    try {
+      await navigator.clipboard.write([(new ClipboardItem({ 'image/png': blob! }))]);
+      console.log('Canvas copied to clipboard successfully!');
+    } catch (error) {
+      console.error('Failed to copy canvas to clipboard:', error);
+    }
+  });
+
 }
 
 function drawMenuArrow(setting: "speed" | "music", left: boolean): void {
