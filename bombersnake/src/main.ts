@@ -173,7 +173,8 @@ let CONFIG = {
   TOTAL_SLOWDOWN: false,
   ALWAYS_SLOWDOWN: false,
   DRAW_WRAP: 1.8,
-  WRAP_STYLE: "gray" as "normal" | "gray" | "no_items",
+  WRAP_GRAY: false,
+  WRAP_ITEMS: false,
   ROUNDED_SIZE: .5,
   CHECKERED_BACKGROUND: "3_v2" as "no" | "2" | "3" | "3_v2",
   SHADOW: true,
@@ -209,7 +210,8 @@ const gui = new GUI();
   gui.add(CONFIG, "TOTAL_SLOWDOWN");
   gui.add(CONFIG, "ALWAYS_SLOWDOWN");
   gui.add(CONFIG, "DRAW_WRAP", 0, MARGIN);
-  gui.add(CONFIG, "WRAP_STYLE", ["normal", "gray", "no_items"]);
+  gui.add(CONFIG, "WRAP_GRAY");
+  gui.add(CONFIG, "WRAP_ITEMS");
   gui.add(CONFIG, "ROUNDED_SIZE", 0, 1);
   gui.add(CONFIG, "CHECKERED_SNAKE");
   gui.add(CONFIG, "CHECKERED_BACKGROUND", ["no", "2", "3", "3_v2"]);
@@ -1234,7 +1236,7 @@ function draw(bullet_time: boolean) {
         drawItem(clock.pos, 'clock');
         for (let i = -1; i <= 1; i++) {
           for (let j = -1; j <= 1; j++) {
-            if (CONFIG.WRAP_STYLE === 'no_items' && (i !== 0 || j !== 0)) continue;
+            if (!CONFIG.WRAP_ITEMS && (i !== 0 || j !== 0)) continue;
             ctx.strokeStyle = "black";
             ctx.beginPath();
             const center = clock.pos.add(Vec2.both(.5)).add(new Vec2(i * BOARD_SIZE.x, j * BOARD_SIZE.y));
@@ -1284,28 +1286,6 @@ function draw(bullet_time: boolean) {
   ctx.fillRect(0, 0, (MARGIN - CONFIG.DRAW_WRAP) * TILE_SIZE, canvas_ctx.height);
   ctx.fillRect(0, (TOP_OFFSET + MARGIN + BOARD_SIZE.y + CONFIG.DRAW_WRAP) * TILE_SIZE, canvas_ctx.width, (TOP_OFFSET + MARGIN - CONFIG.DRAW_WRAP + 1) * TILE_SIZE);
   ctx.fillRect((MARGIN + BOARD_SIZE.x + CONFIG.DRAW_WRAP) * TILE_SIZE, 0, (MARGIN - CONFIG.DRAW_WRAP + 1) * TILE_SIZE, canvas_ctx.height);
-
-  if (false && CONFIG.WRAP_STYLE != 'normal') {
-    ctx.save();
-    ctx.translate(MARGIN * TILE_SIZE, (MARGIN + TOP_OFFSET) * TILE_SIZE);
-
-    let region = new Path2D();
-    region.rect(-CONFIG.DRAW_WRAP * TILE_SIZE, -CONFIG.DRAW_WRAP * TILE_SIZE,
-      (BOARD_SIZE.x + CONFIG.DRAW_WRAP * 2) * TILE_SIZE,
-      (BOARD_SIZE.y + CONFIG.DRAW_WRAP * 2) * TILE_SIZE);
-    region.rect(0, 0,
-      (BOARD_SIZE.x) * TILE_SIZE,
-      (BOARD_SIZE.y) * TILE_SIZE);
-    ctx.clip(region, "evenodd");
-
-    ctx.fillStyle = "#505050CC";
-    ctx.fillRect(-CONFIG.DRAW_WRAP * TILE_SIZE, -CONFIG.DRAW_WRAP * TILE_SIZE,
-      (BOARD_SIZE.x + CONFIG.DRAW_WRAP * 2) * TILE_SIZE,
-      (BOARD_SIZE.y + CONFIG.DRAW_WRAP * 2) * TILE_SIZE);
-    ctx.clip();
-
-    ctx.restore();
-  }
 
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
@@ -1570,14 +1550,14 @@ function rotQuarterB(value: Vec2): Vec2 {
 }
 
 function drawItem(top_left: Vec2, item: "bomb" | "multiplier" | "clock", is_shadow: boolean = false) {
-  if (CONFIG.WRAP_STYLE === 'no_items') {
+  if (!CONFIG.WRAP_ITEMS) {
     ctx.drawImage(is_shadow ? TEXTURES.shadow[item] : TEXTURES[item], top_left.x * TILE_SIZE, top_left.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
   } else {
     for (let i = -1; i <= 1; i++) {
       for (let j = -1; j <= 1; j++) {
         ctx.drawImage(is_shadow
           ? TEXTURES.shadow[item]
-          : (CONFIG.WRAP_STYLE === "gray" && (i !== 0 || j !== 0))
+          : (CONFIG.WRAP_GRAY && (i !== 0 || j !== 0))
             ? TEXTURES.gray[item]
             : TEXTURES[item],
           (top_left.x + i * BOARD_SIZE.x) * TILE_SIZE, (top_left.y + j * BOARD_SIZE.y) * TILE_SIZE, TILE_SIZE, TILE_SIZE);
@@ -1619,7 +1599,7 @@ function drawFlippedTexture(center: Vec2, texture: HTMLImageElement) {
 }
 
 function setFill(normal: boolean, type: keyof typeof COLORS): void {
-  if (CONFIG.WRAP_STYLE === 'normal') {
+  if (!CONFIG.WRAP_GRAY) {
     normal = true;
   }
   if (normal) {
