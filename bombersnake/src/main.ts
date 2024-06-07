@@ -42,6 +42,7 @@ const textures_async = await Promise.all(["bomb", "clock", "heart", "star"].flat
   .concat([loadImage("title_color"), loadImage("title_B")])
   .concat([loadImage("pause"), loadImage("title_B")])
   .concat([loadImage("bomb_G"), loadImage("clock_G"), loadImage("star_G")])
+  .concat("UDLR".split('').map(c => loadImage(`Cross${c}`)))
 );
 const TEXTURES = {
   bomb: textures_async[0],
@@ -103,8 +104,17 @@ container.style.width = `${TILE_SIZE * (BOARD_SIZE.x + MARGIN * 2)}px`
 container.style.height = `${TILE_SIZE * (BOARD_SIZE.y + MARGIN * 2 + TOP_OFFSET)}px`
 twgl.resizeCanvasToDisplaySize(canvas_ctx);
 
-const dpad = document.querySelector("#dpad") as HTMLElement;
+const dpad = document.querySelector("#dpad") as HTMLImageElement;
 if (is_phone) {
+
+  function dirToImage(v: Vec2): 'U' | 'D' | 'L' | 'R' {
+    if (Math.abs(v.x) > Math.abs(v.y)) {
+      return v.x > 0 ? 'R' : 'L';
+    } else {
+      return v.y > 0 ? 'D' : 'U';
+    }
+  }
+
   dpad.hidden = false;
   const dpad_size = new Vec2(dpad.clientWidth, dpad.clientHeight);
   dpad.addEventListener("pointerdown", ev => {
@@ -112,6 +122,7 @@ if (is_phone) {
       const place = new Vec2(ev.offsetX, ev.offsetY).sub(dpad_size.scale(.5));
       const dir = roundToCardinalDirection(place);
       input_queue.push(dir);
+      dpad.src = `./images/Cross${dirToImage(dir)}.png`;
     }
   });
   dpad.addEventListener("pointermove", ev => {
@@ -119,8 +130,12 @@ if (is_phone) {
       const place = new Vec2(ev.offsetX, ev.offsetY).sub(dpad_size.scale(.5));
       const dir = roundToCardinalDirection(place);
       input_queue.push(dir);
+      dpad.src = `./images/Cross${dirToImage(dir)}.png`;
     }
   });
+  dpad.addEventListener("pointerup", ev => {
+    dpad.src = `./images/cross.png`;
+  })
 } else {
   dpad.remove();
 }
@@ -314,6 +329,7 @@ const INITIAL_VOLUME = objectMap(SOUNDS, x => x.volume());
 // };
 
 const GRAYSCALE = {
+  WEB_BG: "black",
   BORDER: "#8ccbf2",
   BACKGROUND: "#323232",
   BACKGROUND_2: "#363636",
@@ -334,6 +350,7 @@ const GRAYSCALE = {
 };
 
 const COLORS = {
+  WEB_BG: "black",
   BORDER: "#8ccbf2",
   BACKGROUND: "#203c3c",
   BACKGROUND_2: "#253d3d",
@@ -605,8 +622,6 @@ function every_frame(cur_timestamp: number) {
   input.startFrame();
   ctx.resetTransform();
   ctx.clearRect(0, 0, canvas_ctx.width, canvas_ctx.height);
-  ctx.fillStyle = 'gray';
-  ctx.fillRect(0, 0, canvas_ctx.width, canvas_ctx.height);
   // if (twgl.resizeCanvasToDisplaySize(canvas_ctx) && is_phone) {
   // if (or(twgl.resizeCanvasToDisplaySize(canvas_ctx), twgl.resizeCanvasToDisplaySize(canvas_gl))) {
   // resizing stuff
@@ -1281,7 +1296,7 @@ function draw(bullet_time: boolean) {
   ctx.resetTransform();
 
   // draw borders to hide stuff
-  ctx.fillStyle = "#555";
+  ctx.fillStyle = COLORS.WEB_BG;
   ctx.fillRect(0, 0, canvas_ctx.width, (TOP_OFFSET + MARGIN - CONFIG.DRAW_WRAP) * TILE_SIZE);
   ctx.fillRect(0, 0, (MARGIN - CONFIG.DRAW_WRAP) * TILE_SIZE, canvas_ctx.height);
   ctx.fillRect(0, (TOP_OFFSET + MARGIN + BOARD_SIZE.y + CONFIG.DRAW_WRAP) * TILE_SIZE, canvas_ctx.width, (TOP_OFFSET + MARGIN - CONFIG.DRAW_WRAP + 1) * TILE_SIZE);
