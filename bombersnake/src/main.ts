@@ -142,25 +142,33 @@ if (is_phone) {
     }
   });
 
+  function touchPos(touch: Touch): Vec2 {
+    const rect = dpad.getBoundingClientRect();
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
+    return new Vec2(x - rect.width / 2, y - rect.height / 2);
+  }
+
   dpad.hidden = false;
-  const dpad_size = new Vec2(dpad.clientWidth, dpad.clientHeight);
-  dpad.addEventListener("pointerdown", ev => {
+  dpad.addEventListener("touchstart", ev => {
     if (!CONFIG.SWIPE_CONTROLS && game_state === 'playing') {
-      const place = new Vec2(ev.offsetX, ev.offsetY).sub(dpad_size.scale(.5));
+      const touch = ev.changedTouches.item(ev.changedTouches.length - 1)!;
+      const place = touchPos(touch);
       const dir = roundToCardinalDirection(place);
       input_queue.push(dir);
       dpad.src = TEXTURES.cross[dirToImage(dir)].src;
     }
   });
-  dpad.addEventListener("pointermove", ev => {
+  dpad.addEventListener("touchmove", ev => {
     if (!CONFIG.SWIPE_CONTROLS && game_state === 'playing') {
-      const place = new Vec2(ev.offsetX, ev.offsetY).sub(dpad_size.scale(.5));
+      const touch = ev.changedTouches.item(ev.changedTouches.length - 1)!;
+      const place = touchPos(touch);
       const dir = roundToCardinalDirection(place);
       input_queue.push(dir);
       dpad.src = TEXTURES.cross[dirToImage(dir)].src;
     }
   });
-  dpad.addEventListener("pointerup", ev => {
+  dpad.addEventListener("touchend", ev => {
     dpad.src = TEXTURES.cross.none.src;
   })
 } else {
