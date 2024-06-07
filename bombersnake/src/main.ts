@@ -41,10 +41,18 @@ const textures_async = await Promise.all(["bomb", "clock", "heart", "star"].flat
   .concat([loadImage("side_arrow_W"), loadImage("side_arrow_R")])
   .concat([loadImage("title_color"), loadImage("title_B")])
   .concat([loadImage("pause"), loadImage("title_B")])
-  .concat([loadImage("bomb_G"), loadImage("clock_G"), loadImage("star_G")])
+  .concat([loadImage("bomb_G"), loadImage("clock_G"), loadImage("star_G")]) // 21
+  .concat([loadImage(`cross`)])
   .concat("UDLR".split('').map(c => loadImage(`Cross${c}`)))
 );
 const TEXTURES = {
+  cross: {
+    none: textures_async[22],
+    U: textures_async[23],
+    D: textures_async[24],
+    L: textures_async[25],
+    R: textures_async[26],
+  },
   bomb: textures_async[0],
   clock: textures_async[2],
   heart: textures_async[4],
@@ -141,7 +149,7 @@ if (is_phone) {
       const place = new Vec2(ev.offsetX, ev.offsetY).sub(dpad_size.scale(.5));
       const dir = roundToCardinalDirection(place);
       input_queue.push(dir);
-      dpad.src = `./images/Cross${dirToImage(dir)}.png`;
+      dpad.src = TEXTURES.cross[dirToImage(dir)].src;
     }
   });
   dpad.addEventListener("pointermove", ev => {
@@ -149,11 +157,11 @@ if (is_phone) {
       const place = new Vec2(ev.offsetX, ev.offsetY).sub(dpad_size.scale(.5));
       const dir = roundToCardinalDirection(place);
       input_queue.push(dir);
-      dpad.src = `./images/Cross${dirToImage(dir)}.png`;
+      dpad.src = TEXTURES.cross[dirToImage(dir)].src;
     }
   });
   dpad.addEventListener("pointerup", ev => {
-    dpad.src = `./images/cross.png`;
+    dpad.src = TEXTURES.cross.none.src;
   })
 } else {
   dpad.remove();
