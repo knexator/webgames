@@ -105,6 +105,7 @@ container.style.height = `${TILE_SIZE * (BOARD_SIZE.y + MARGIN * 2 + TOP_OFFSET)
 twgl.resizeCanvasToDisplaySize(canvas_ctx);
 
 const dpad = document.querySelector("#dpad") as HTMLImageElement;
+const pause_button = document.querySelector("#pause_button") as HTMLImageElement;
 if (is_phone) {
 
   function dirToImage(v: Vec2): 'U' | 'D' | 'L' | 'R' {
@@ -114,6 +115,24 @@ if (is_phone) {
       return v.y > 0 ? 'D' : 'U';
     }
   }
+
+  pause_button.hidden = false;
+  pause_button.style.top = `${TILE_SIZE * (BOARD_SIZE.y + MARGIN * 2 + TOP_OFFSET)}px`;
+  pause_button.addEventListener("pointerdown", ev => {
+    console.log('hola');
+    switch (game_state) {
+      case "loading_menu":
+        break;
+      case "pause_menu":
+        game_state = 'playing';
+        break;
+      case "playing":
+        game_state = 'pause_menu';
+        break;
+      default:
+        break;
+    }
+  });
 
   dpad.hidden = false;
   const dpad_size = new Vec2(dpad.clientWidth, dpad.clientHeight);
@@ -138,6 +157,7 @@ if (is_phone) {
   })
 } else {
   dpad.remove();
+  pause_button.remove();
 }
 
 // let CONFIG = {
@@ -726,7 +746,7 @@ function every_frame(cur_timestamp: number) {
       menu_focus = menu_order[argmin(menu_order.map(n => Math.abs(raw_mouse_pos.y - menuYCoordOf(n))))];
     }
 
-    if (input.mouse.wasPressed(MouseButton.Left)) {
+    if (input.mouse.wasPressed(MouseButton.Left) && canvas_mouse_pos.y < BOARD_SIZE.y * TILE_SIZE) {
       const dx = canvas_mouse_pos.x / (BOARD_SIZE.x * TILE_SIZE) < 1 / 3 ? -1 : 1;
       switch (menu_focus) {
         case 'speed':
@@ -762,7 +782,7 @@ function every_frame(cur_timestamp: number) {
   } else if (game_state === "playing") {
     if (CONFIG.SWIPE_CONTROLS) {
       if (input.mouse.wasPressed(MouseButton.Left) && canvas_mouse_pos.y < BOARD_SIZE.y * TILE_SIZE) {
-        game_state = "pause_menu";
+        // game_state = "pause_menu";
       } else if (input.mouse.isDown(MouseButton.Left)) {
         if (touch_input_base_point === null) {
           touch_input_base_point = canvas_mouse_pos;
@@ -780,7 +800,7 @@ function every_frame(cur_timestamp: number) {
     } else {
       if (input.mouse.wasPressed(MouseButton.Left)) {
         if (canvas_mouse_pos.y < BOARD_SIZE.y * TILE_SIZE) {
-          game_state = "pause_menu";
+          // game_state = "pause_menu";
         }
       }
     }
