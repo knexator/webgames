@@ -112,6 +112,7 @@ container.style.width = `${TILE_SIZE * (BOARD_SIZE.x + MARGIN * 2)}px`
 container.style.height = `${TILE_SIZE * (BOARD_SIZE.y + MARGIN * 2 + TOP_OFFSET)}px`
 twgl.resizeCanvasToDisplaySize(canvas_ctx);
 
+let cross_back_to_normal: number | null = null;
 const dpad = document.querySelector("#dpad") as HTMLImageElement;
 const pause_button = document.querySelector("#pause_button") as HTMLImageElement;
 if (is_phone) {
@@ -157,6 +158,10 @@ if (is_phone) {
       const dir = roundToCardinalDirection(place);
       input_queue.push(dir);
       dpad.src = TEXTURES.cross[dirToImage(dir)].src;
+      if (cross_back_to_normal !== null) {
+        clearTimeout(cross_back_to_normal);
+        cross_back_to_normal = null;
+      }
     }
   });
   dpad.addEventListener("touchmove", ev => {
@@ -166,10 +171,19 @@ if (is_phone) {
       const dir = roundToCardinalDirection(place);
       input_queue.push(dir);
       dpad.src = TEXTURES.cross[dirToImage(dir)].src;
+      if (cross_back_to_normal !== null) {
+        clearTimeout(cross_back_to_normal);
+        cross_back_to_normal = null;
+      }
     }
   });
   dpad.addEventListener("touchend", ev => {
-    dpad.src = TEXTURES.cross.none.src;
+    if (cross_back_to_normal === null) {
+      cross_back_to_normal = setTimeout(() => {
+        dpad.src = TEXTURES.cross.none.src;
+        cross_back_to_normal = null;
+      }, 100);
+    }
   })
 } else {
   dpad.remove();
