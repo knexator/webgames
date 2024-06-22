@@ -557,7 +557,7 @@ collected_stuff_particles = [];
 multiplier = 1;
 tick_or_tock = false;
 touch_input_base_point = null;
-game_speed = 0;
+game_speed = is_phone ? 0 : 1;
 music_track = 0;
 menu_focus = "start";
 
@@ -806,7 +806,7 @@ function every_frame(cur_timestamp: number) {
       restartGame();
       game_state = "pause_menu";
     }
-    if (input.mouse.wasPressed(MouseButton.Left)) {
+    if (input.mouse.wasPressed(MouseButton.Left) && canvas_mouse_pos.y < BOARD_SIZE.y * TILE_SIZE) {
       restartGame();
     }
   } else if (game_state === "playing") {
@@ -1364,13 +1364,13 @@ function draw(bullet_time: boolean) {
     ctx.font = `bold ${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
 
     ctx.fillStyle = "black";
-    ctx.fillText(`Click anywhere to`, canvas_ctx.width / 2 + CONFIG.SHADOW_TEXT, menuYCoordOf("start") - 1 * TILE_SIZE + CONFIG.SHADOW_TEXT);
+    ctx.fillText(`${is_phone ? 'Tap' : 'Click'} anywhere to`, canvas_ctx.width / 2 + CONFIG.SHADOW_TEXT, menuYCoordOf("start") - 1 * TILE_SIZE + CONFIG.SHADOW_TEXT);
     ctx.fillText(`Start!`, canvas_ctx.width / 2 + CONFIG.SHADOW_TEXT, menuYCoordOf("start") + CONFIG.SHADOW_TEXT);
     ctx.fillText(`By knexator & Pinchazumos`, canvas_ctx.width / 2 + CONFIG.SHADOW_TEXT, (MARGIN + TOP_OFFSET + BOARD_SIZE.y * .72) * TILE_SIZE + CONFIG.SHADOW_TEXT);
 
     ctx.fillStyle = (last_timestamp % 1000 < 500) ? COLORS.TEXT : COLORS.GRAY_TEXT;
 
-    ctx.fillText(`Click anywhere to`, canvas_ctx.width / 2, menuYCoordOf("start") - 1 * TILE_SIZE);
+    ctx.fillText(`${is_phone ? 'Tap' : 'Click'} anywhere to`, canvas_ctx.width / 2, menuYCoordOf("start") - 1 * TILE_SIZE);
     ctx.fillText(`Start!`, canvas_ctx.width / 2, menuYCoordOf("start"));
     ctx.fillStyle = COLORS.TEXT;
     ctx.fillText(`By knexator & Pinchazumos`, canvas_ctx.width / 2, (MARGIN + TOP_OFFSET + BOARD_SIZE.y * .72) * TILE_SIZE);
@@ -1416,11 +1416,11 @@ function draw(bullet_time: boolean) {
     ctx.font = `bold ${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
     ctx.fillStyle = "black";
     ctx.fillText(`Score: ${score}`, canvas_ctx.width / 2 + CONFIG.SHADOW_TEXT, (TOP_OFFSET + MARGIN + BOARD_SIZE.y / 4) * TILE_SIZE + CONFIG.SHADOW_TEXT);
-    ctx.fillText(`R to Restart`, canvas_ctx.width / 2 + CONFIG.SHADOW_TEXT, (TOP_OFFSET + MARGIN + BOARD_SIZE.y * 3 / 4) * TILE_SIZE + CONFIG.SHADOW_TEXT);
+    ctx.fillText(is_phone ? 'Touch here to Restart' : `R to Restart`, canvas_ctx.width / 2 + CONFIG.SHADOW_TEXT, (TOP_OFFSET + MARGIN + BOARD_SIZE.y * 3 / 4) * TILE_SIZE + CONFIG.SHADOW_TEXT);
 
     ctx.fillStyle = COLORS.TEXT;
     ctx.fillText(`Score: ${score}`, canvas_ctx.width / 2, (TOP_OFFSET + MARGIN + BOARD_SIZE.y / 4) * TILE_SIZE);
-    ctx.fillText(`R to Restart`, canvas_ctx.width / 2, (TOP_OFFSET + MARGIN + BOARD_SIZE.y * 3 / 4) * TILE_SIZE);
+    ctx.fillText(is_phone ? 'Touch here to Restart' : `R to Restart`, canvas_ctx.width / 2, (TOP_OFFSET + MARGIN + BOARD_SIZE.y * 3 / 4) * TILE_SIZE);
 
     // ctx.fillText("", canvas.width / 2, canvas.height / 2);
   } else if (game_state === "playing") {
@@ -1464,7 +1464,7 @@ function menuYCoordOf(setting: "resume" | "speed" | "music" | "start" | "logo"):
   let s = 0;
   switch (setting) {
     case "logo":
-      s = .15;
+      s = .15 + Math.sin(last_timestamp * .8 / 1000) * .03;
       break;
     case "speed":
       s = .36;
