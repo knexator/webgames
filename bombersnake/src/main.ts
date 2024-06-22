@@ -112,6 +112,7 @@ container.style.width = `${TILE_SIZE * (BOARD_SIZE.x + MARGIN * 2)}px`
 container.style.height = `${TILE_SIZE * (BOARD_SIZE.y + MARGIN * 2 + TOP_OFFSET)}px`
 twgl.resizeCanvasToDisplaySize(canvas_ctx);
 
+let menu_fake_key: KeyCode | null = null;
 let cross_back_to_normal: number | null = null;
 const dpad = document.querySelector("#dpad") as HTMLImageElement;
 const pause_button = document.querySelector("#pause_button") as HTMLImageElement;
@@ -128,7 +129,6 @@ if (is_phone) {
   pause_button.hidden = false;
   pause_button.style.top = `${TILE_SIZE * (BOARD_SIZE.y + MARGIN * 2 + TOP_OFFSET)}px`;
   pause_button.addEventListener("pointerdown", ev => {
-    console.log('hola');
     switch (game_state) {
       case "loading_menu":
         break;
@@ -157,6 +157,22 @@ if (is_phone) {
       const place = touchPos(touch);
       const dir = roundToCardinalDirection(place);
       input_queue.push(dir);
+      dpad.src = TEXTURES.cross[dirToImage(dir)].src;
+      if (cross_back_to_normal !== null) {
+        clearTimeout(cross_back_to_normal);
+        cross_back_to_normal = null;
+      }
+    }
+    if (game_state === 'pause_menu') {
+      const touch = ev.changedTouches.item(ev.changedTouches.length - 1)!;
+      const place = touchPos(touch);
+      const dir = roundToCardinalDirection(place);
+      menu_fake_key = (
+        (Math.abs(dir.x) > Math.abs(dir.y)) 
+        ? ((dir.x > 0) ? KeyCode.ArrowRight : KeyCode.ArrowLeft)
+        : ((dir.y > 0) ? KeyCode.ArrowDown : KeyCode.ArrowUp)
+      );
+      console.log('pushed fake key: ', menu_fake_key);
       dpad.src = TEXTURES.cross[dirToImage(dir)].src;
       if (cross_back_to_normal !== null) {
         clearTimeout(cross_back_to_normal);
@@ -238,7 +254,7 @@ let CONFIG = {
   TOTAL_SLOWDOWN: false,
   ALWAYS_SLOWDOWN: false,
   DRAW_WRAP: 1.8,
-  WRAP_GRAY: false,
+  WRAP_GRAY: true,
   WRAP_ITEMS: false,
   ROUNDED_SIZE: .5,
   CHECKERED_BACKGROUND: "3_v2" as "no" | "2" | "3" | "3_v2",
@@ -454,7 +470,7 @@ let tick_or_tock: boolean;
 let touch_input_base_point: Vec2 | null;
 let game_speed: number;
 let music_track: number;
-let menu_focus: "speed" | "music" | "start";
+let menu_focus: "speed" | "music" | "resume";
 
 function restartGame() {
   stopTickTockSound();
@@ -489,7 +505,7 @@ function restartGame() {
   multiplier = 1;
   tick_or_tock = false;
   touch_input_base_point = null;
-  menu_focus = "start";
+  menu_focus = "resume";
 }
 
 const triangle_pattern: CanvasPattern = await new Promise(resolve => {
@@ -559,7 +575,7 @@ tick_or_tock = false;
 touch_input_base_point = null;
 game_speed = is_phone ? 0 : 1;
 music_track = 0;
-menu_focus = "start";
+menu_focus = "resume";
 
 function findSpotWithoutWall(): Vec2 {
   let pos: Vec2;
@@ -729,14 +745,19 @@ function every_frame(cur_timestamp: number) {
   } else if (game_state === "pause_menu") {
     // turn_offset += delta_time / CONFIG.TURN_DURATION;
 
-    if ([
+    if (menu_fake_key !== null || [
       KeyCode.KeyW, KeyCode.ArrowUp,
       KeyCode.KeyA, KeyCode.ArrowLeft,
       KeyCode.KeyS, KeyCode.ArrowDown,
       KeyCode.KeyD, KeyCode.ArrowRight,
       KeyCode.Space
     ].some(k => input.keyboard.wasPressed(k))) {
+      if (menu_fake_key !== null) console.log('had a fake key');
       function btnp(ks: KeyCode[]) {
+        if (menu_fake_key !== null && ks.includes(menu_fake_key)) {
+          console.log('used a fake key');
+          return true;
+        }
         return ks.some(k => CONFIG.ALWAYS_SLOWDOWN ? input.keyboard.wasReleased(k) : input.keyboard.wasPressed(k));
       }
       let delta = new Vec2(
@@ -745,7 +766,8 @@ function every_frame(cur_timestamp: number) {
         (btnp([KeyCode.KeyS, KeyCode.ArrowDown]) ? 1 : 0)
         - (btnp([KeyCode.KeyW, KeyCode.ArrowUp]) ? 1 : 0),
       );
-      const menu_order = ["speed", "music", "start"] as const;
+      if (menu_fake_key !== null) console.log('delta was: ', delta.toString());
+      const menu_order = ["speed", "music", "resume"] as const;
       if (delta.y != 0) {
         const cur_index = menu_order.indexOf(menu_focus);
         if (cur_index === -1) throw new Error("unreachable");
@@ -761,18 +783,20 @@ function every_frame(cur_timestamp: number) {
             music_track += delta.x;
             music_track = mod(music_track, 4);
             break;
-          case 'start':
+          case 'resume':
             game_state = 'playing';
             break;
           default:
             break;
         }
       }
+      menu_fake_key = null;
     }
 
     // mouse moved
-    if (input.mouse.clientX !== input.mouse.prev_clientX || input.mouse.clientY !== input.mouse.prev_clientY) {
-      const menu_order = ["speed", "music", "start"] as const;
+    if ((input.mouse.clientX !== input.mouse.prev_clientX || input.mouse.clientY !== input.mouse.prev_clientY)
+        && canvas_mouse_pos.y < BOARD_SIZE.y * TILE_SIZE) {
+      const menu_order = ["speed", "music", "resume"] as const;
       menu_focus = menu_order[argmin(menu_order.map(n => Math.abs(raw_mouse_pos.y - menuYCoordOf(n))))];
     }
 
@@ -787,7 +811,7 @@ function every_frame(cur_timestamp: number) {
           music_track += dx;
           music_track = mod(music_track, 4);
           break;
-        case 'start':
+        case 'resume':
           game_state = 'playing';
           break;
         default:
@@ -1385,7 +1409,7 @@ function draw(bullet_time: boolean) {
     ctx.font = `bold ${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
     ctx.fillText(`Song: ${music_track}`, canvas_ctx.width / 2 + CONFIG.SHADOW_TEXT, menuYCoordOf("music") + CONFIG.SHADOW_TEXT);
 
-    if (menu_focus !== "start") {
+    if (menu_focus !== "resume") {
       drawMenuArrow(menu_focus, false);
       drawMenuArrow(menu_focus, true);
     }
@@ -1401,12 +1425,12 @@ function draw(bullet_time: boolean) {
     ctx.font = `bold ${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
     ctx.fillText(`Song: ${music_track}`, canvas_ctx.width / 2, menuYCoordOf("music"));
 
-    if (menu_focus !== "start") {
+    if (menu_focus !== "resume") {
       drawMenuArrow(menu_focus, false);
       drawMenuArrow(menu_focus, true);
     }
 
-    ctx.fillStyle = menu_focus === "start" ? COLORS.TEXT : COLORS.GRAY_TEXT;
+    ctx.fillStyle = menu_focus === "resume" ? COLORS.TEXT : COLORS.GRAY_TEXT;
     ctx.font = `bold ${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
     ctx.fillText(`Resume`, canvas_ctx.width / 2, menuYCoordOf("resume"));
 
