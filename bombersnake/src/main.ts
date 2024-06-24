@@ -89,7 +89,8 @@ const TEXTURES = {
 };
 
 function soundUrl(name: string): string {
-  return new URL(`./sounds/${name}`, import.meta.url).href;
+  // return new URL(`./sounds/${name}`, import.meta.url).href;
+  return new URL(name, import.meta.url).href;
 }
 
 const is_phone = (function () {
@@ -294,7 +295,6 @@ const gui = new GUI();
   gui.add(CONFIG, "WRAP_GRAY");
   gui.add(CONFIG, "WRAP_ITEMS");
   gui.add(CONFIG, "ROUNDED_SIZE", 0, 1);
-  gui.add(CONFIG, "CHECKERED_SNAKE");
   gui.add(CONFIG, "CHECKERED_BACKGROUND", ["no", "2", "3", "3_v2"]);
   gui.add(CONFIG, "SHADOW");
   gui.add(CONFIG, "SHADOW_DIST", 0, .5);
@@ -307,74 +307,69 @@ const gui = new GUI();
 gui.hide();
 
 const SOUNDS = {
-  music: new Howl({
-    src: [soundUrl('song1.ogg')],
+  song1: new Howl({
+    src: soundUrl('./sounds/song1.ogg'),
     autoplay: true,
     loop: true,
     volume: .5,
   }),
-  song1: new Howl({
-    src: [soundUrl('song1.ogg')],
-    loop: true,
-    volume: .5,
-  }),
   song2: new Howl({
-    src: [soundUrl('song2.mp3')],
+    src: [soundUrl('./sounds/song2.mp3')],
     loop: true,
     volume: .5,
   }),
   song3: new Howl({
-    src: [soundUrl('song3.ogg')],
+    src: [soundUrl('./sounds/song3.ogg')],
     loop: true,
     volume: .5,
   }),
   song4: new Howl({
-    src: [soundUrl('song4.ogg')],
+    src: [soundUrl('./sounds/song4.ogg')],
     loop: true,
     volume: .5,
   }),
   song5: new Howl({
-    src: [soundUrl('song5.mp3')],
+    src: [soundUrl('./sounds/song5.mp3')],
     loop: true,
     volume: .5,
   }),
   song6: new Howl({
-    src: [soundUrl('song6.ogg')],
+    src: [soundUrl('./sounds/song6.ogg')],
     loop: true,
     volume: .5,
   }),
   hiss1: new Howl({
-    src: [soundUrl('hiss.wav')],
+    src: [soundUrl('./sounds/hiss.wav')],
     // autoplay: true,
     volume: 1,
   }),
   bomb: new Howl({
-    src: [soundUrl('apple.wav')],
+    src: [soundUrl('./sounds/apple.wav')],
     volume: 0.7,
   }),
   crash: new Howl({
-    src: [soundUrl('crash.wav')],
+    src: [soundUrl('./sounds/crash.wav')],
     volume: 1.0,
   }),
   star: new Howl({
-    src: [soundUrl('star.wav')],
+    src: [soundUrl('./sounds/star.wav')],
     volume: 2.5,
   }),
   clock: new Howl({
-    src: [soundUrl('clock.wav')],
+    src: [soundUrl('./sounds/clock.wav')],
     volume: 2.2,
   }),
   tick: new Howl({
-    src: [soundUrl('tick.mp3')],
+    src: [soundUrl('./sounds/tick.mp3')],
     volume: 2.5,
   }),
   tock: new Howl({
-    src: [soundUrl('tock.mp3')],
+    src: [soundUrl('./sounds/tock.mp3')],
     volume: 2.5,
   }),
 };
-// Howler.volume(.75);
-Howler.volume(0);
+Howler.volume(.75);
+// Howler.volume(0);
 
 const INITIAL_VOLUME = objectMap(SOUNDS, x => x.volume());
 
@@ -471,6 +466,8 @@ let touch_input_base_point: Vec2 | null;
 let game_speed: number;
 let music_track: number;
 let menu_focus: "speed" | "music" | "resume";
+let music = SOUNDS.song1;
+music.play();
 
 function restartGame() {
   stopTickTockSound();
@@ -507,15 +504,6 @@ function restartGame() {
   touch_input_base_point = null;
   menu_focus = "resume";
 }
-
-const triangle_pattern: CanvasPattern = await new Promise(resolve => {
-  const img = new Image();
-  img.src = triangle_pattern_url;
-  img.onload = () => {
-    const pattern = ctx.createPattern(img, "repeat")!;
-    resolve(pattern);
-  };
-});
 
 class Bomb {
   public ticking: boolean;
@@ -646,7 +634,7 @@ function explodeBomb(k: number) {
 function startTickTockSound(): void {
   tick_or_tock = false;
   SOUNDS.tick.play();
-  SOUNDS.music.fade(SOUNDS.music.volume(), CONFIG.MUSIC_DURING_TICKTOCK * INITIAL_VOLUME.music, .3);
+  music.fade(music.volume(), CONFIG.MUSIC_DURING_TICKTOCK * INITIAL_VOLUME.song1, .3);
   SOUNDS.bomb.fade(SOUNDS.bomb.volume(), CONFIG.MUSIC_DURING_TICKTOCK * INITIAL_VOLUME.bomb, .3);
   SOUNDS.star.fade(SOUNDS.star.volume(), CONFIG.MUSIC_DURING_TICKTOCK * INITIAL_VOLUME.star, .3);
   tick_tock_interval_id = setInterval(() => {
@@ -656,7 +644,7 @@ function startTickTockSound(): void {
 }
 function stopTickTockSound(): void {
   if (tick_tock_interval_id !== null) {
-    SOUNDS.music.fade(SOUNDS.music.volume(), INITIAL_VOLUME.music, .3);
+    music.fade(music.volume(), INITIAL_VOLUME.song1, .3);
     SOUNDS.bomb.fade(SOUNDS.bomb.volume(), INITIAL_VOLUME.bomb, .3);
     SOUNDS.star.fade(SOUNDS.star.volume(), INITIAL_VOLUME.star, .3);
     clearInterval(tick_tock_interval_id);
@@ -714,7 +702,7 @@ function every_frame(cur_timestamp: number) {
   }
 
   if (input.keyboard.wasPressed(KeyCode.KeyM)) {
-    SOUNDS.music.mute(!SOUNDS.music.mute());
+    music.mute(!music.mute());
   }
 
   if (CONFIG.PAUSED) {
@@ -1512,17 +1500,15 @@ function lose() {
   stopTickTockSound();
   game_state = "lost";
 
-  //   const img_data = canvas_ctx.toDataURL('image/png');
-  //   console.log(img_data);
-  draw(false);
-  canvas_ctx.toBlob(async (blob) => {
-    try {
-      await navigator.clipboard.write([(new ClipboardItem({ 'image/png': blob! }))]);
-      console.log('Canvas copied to clipboard successfully!');
-    } catch (error) {
-      console.error('Failed to copy canvas to clipboard:', error);
-    }
-  });
+  // draw(false);
+  // canvas_ctx.toBlob(async (blob) => {
+  //   try {
+  //     await navigator.clipboard.write([(new ClipboardItem({ 'image/png': blob! }))]);
+  //     console.log('Canvas copied to clipboard successfully!');
+  //   } catch (error) {
+  //     console.error('Failed to copy canvas to clipboard:', error);
+  //   }
+  // });
 
 }
 
@@ -1768,3 +1754,9 @@ function drawImageCentered(image: HTMLImageElement, center: Vec2) {
   const offset = center.sub(display_size.scale(.5));
   ctx.drawImage(image, offset.x, offset.y, display_size.x, display_size.y);
 }
+
+// document.addEventListener("click", ev => {
+//   Howler.ctx.resume();
+//   music.play();
+//   console.log('asdf')
+// }, {once: true});
