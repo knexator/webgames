@@ -169,9 +169,9 @@ if (is_phone) {
       const place = touchPos(touch);
       const dir = roundToCardinalDirection(place);
       menu_fake_key = (
-        (Math.abs(dir.x) > Math.abs(dir.y)) 
-        ? ((dir.x > 0) ? KeyCode.ArrowRight : KeyCode.ArrowLeft)
-        : ((dir.y > 0) ? KeyCode.ArrowDown : KeyCode.ArrowUp)
+        (Math.abs(dir.x) > Math.abs(dir.y))
+          ? ((dir.x > 0) ? KeyCode.ArrowRight : KeyCode.ArrowLeft)
+          : ((dir.y > 0) ? KeyCode.ArrowDown : KeyCode.ArrowUp)
       );
       console.log('pushed fake key: ', menu_fake_key);
       dpad.src = TEXTURES.cross[dirToImage(dir)].src;
@@ -309,7 +309,7 @@ gui.hide();
 const SOUNDS = {
   song1: new Howl({
     src: soundUrl('./sounds/song1.ogg'),
-    autoplay: true,
+    // autoplay: true,
     loop: true,
     volume: .5,
   }),
@@ -368,6 +368,11 @@ const SOUNDS = {
     volume: 2.5,
   }),
 };
+const SONGS = [SOUNDS.song1, SOUNDS.song2, SOUNDS.song3, SOUNDS.song4, SOUNDS.song5, SOUNDS.song6];
+SONGS.forEach((x, k) => {
+  x.play();
+  x.mute(k != 0);
+})
 Howler.volume(.75);
 // Howler.volume(0);
 
@@ -466,8 +471,8 @@ let touch_input_base_point: Vec2 | null;
 let game_speed: number;
 let music_track: number;
 let menu_focus: "speed" | "music" | "resume";
-let music = SOUNDS.song1;
-music.play();
+// let music = SOUNDS.song1;
+// music.play();
 
 function restartGame() {
   stopTickTockSound();
@@ -634,7 +639,7 @@ function explodeBomb(k: number) {
 function startTickTockSound(): void {
   tick_or_tock = false;
   SOUNDS.tick.play();
-  music.fade(music.volume(), CONFIG.MUSIC_DURING_TICKTOCK * INITIAL_VOLUME.song1, .3);
+  SONGS.forEach(music => music.fade(music.volume(), CONFIG.MUSIC_DURING_TICKTOCK * INITIAL_VOLUME.song1, .3));
   SOUNDS.bomb.fade(SOUNDS.bomb.volume(), CONFIG.MUSIC_DURING_TICKTOCK * INITIAL_VOLUME.bomb, .3);
   SOUNDS.star.fade(SOUNDS.star.volume(), CONFIG.MUSIC_DURING_TICKTOCK * INITIAL_VOLUME.star, .3);
   tick_tock_interval_id = setInterval(() => {
@@ -644,7 +649,7 @@ function startTickTockSound(): void {
 }
 function stopTickTockSound(): void {
   if (tick_tock_interval_id !== null) {
-    music.fade(music.volume(), INITIAL_VOLUME.song1, .3);
+    SONGS.forEach(music => music.fade(music.volume(), INITIAL_VOLUME.song1, .3));
     SOUNDS.bomb.fade(SOUNDS.bomb.volume(), INITIAL_VOLUME.bomb, .3);
     SOUNDS.star.fade(SOUNDS.star.volume(), INITIAL_VOLUME.star, .3);
     clearInterval(tick_tock_interval_id);
@@ -702,7 +707,7 @@ function every_frame(cur_timestamp: number) {
   }
 
   if (input.keyboard.wasPressed(KeyCode.KeyM)) {
-    music.mute(!music.mute());
+    SONGS[music_track].mute(!SONGS[music_track].mute());
   }
 
   if (CONFIG.PAUSED) {
@@ -768,8 +773,10 @@ function every_frame(cur_timestamp: number) {
             game_speed = mod(game_speed, 3);
             break;
           case 'music':
+            SONGS[music_track].mute(true);
             music_track += delta.x;
-            music_track = mod(music_track, 4);
+            music_track = mod(music_track, SONGS.length);
+            SONGS[music_track].mute(false);
             break;
           case 'resume':
             game_state = 'playing';
@@ -783,7 +790,7 @@ function every_frame(cur_timestamp: number) {
 
     // mouse moved
     if ((input.mouse.clientX !== input.mouse.prev_clientX || input.mouse.clientY !== input.mouse.prev_clientY)
-        && canvas_mouse_pos.y < BOARD_SIZE.y * TILE_SIZE) {
+      && canvas_mouse_pos.y < BOARD_SIZE.y * TILE_SIZE) {
       const menu_order = ["speed", "music", "resume"] as const;
       menu_focus = menu_order[argmin(menu_order.map(n => Math.abs(raw_mouse_pos.y - menuYCoordOf(n))))];
     }
@@ -796,8 +803,10 @@ function every_frame(cur_timestamp: number) {
           game_speed = mod(game_speed, 3);
           break;
         case 'music':
+          SONGS[music_track].mute(true);
           music_track += dx;
-          music_track = mod(music_track, 4);
+          music_track = mod(music_track, SONGS.length);
+          SONGS[music_track].mute(false);
           break;
         case 'resume':
           game_state = 'playing';
