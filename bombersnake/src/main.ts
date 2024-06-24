@@ -378,6 +378,8 @@ Howler.volume(.75);
 
 const INITIAL_VOLUME = objectMap(SOUNDS, x => x.volume());
 
+const SPEEDS = [0.2, 0.15, 0.1];
+
 // https://lospec.com/palette-list/sweetie-16
 // const COLORS = {
 //   BORDER: "#8ccbf2",
@@ -770,7 +772,8 @@ function every_frame(cur_timestamp: number) {
         switch (menu_focus) {
           case 'speed':
             game_speed += delta.x;
-            game_speed = mod(game_speed, 3);
+            game_speed = mod(game_speed, SPEEDS.length);
+            CONFIG.TURN_DURATION = SPEEDS[game_speed];
             break;
           case 'music':
             SONGS[music_track].mute(true);
@@ -800,7 +803,8 @@ function every_frame(cur_timestamp: number) {
       switch (menu_focus) {
         case 'speed':
           game_speed += dx;
-          game_speed = mod(game_speed, 3);
+          game_speed = mod(game_speed, SPEEDS.length);
+          CONFIG.TURN_DURATION = SPEEDS[game_speed];
           break;
         case 'music':
           SONGS[music_track].mute(true);
