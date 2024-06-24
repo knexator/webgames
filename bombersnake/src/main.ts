@@ -378,7 +378,7 @@ Howler.volume(.75);
 
 const INITIAL_VOLUME = objectMap(SOUNDS, x => x.volume());
 
-const SPEEDS = [0.2, 0.15, 0.1];
+const SPEEDS = [0.2, 0.16, 0.12];
 
 // https://lospec.com/palette-list/sweetie-16
 // const COLORS = {
