@@ -347,6 +347,14 @@ const SOUNDS = {
     src: [soundUrl('./sounds/apple.wav')],
     volume: 0.7,
   }),
+  move1: new Howl({
+    src: [soundUrl('./sounds/move1.wav')],
+    volume: 1.0,
+  }),
+  move2: new Howl({
+    src: [soundUrl('./sounds/move2.wav')],
+    volume: 1.0,
+  }),
   crash: new Howl({
     src: [soundUrl('./sounds/crash.wav')],
     volume: 1.0,
@@ -941,6 +949,7 @@ function every_frame(cur_timestamp: number) {
 
     if (next_input !== null) {
       delta = next_input;
+      randomChoice([SOUNDS.move1, SOUNDS.move2]).play();
     } else {
       delta = last_block.in_dir.scale(-1);
     }
