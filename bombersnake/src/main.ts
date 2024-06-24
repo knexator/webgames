@@ -367,6 +367,14 @@ const SOUNDS = {
     src: [soundUrl('./sounds/tock.mp3')],
     volume: 2.5,
   }),
+  menu1: new Howl({
+    src: [soundUrl('./sounds/menu1.wav')],
+    volume: 0.5,
+  }),
+  menu2: new Howl({
+    src: [soundUrl('./sounds/menu2.wav')],
+    volume: 0.5,
+  }),
 };
 const SONGS = [SOUNDS.song1, SOUNDS.song2, SOUNDS.song3, SOUNDS.song4, SOUNDS.song5, SOUNDS.song6];
 SONGS.forEach((x, k) => {
@@ -774,6 +782,7 @@ function every_frame(cur_timestamp: number) {
             game_speed += delta.x;
             game_speed = mod(game_speed, SPEEDS.length);
             CONFIG.TURN_DURATION = SPEEDS[game_speed];
+            SOUNDS.menu1.play();
             break;
           case 'music':
             SONGS[music_track].mute(true);
@@ -783,6 +792,7 @@ function every_frame(cur_timestamp: number) {
             break;
           case 'resume':
             game_state = 'playing';
+            SOUNDS.menu2.play();
             break;
           default:
             break;
@@ -805,6 +815,7 @@ function every_frame(cur_timestamp: number) {
           game_speed += dx;
           game_speed = mod(game_speed, SPEEDS.length);
           CONFIG.TURN_DURATION = SPEEDS[game_speed];
+          SOUNDS.menu1.play();
           break;
         case 'music':
           SONGS[music_track].mute(true);
@@ -814,6 +825,7 @@ function every_frame(cur_timestamp: number) {
           break;
         case 'resume':
           game_state = 'playing';
+          SOUNDS.menu2.play();
           break;
         default:
           break;
