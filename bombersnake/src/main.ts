@@ -88,9 +88,19 @@ const TEXTURES = {
   pause_text: textures_async[17],
 };
 
-function soundUrl(name: string): string {
-  // return new URL(`./sounds/${name}`, import.meta.url).href;
-  return new URL(name, import.meta.url).href;
+function wavUrl(name: string): string {
+  console.log(name, 'wav', new URL(`./sounds/${name}.wav`, import.meta.url).href);
+  return new URL(`./sounds/${name}.wav`, import.meta.url).href;
+}
+
+function oggUrl(name: string): string {
+  console.log(name, new URL(`./sounds/${name}.ogg`, import.meta.url).href);
+  return new URL(`./sounds/${name}.ogg`, import.meta.url).href;
+}
+
+function mp3Url(name: string): string {
+  console.log(name, 'mp3', new URL(`./sounds/${name}.mp3`, import.meta.url).href);
+  return new URL(`./sounds/${name}.mp3`, import.meta.url).href;
 }
 
 const is_phone = (function () {
@@ -308,79 +318,79 @@ gui.hide();
 
 const SOUNDS = {
   song1: new Howl({
-    src: soundUrl('./sounds/song1.ogg'),
+    src: [oggUrl("Song1")],
     // autoplay: true,
     loop: true,
     volume: .5,
   }),
   song2: new Howl({
-    src: [soundUrl('./sounds/song2.mp3')],
+    src: [mp3Url("Song2")],
     loop: true,
     volume: .5,
   }),
   song3: new Howl({
-    src: [soundUrl('./sounds/song3.ogg')],
+    src: [oggUrl("Song3")],
     loop: true,
     volume: .5,
   }),
   song4: new Howl({
-    src: [soundUrl('./sounds/song4.ogg')],
+    src: [oggUrl("Song4")],
     loop: true,
     volume: .5,
   }),
   song5: new Howl({
-    src: [soundUrl('./sounds/song5.mp3')],
+    src: [mp3Url("Song5")],
     loop: true,
     volume: .5,
   }),
   song6: new Howl({
-    src: [soundUrl('./sounds/song6.ogg')],
+    src: [oggUrl("Song6")],
     loop: true,
     volume: .5,
   }),
   hiss1: new Howl({
-    src: [soundUrl('./sounds/hiss.wav')],
+    src: [wavUrl("hiss1")],
     // autoplay: true,
     volume: 1,
   }),
   bomb: new Howl({
-    src: [soundUrl('./sounds/apple.wav')],
+    src: [wavUrl("apple")],
     volume: 0.7,
   }),
   move1: new Howl({
-    src: [soundUrl('./sounds/move1.wav')],
+    src: [wavUrl("move1")],
     volume: 1.0,
   }),
   move2: new Howl({
-    src: [soundUrl('./sounds/move2.wav')],
+    src: [wavUrl("move2")],
     volume: 1.0,
   }),
   crash: new Howl({
-    src: [soundUrl('./sounds/crash.wav')],
+    src: [wavUrl("crash")],
     volume: 1.0,
   }),
   star: new Howl({
-    src: [soundUrl('./sounds/star.wav')],
+    src: [wavUrl("star")],
     volume: 2.5,
   }),
   clock: new Howl({
-    src: [soundUrl('./sounds/clock.wav')],
+    src: [wavUrl("clock")],
     volume: 2.2,
   }),
   tick: new Howl({
-    src: [soundUrl('./sounds/tick.mp3')],
+    src: [mp3Url("tick")],
     volume: 2.5,
   }),
   tock: new Howl({
-    src: [soundUrl('./sounds/tock.mp3')],
+    src: [mp3Url("tock")],
     volume: 2.5,
   }),
   menu1: new Howl({
-    src: [soundUrl('./sounds/menu1.wav')],
+    src: [wavUrl("menu1")],
     volume: 0.5,
   }),
   menu2: new Howl({
-    src: [soundUrl('./sounds/menu2.wav')],
+    src: [wavUrl("menu2")],
     volume: 0.5,
   }),
 };
