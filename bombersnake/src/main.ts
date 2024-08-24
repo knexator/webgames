@@ -1422,14 +1422,14 @@ function draw(bullet_time: boolean) {
     ctx.fillStyle = "black";
     ctx.fillText(`${is_phone ? 'Tap' : 'Click'} anywhere to`, canvas_ctx.width / 2 + CONFIG.SHADOW_TEXT, menuYCoordOf("start") - 1 * TILE_SIZE + CONFIG.SHADOW_TEXT);
     ctx.fillText(`Start!`, canvas_ctx.width / 2 + CONFIG.SHADOW_TEXT, menuYCoordOf("start") + CONFIG.SHADOW_TEXT);
-    ctx.fillText(`By knexator & Pinchazumos`, canvas_ctx.width / 2 + CONFIG.SHADOW_TEXT, (MARGIN + TOP_OFFSET + BOARD_SIZE.y * .72) * TILE_SIZE + CONFIG.SHADOW_TEXT);
+    ctx.fillText(`By knexator & Pinchazumos`, canvas_ctx.width / 2 + CONFIG.SHADOW_TEXT, (MARGIN + TOP_OFFSET + BOARD_SIZE.y *1.05) * TILE_SIZE + CONFIG.SHADOW_TEXT);
 
     ctx.fillStyle = (last_timestamp % 1000 < 500) ? COLORS.TEXT : COLORS.GRAY_TEXT;
 
     ctx.fillText(`${is_phone ? 'Tap' : 'Click'} anywhere to`, canvas_ctx.width / 2, menuYCoordOf("start") - 1 * TILE_SIZE);
     ctx.fillText(`Start!`, canvas_ctx.width / 2, menuYCoordOf("start"));
     ctx.fillStyle = COLORS.TEXT;
-    ctx.fillText(`By knexator & Pinchazumos`, canvas_ctx.width / 2, (MARGIN + TOP_OFFSET + BOARD_SIZE.y * .72) * TILE_SIZE);
+    ctx.fillText(`By knexator & Pinchazumos`, canvas_ctx.width / 2, (MARGIN + TOP_OFFSET + BOARD_SIZE.y * 1.05) * TILE_SIZE);
   } else if (game_state === "pause_menu") {
 
     drawImageCentered(TEXTURES.pause_text, new Vec2(canvas_ctx.width / 2, menuYCoordOf("logo")));
