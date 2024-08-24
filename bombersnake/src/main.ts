@@ -1620,7 +1620,7 @@ function menuYCoordOf(setting: "resume" | "speed" | "music" | "start" | "logo" |
   let s = 0;
   switch (setting) {
     case "logo":
-      s = .15 + Math.sin(last_timestamp * .8 / 1000) * .03;
+      s = .10 + Math.sin(last_timestamp * 1/ 1000) * .01;
       break;
     case "speed":
       s = .36;
