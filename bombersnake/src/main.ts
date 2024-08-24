@@ -25,7 +25,7 @@ const ctx = canvas_ctx.getContext("2d")!;
 // const gl = initGL2(canvas_gl)!;
 // gl.clearColor(.5, .5, .5, 1);
 
-const vibrate = navigator.vibrate ?? (() => {});
+const vibrate = navigator.vibrate ? (n: number) => navigator.vibrate(n) : (n: number) => {};
 
 function loadImage(name: string): Promise<HTMLImageElement> {
   return new Promise(resolve => {
