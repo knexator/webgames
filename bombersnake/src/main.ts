@@ -25,7 +25,7 @@ const ctx = canvas_ctx.getContext("2d")!;
 // const gl = initGL2(canvas_gl)!;
 // gl.clearColor(.5, .5, .5, 1);
 
-const vibrate = navigator.vibrate ? (n: number) => navigator.vibrate(n) : (n: number) => {};
+const vibrate = navigator.vibrate ? (n: number) => navigator.vibrate(n) : (n: number) => { };
 
 function loadImage(name: string): Promise<HTMLImageElement> {
   return new Promise(resolve => {
@@ -46,6 +46,8 @@ const textures_async = await Promise.all(["bomb", "clock", "heart", "star"].flat
   .concat([loadImage("bomb_G"), loadImage("clock_G"), loadImage("star_G")]) // 21
   .concat([loadImage(`cross`)])
   .concat("UDLR".split('').map(c => loadImage(`Cross${c}`)))
+  .concat([loadImage("shareSG"), loadImage("shareSB")])
+  .concat([loadImage("logoX"), loadImage("logoBSKY")])
 );
 const TEXTURES = {
   bomb: textures_async[0],
@@ -88,6 +90,12 @@ const TEXTURES = {
     L: textures_async[25],
     R: textures_async[26],
   },
+  share: {
+    vanilla: textures_async[27],
+    vanilla_shadow: textures_async[28],
+    twitter: textures_async[29],
+    bsky: textures_async[30],
+  }
 };
 
 function wavUrl(name: string): string {
@@ -520,6 +528,7 @@ let touch_input_base_point: Vec2 | null;
 let game_speed: number;
 let music_track: number;
 let menu_focus: "speed" | "music" | "resume";
+let share_button_state: { folded: boolean, hovered: null | 'vanilla' | 'twitter' | 'bsky' };
 // let music = SOUNDS.song1;
 // music.play();
 
@@ -557,6 +566,7 @@ function restartGame() {
   tick_or_tock = false;
   touch_input_base_point = null;
   menu_focus = "resume";
+  share_button_state = { hovered: null, folded: true };
 }
 
 class Bomb {
@@ -618,6 +628,7 @@ touch_input_base_point = null;
 game_speed = is_phone ? 0 : 1;
 music_track = 0;
 menu_focus = "resume";
+share_button_state = { folded: true, hovered: null };
 
 function findSpotWithoutWall(): Vec2 {
   let pos: Vec2;
@@ -723,7 +734,7 @@ document.querySelector<HTMLButtonElement>("#sliders_button")?.addEventListener("
   touch_input_base_point = null;
 });
 
-// objectMap(SOUNDS, x => x.mute(true));
+objectMap(SOUNDS, x => x.mute(true));
 
 let last_timestamp = 0;
 // main loop; game logic lives here
@@ -889,7 +900,42 @@ function every_frame(cur_timestamp: number) {
       restartGame();
       game_state = "pause_menu";
     }
-    if (input.mouse.wasPressed(MouseButton.Left) && canvas_mouse_pos.y < BOARD_SIZE.y * TILE_SIZE) {
+
+    let pressed_a_share_button = false;
+    if (share_button_state.folded) {
+      const share_vanilla = new Vec2(percX(.5), menuYCoordOf('share'));
+      share_button_state.hovered = (share_vanilla.sub(raw_mouse_pos).mag() < TILE_SIZE) ? "vanilla" : null;
+      if (input.mouse.wasPressed(MouseButton.Left) && share_button_state.hovered === 'vanilla') {
+        share_button_state.folded = false;
+        share_button_state.hovered = null;
+        pressed_a_share_button = true;
+      }
+    } else {
+      const share_vanilla = new Vec2(percX(.5), menuYCoordOf('share'));
+      const pos_twitter = share_vanilla.addX(-TILE_SIZE * 2);
+      const pos_bsky = share_vanilla.addX(TILE_SIZE * 2);
+      share_button_state.hovered = (pos_twitter.sub(raw_mouse_pos).mag() < TILE_SIZE)
+        ? "twitter"
+        : (pos_bsky.sub(raw_mouse_pos).mag() < TILE_SIZE)
+          ? 'bsky'
+          : null;
+      if (input.mouse.wasPressed(MouseButton.Left) && share_button_state.hovered !== null) {
+        const message = `Playing BombSnak, very fun, got ${score} points! Can you beat me??? git gud`
+        if (share_button_state.hovered === 'twitter') {
+          const tweet = encodeURIComponent(message);
+          const twitterUrl = `https://twitter.com/intent/tweet?text=${tweet}`;
+          window.open(twitterUrl, '_blank');
+        } else if (share_button_state.hovered === 'bsky') {
+          const post = encodeURIComponent(message);
+          const blueskyUrl = `https://bsky.app/intent/compose?text=${post}`;
+          window.open(blueskyUrl, '_blank');
+        }
+        pressed_a_share_button = true;
+        share_button_state.hovered = null;
+      }
+    }
+
+    if (!pressed_a_share_button && input.mouse.wasPressed(MouseButton.Left) && canvas_mouse_pos.y < BOARD_SIZE.y * TILE_SIZE) {
       restartGame();
     }
   } else if (game_state === "playing") {
@@ -1510,6 +1556,28 @@ function draw(bullet_time: boolean) {
     ctx.fillText(`Score: ${score}`, canvas_ctx.width / 2, (TOP_OFFSET + MARGIN + BOARD_SIZE.y / 4) * TILE_SIZE);
     ctx.fillText(is_phone ? 'Touch here to Restart' : `R to Restart`, canvas_ctx.width / 2, (TOP_OFFSET + MARGIN + BOARD_SIZE.y * 3 / 4) * TILE_SIZE);
 
+    // if (share_button_state === ) {
+    //   drawImageCentered(TEXTURES.share.vanilla_shadow, new Vec2(canvas_ctx.width / 2, menuYCoordOf("share")).add(Vec2.both(CONFIG.SHADOW_TEXT)));
+    //   drawImageCentered(TEXTURES.share.vanilla, new Vec2(canvas_ctx.width / 2, menuYCoordOf("share")));
+    // }
+
+    if (share_button_state.folded) {
+      const pos = new Vec2(canvas_ctx.width / 2, menuYCoordOf("share"));
+      drawImageCentered(TEXTURES.share.vanilla_shadow, pos.add(Vec2.both(CONFIG.SHADOW_TEXT)));
+      if (share_button_state.hovered === 'vanilla') {
+        drawImageCentered(TEXTURES.share.vanilla, pos.sub(Vec2.both(CONFIG.SHADOW_TEXT / 2)));
+      }
+      else {
+        drawImageCentered(TEXTURES.share.vanilla, pos);
+      }
+    } else {
+      const center = new Vec2(canvas_ctx.width / 2, menuYCoordOf("share"));
+      drawImageCentered(TEXTURES.share.twitter, center.addX(-TILE_SIZE * 2)
+        .sub(share_button_state.hovered === 'twitter' ? Vec2.both(CONFIG.SHADOW_TEXT / 2) : Vec2.zero));
+      drawImageCentered(TEXTURES.share.bsky, center.addX(TILE_SIZE * 2)
+        .sub(share_button_state.hovered === 'bsky' ? Vec2.both(CONFIG.SHADOW_TEXT / 2) : Vec2.zero));
+    }
+
     // ctx.fillText("", canvas.width / 2, canvas.height / 2);
   } else if (game_state === "playing") {
     // nothing
@@ -1548,7 +1616,7 @@ function draw(bullet_time: boolean) {
   }
 }
 
-function menuYCoordOf(setting: "resume" | "speed" | "music" | "start" | "logo"): number {
+function menuYCoordOf(setting: "resume" | "speed" | "music" | "start" | "logo" | "share"): number {
   let s = 0;
   switch (setting) {
     case "logo":
@@ -1566,10 +1634,24 @@ function menuYCoordOf(setting: "resume" | "speed" | "music" | "start" | "logo"):
     case "resume":
       s = .6;
       break;
+    case "share":
+      s = .5;
+      break;
     default:
       throw new Error("unhandled");
   }
   return (TOP_OFFSET + MARGIN + BOARD_SIZE.y * s) * TILE_SIZE;
+}
+
+function posFromPerc(p: Vec2): Vec2 {
+  return new Vec2(
+    (MARGIN + BOARD_SIZE.x * p.x) * TILE_SIZE,
+    (TOP_OFFSET + MARGIN + BOARD_SIZE.y * p.y) * TILE_SIZE,
+  );
+}
+
+function percX(x: number): number {
+  return (MARGIN + BOARD_SIZE.x * x) * TILE_SIZE;
 }
 
 function lose() {
