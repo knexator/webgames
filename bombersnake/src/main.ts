@@ -25,6 +25,8 @@ const ctx = canvas_ctx.getContext("2d")!;
 // const gl = initGL2(canvas_gl)!;
 // gl.clearColor(.5, .5, .5, 1);
 
+const vibrate = navigator.vibrate ?? (() => {});
+
 function loadImage(name: string): Promise<HTMLImageElement> {
   return new Promise(resolve => {
     const img = new Image();
@@ -150,7 +152,7 @@ if (is_phone) {
   pause_button.addEventListener("pointerdown", ev => {
     switch (game_state) {
       case "loading_menu":
-        navigator.vibrate(100);
+        vibrate(100);
         break;
       case "pause_menu":
         game_state = 'playing';
@@ -178,7 +180,7 @@ if (is_phone) {
       const place = touchPos(touch);
       const dir = roundToCardinalDirection(place);
       input_queue.push(dir);
-      // navigator.vibrate(100);
+      // vibrate(100);
       dpad.src = TEXTURES.cross[dirToImage(dir)].src;
       if (cross_back_to_normal !== null) {
         clearTimeout(cross_back_to_normal);
@@ -194,7 +196,7 @@ if (is_phone) {
           ? ((dir.x > 0) ? KeyCode.ArrowRight : KeyCode.ArrowLeft)
           : ((dir.y > 0) ? KeyCode.ArrowDown : KeyCode.ArrowUp)
       );
-      navigator.vibrate(100);
+      vibrate(100);
       console.log('pushed fake key: ', menu_fake_key);
       dpad.src = TEXTURES.cross[dirToImage(dir)].src;
       if (cross_back_to_normal !== null) {
@@ -674,7 +676,7 @@ function explodeBomb(k: number) {
   cur_collectables[k] = placeBomb();
   score += multiplier;
   bounceText('score');
-  navigator.vibrate(100);
+  vibrate(100);
   collected_stuff_particles.push({ center: cur_bomb.pos, text: '+' + multiplier.toString(), turn: turn });
   SOUNDS.bomb.play();
   exploding_cross_particles.push({ center: cur_bomb.pos, turn: turn });
