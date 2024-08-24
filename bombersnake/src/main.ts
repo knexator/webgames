@@ -128,6 +128,14 @@ let cross_back_to_normal: number | null = null;
 const dpad = document.querySelector("#dpad") as HTMLImageElement;
 const pause_button = document.querySelector("#pause_button") as HTMLImageElement;
 if (is_phone) {
+  function absorbEvent(e: Event) {
+    e = e || window.event;
+    e.preventDefault && e.preventDefault();
+    e.stopPropagation && e.stopPropagation();
+    e.cancelBubble = true;
+    e.returnValue = false;
+    return false;
+  }
 
   function dirToImage(v: Vec2): 'U' | 'D' | 'L' | 'R' {
     if (Math.abs(v.x) > Math.abs(v.y)) {
@@ -142,6 +150,7 @@ if (is_phone) {
   pause_button.addEventListener("pointerdown", ev => {
     switch (game_state) {
       case "loading_menu":
+        navigator.vibrate(100);
         break;
       case "pause_menu":
         game_state = 'playing';
@@ -152,6 +161,7 @@ if (is_phone) {
       default:
         break;
     }
+    return absorbEvent(ev);
   });
 
   function touchPos(touch: Touch): Vec2 {
@@ -192,6 +202,7 @@ if (is_phone) {
         cross_back_to_normal = null;
       }
     }
+    return absorbEvent(ev);
   });
   dpad.addEventListener("touchmove", ev => {
     if (!CONFIG.SWIPE_CONTROLS && game_state === 'playing') {
@@ -205,6 +216,7 @@ if (is_phone) {
         cross_back_to_normal = null;
       }
     }
+    return absorbEvent(ev);
   });
   dpad.addEventListener("touchend", ev => {
     if (cross_back_to_normal === null) {
@@ -213,6 +225,7 @@ if (is_phone) {
         cross_back_to_normal = null;
       }, 100);
     }
+    return absorbEvent(ev);
   })
 } else {
   dpad.remove();
@@ -661,6 +674,7 @@ function explodeBomb(k: number) {
   cur_collectables[k] = placeBomb();
   score += multiplier;
   bounceText('score');
+  navigator.vibrate(100);
   collected_stuff_particles.push({ center: cur_bomb.pos, text: '+' + multiplier.toString(), turn: turn });
   SOUNDS.bomb.play();
   exploding_cross_particles.push({ center: cur_bomb.pos, turn: turn });
@@ -1438,7 +1452,7 @@ function draw(bullet_time: boolean) {
     ctx.fillStyle = "black";
     ctx.fillText(`${is_phone ? 'Tap' : 'Click'} anywhere to`, canvas_ctx.width / 2 + CONFIG.SHADOW_TEXT, menuYCoordOf("start") - 1 * TILE_SIZE + CONFIG.SHADOW_TEXT);
     ctx.fillText(`Start!`, canvas_ctx.width / 2 + CONFIG.SHADOW_TEXT, menuYCoordOf("start") + CONFIG.SHADOW_TEXT);
-    ctx.fillText(`By knexator & Pinchazumos`, canvas_ctx.width / 2 + CONFIG.SHADOW_TEXT, (MARGIN + TOP_OFFSET + BOARD_SIZE.y *1.05) * TILE_SIZE + CONFIG.SHADOW_TEXT);
+    ctx.fillText(`By knexator & Pinchazumos`, canvas_ctx.width / 2 + CONFIG.SHADOW_TEXT, (MARGIN + TOP_OFFSET + BOARD_SIZE.y * 1.05) * TILE_SIZE + CONFIG.SHADOW_TEXT);
 
     ctx.fillStyle = (last_timestamp % 1000 < 500) ? COLORS.TEXT : COLORS.GRAY_TEXT;
 
