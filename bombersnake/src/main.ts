@@ -46,13 +46,6 @@ const textures_async = await Promise.all(["bomb", "clock", "heart", "star"].flat
   .concat("UDLR".split('').map(c => loadImage(`Cross${c}`)))
 );
 const TEXTURES = {
-  cross: {
-    none: textures_async[22],
-    U: textures_async[23],
-    D: textures_async[24],
-    L: textures_async[25],
-    R: textures_async[26],
-  },
   bomb: textures_async[0],
   clock: textures_async[2],
   heart: textures_async[4],
@@ -86,6 +79,13 @@ const TEXTURES = {
     shadow: textures_async[16],
   },
   pause_text: textures_async[17],
+  cross: {
+    none: textures_async[22],
+    U: textures_async[23],
+    D: textures_async[24],
+    L: textures_async[25],
+    R: textures_async[26],
+  },
 };
 
 function wavUrl(name: string): string {
@@ -441,6 +441,8 @@ const GRAYSCALE = {
   SCARF_OUT: "#545454",
   SCARF_IN: "#545454",
   HEAD: "#848484",
+  HIGHLIGHT_BAR: 'cyan',
+  TEXT_WIN_SCORE: 'black',
 };
 
 const COLORS = {
@@ -461,6 +463,8 @@ const COLORS = {
   SCARF_OUT: "#2d3ba4",
   SCARF_IN: "#547e2a",
   HEAD: "#85ce36",
+  HIGHLIGHT_BAR: "cyan",
+  TEXT_WIN_SCORE: "black",
 };
 
 {
@@ -654,6 +658,7 @@ function explodeBomb(k: number) {
   cur_screen_shake.actualMag = 5.0;
   cur_collectables[k] = placeBomb();
   score += multiplier;
+  bounceText('score');
   collected_stuff_particles.push({ center: cur_bomb.pos, text: '+' + multiplier.toString(), turn: turn });
   SOUNDS.bomb.play();
   exploding_cross_particles.push({ center: cur_bomb.pos, turn: turn });
@@ -700,6 +705,8 @@ document.querySelector<HTMLButtonElement>("#sliders_button")?.addEventListener("
   touch_input_base_point = null;
 });
 
+objectMap(SOUNDS, x => x.mute(true));
+
 let last_timestamp = 0;
 // main loop; game logic lives here
 function every_frame(cur_timestamp: number) {
@@ -735,7 +742,8 @@ function every_frame(cur_timestamp: number) {
   }
 
   if (input.keyboard.wasPressed(KeyCode.KeyM)) {
-    SONGS[music_track].mute(!SONGS[music_track].mute());
+    // SONGS[music_track].mute(!SONGS[music_track].mute());
+    objectMap(SOUNDS, x => x.mute(true));
   }
 
   if (CONFIG.PAUSED) {
@@ -1005,6 +1013,7 @@ function every_frame(cur_timestamp: number) {
         }
       } else if (cur_collectable instanceof Multiplier) {
         multiplier += 1;
+        bounceText('multiplier');
         collected_stuff_particles.push({ center: cur_collectable.pos, text: 'x' + multiplier.toString(), turn: turn });
         cur_collectables[k] = placeMultiplier();
         SOUNDS.star.play();
@@ -1015,6 +1024,7 @@ function every_frame(cur_timestamp: number) {
           collected_stuff_particles.push({ center: cur_collectable.pos, text: '+' + clock_score.toString(), turn: turn });
           clock.remaining_turns = 0;
           score += clock_score;
+          bounceText('score');
           SOUNDS.clock.play();
           stopTickTockSound();
         }
@@ -1062,6 +1072,8 @@ function every_frame(cur_timestamp: number) {
   cur_screen_shake.x = Math.cos(cur_shake_phase) * cur_shake_mag;
   cur_screen_shake.y = Math.sin(cur_shake_phase) * cur_shake_mag;
   cur_screen_shake.actualMag = approach(cur_screen_shake.actualMag, 0, delta_time * 1000)
+
+  chores(delta_time);
 
   draw(bullet_time);
 
@@ -1489,15 +1501,15 @@ function draw(bullet_time: boolean) {
   // draw UI bar
   ctx.font = `${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
   ctx.translate(MARGIN * TILE_SIZE, (TOP_OFFSET + MARGIN - CONFIG.DRAW_WRAP - 1 - .2) * TILE_SIZE);
-  ctx.fillStyle = "black";
+  ctx.fillStyle = game_state === 'lost' ? COLORS.HIGHLIGHT_BAR : "black";
   ctx.fillRect(-CONFIG.DRAW_WRAP * TILE_SIZE, 0, (BOARD_SIZE.x + CONFIG.DRAW_WRAP * 2) * TILE_SIZE, TILE_SIZE);
   ctx.fillStyle = "white";
   ctx.textAlign = "left";
   ctx.textBaseline = "bottom";
-  ctx.fillStyle = COLORS.TEXT;
-  ctx.fillText(`Score: ${score}`, .2 * TILE_SIZE, TILE_SIZE);
-  ctx.drawImage(TEXTURES.multiplier, 12.5 * TILE_SIZE, 0, TILE_SIZE, TILE_SIZE);
-  ctx.fillText(`x${multiplier}`, 13.6 * TILE_SIZE, TILE_SIZE);
+  ctx.fillStyle = game_state === 'lost' ? COLORS.TEXT_WIN_SCORE : COLORS.TEXT;
+  fillJumpyText('score', `Score: ${score}`, .2 * TILE_SIZE, TILE_SIZE);
+  // ctx.drawImage(TEXTURES.multiplier, 12.5 * TILE_SIZE, 0, TILE_SIZE, TILE_SIZE);
+  fillJumpyText('multiplier', `x${multiplier}`, 13.6 * TILE_SIZE, TILE_SIZE);
 
   // extra arrows
   if (CONFIG.BORDER_ARROWS) {
@@ -1797,6 +1809,36 @@ function drawImageCentered(image: HTMLImageElement, center: Vec2) {
   const display_size = new Vec2(image.width, image.height).scale(TILE_SIZE / 32);
   const offset = center.sub(display_size.scale(.5));
   ctx.drawImage(image, offset.x, offset.y, display_size.x, display_size.y);
+}
+
+const bouncyTexts = new Map<string, number>();
+function bounceText(id: string) {
+  bouncyTexts.set(id, 1);
+}
+
+function chores(dt: number) {
+  for (const [id, number] of bouncyTexts) {
+    bouncyTexts.set(id, Math.max(0, number - dt * 3));
+  }
+}
+
+function fillJumpyText(id: string, text: string, x: number, y: number) {
+  const v = bouncyTexts.get(id) ?? 0;
+  ctx.save();
+
+  if (id === 'multiplier') {
+    ctx.translate(x, y);
+    ctx.scale(1 + v * .2, 1 + v * .2);
+    ctx.drawImage(TEXTURES.multiplier, (12.5 - 13.6) * TILE_SIZE, -y, TILE_SIZE, TILE_SIZE);
+    ctx.fillText(text, 0, 0);
+  }
+  else if (id === 'score') {
+    ctx.translate(x + TILE_SIZE * 2, y);
+    ctx.scale(1 + v * .2, 1 + v * .2);
+    ctx.fillText(text, -TILE_SIZE * 2, 0);
+  }
+
+  ctx.restore();
 }
 
 // document.addEventListener("click", ev => {
