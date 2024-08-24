@@ -1835,7 +1835,7 @@ function setFill(normal: boolean, type: keyof typeof COLORS): void {
   if (!CONFIG.WRAP_GRAY) {
     normal = true;
   }
-  if (normal) {
+  if (game_state !== 'lost' && normal) {
     ctx.fillStyle = COLORS[type];
   } else {
     ctx.fillStyle = GRAYSCALE[type];
