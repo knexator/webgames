@@ -168,6 +168,7 @@ if (is_phone) {
       const place = touchPos(touch);
       const dir = roundToCardinalDirection(place);
       input_queue.push(dir);
+      navigator.vibrate(100);
       dpad.src = TEXTURES.cross[dirToImage(dir)].src;
       if (cross_back_to_normal !== null) {
         clearTimeout(cross_back_to_normal);
@@ -183,6 +184,7 @@ if (is_phone) {
           ? ((dir.x > 0) ? KeyCode.ArrowRight : KeyCode.ArrowLeft)
           : ((dir.y > 0) ? KeyCode.ArrowDown : KeyCode.ArrowUp)
       );
+      navigator.vibrate(100);
       console.log('pushed fake key: ', menu_fake_key);
       dpad.src = TEXTURES.cross[dirToImage(dir)].src;
       if (cross_back_to_normal !== null) {
