@@ -423,7 +423,7 @@ const SPEEDS = [0.2, 0.16, 0.12];
 // };
 
 const GRAYSCALE = {
-  WEB_BG: "black",
+  WEB_BG: "#83c253;",
   BORDER: "#8ccbf2",
   BACKGROUND: "#323232",
   BACKGROUND_2: "#363636",
@@ -446,7 +446,7 @@ const GRAYSCALE = {
 };
 
 const COLORS = {
-  WEB_BG: "black",
+  WEB_BG: "#83c253",
   BORDER: "#8ccbf2",
   BACKGROUND: "#203c3c",
   BACKGROUND_2: "#253d3d",
@@ -715,7 +715,9 @@ function every_frame(cur_timestamp: number) {
   last_timestamp = cur_timestamp;
   input.startFrame();
   ctx.resetTransform();
-  ctx.clearRect(0, 0, canvas_ctx.width, canvas_ctx.height);
+  // ctx.clearRect(0, 0, canvas_ctx.width, canvas_ctx.height);
+  ctx.fillStyle = COLORS.WEB_BG;
+  ctx.fillRect(0, 0, canvas_ctx.width, canvas_ctx.height);
   // if (twgl.resizeCanvasToDisplaySize(canvas_ctx) && is_phone) {
   // if (or(twgl.resizeCanvasToDisplaySize(canvas_ctx), twgl.resizeCanvasToDisplaySize(canvas_gl))) {
   // resizing stuff
