@@ -705,7 +705,7 @@ document.querySelector<HTMLButtonElement>("#sliders_button")?.addEventListener("
   touch_input_base_point = null;
 });
 
-objectMap(SOUNDS, x => x.mute(true));
+// objectMap(SOUNDS, x => x.mute(true));
 
 let last_timestamp = 0;
 // main loop; game logic lives here
@@ -967,7 +967,7 @@ function every_frame(cur_timestamp: number) {
 
     if (next_input !== null) {
       delta = next_input;
-      randomChoice([SOUNDS.move1, SOUNDS.move2]).play();
+      // randomChoice([SOUNDS.move1, SOUNDS.move2]).play();
     } else {
       delta = last_block.in_dir.scale(-1);
     }
