@@ -814,89 +814,7 @@ function every_frame(cur_timestamp: number) {
   } else if (game_state === "pause_menu") {
     // turn_offset += delta_time / CONFIG.TURN_DURATION;
 
-    if (menu_fake_key !== null || [
-      KeyCode.KeyW, KeyCode.ArrowUp,
-      KeyCode.KeyA, KeyCode.ArrowLeft,
-      KeyCode.KeyS, KeyCode.ArrowDown,
-      KeyCode.KeyD, KeyCode.ArrowRight,
-      KeyCode.Space
-    ].some(k => input.keyboard.wasPressed(k))) {
-      if (menu_fake_key !== null) console.log('had a fake key');
-      function btnp(ks: KeyCode[]) {
-        if (menu_fake_key !== null && ks.includes(menu_fake_key)) {
-          console.log('used a fake key');
-          return true;
-        }
-        return ks.some(k => CONFIG.ALWAYS_SLOWDOWN ? input.keyboard.wasReleased(k) : input.keyboard.wasPressed(k));
-      }
-      let delta = new Vec2(
-        (btnp([KeyCode.KeyD, KeyCode.ArrowRight, KeyCode.Space]) ? 1 : 0)
-        - (btnp([KeyCode.KeyA, KeyCode.ArrowLeft]) ? 1 : 0),
-        (btnp([KeyCode.KeyS, KeyCode.ArrowDown]) ? 1 : 0)
-        - (btnp([KeyCode.KeyW, KeyCode.ArrowUp]) ? 1 : 0),
-      );
-      if (menu_fake_key !== null) console.log('delta was: ', delta.toString());
-      const menu_order = ["speed", "music", "resume"] as const;
-      if (delta.y != 0) {
-        const cur_index = menu_order.indexOf(menu_focus);
-        if (cur_index === -1) throw new Error("unreachable");
-        menu_focus = menu_order[mod(cur_index + delta.y, menu_order.length)];
-      }
-      if (delta.x !== 0) {
-        switch (menu_focus) {
-          case 'speed':
-            game_speed += delta.x;
-            game_speed = mod(game_speed, SPEEDS.length);
-            CONFIG.TURN_DURATION = SPEEDS[game_speed];
-            SOUNDS.menu1.play();
-            break;
-          case 'music':
-            SONGS[music_track].mute(true);
-            music_track += delta.x;
-            music_track = mod(music_track, SONGS.length);
-            SONGS[music_track].mute(false);
-            break;
-          case 'resume':
-            game_state = 'playing';
-            SOUNDS.menu2.play();
-            break;
-          default:
-            break;
-        }
-      }
-      menu_fake_key = null;
-    }
-
-    // mouse moved
-    if ((input.mouse.clientX !== input.mouse.prev_clientX || input.mouse.clientY !== input.mouse.prev_clientY)
-      && canvas_mouse_pos.y < BOARD_SIZE.y * TILE_SIZE) {
-      const menu_order = ["speed", "music", "resume"] as const;
-      menu_focus = menu_order[argmin(menu_order.map(n => Math.abs(raw_mouse_pos.y - menuYCoordOf(n))))];
-    }
-
-    if (input.mouse.wasPressed(MouseButton.Left) && canvas_mouse_pos.y < BOARD_SIZE.y * TILE_SIZE) {
-      const dx = canvas_mouse_pos.x / (BOARD_SIZE.x * TILE_SIZE) < 1 / 3 ? -1 : 1;
-      switch (menu_focus) {
-        case 'speed':
-          game_speed += dx;
-          game_speed = mod(game_speed, SPEEDS.length);
-          CONFIG.TURN_DURATION = SPEEDS[game_speed];
-          SOUNDS.menu1.play();
-          break;
-        case 'music':
-          SONGS[music_track].mute(true);
-          music_track += dx;
-          music_track = mod(music_track, SONGS.length);
-          SONGS[music_track].mute(false);
-          break;
-        case 'resume':
-          game_state = 'playing';
-          SOUNDS.menu2.play();
-          break;
-        default:
-          break;
-      }
-    }
+    doMenu(canvas_mouse_pos, raw_mouse_pos, false);
 
     if (input.keyboard.wasPressed(KeyCode.Escape)) {
       game_state = 'playing';
@@ -910,14 +828,14 @@ function every_frame(cur_timestamp: number) {
       game_state = "pause_menu";
     }
 
-    let pressed_a_share_button = false;
+    let pressed_some_menu_button = doMenu(canvas_mouse_pos, raw_mouse_pos, true);
     if (share_button_state.folded) {
       const share_vanilla = new Vec2(percX(.5), menuYCoordOf('share'));
       share_button_state.hovered = (share_vanilla.sub(raw_mouse_pos).mag() < TILE_SIZE) ? "vanilla" : null;
       if (input.mouse.wasPressed(MouseButton.Left) && share_button_state.hovered === 'vanilla') {
         share_button_state.folded = false;
         share_button_state.hovered = null;
-        pressed_a_share_button = true;
+        pressed_some_menu_button = true;
       }
     } else {
       const share_vanilla = new Vec2(percX(.5), menuYCoordOf('share'));
@@ -939,12 +857,12 @@ function every_frame(cur_timestamp: number) {
           const blueskyUrl = `https://bsky.app/intent/compose?text=${post}`;
           window.open(blueskyUrl, '_blank');
         }
-        pressed_a_share_button = true;
+        pressed_some_menu_button = true;
         share_button_state.hovered = null;
       }
     }
 
-    if (!pressed_a_share_button && input.mouse.wasPressed(MouseButton.Left) && canvas_mouse_pos.y < BOARD_SIZE.y * TILE_SIZE) {
+    if (!pressed_some_menu_button && input.mouse.wasPressed(MouseButton.Left) && canvas_mouse_pos.y < BOARD_SIZE.y * TILE_SIZE) {
       restartGame();
     }
   } else if (game_state === "playing") {
@@ -1153,6 +1071,99 @@ function every_frame(cur_timestamp: number) {
   draw(bullet_time);
 
   animation_id = requestAnimationFrame(every_frame);
+}
+
+function doMenu(canvas_mouse_pos: Vec2, raw_mouse_pos: Vec2, is_final_screen: boolean): boolean {
+  let user_clicked_something = false;
+  const menu_order = ["speed", "music", "resume"] as const;
+  if (menu_fake_key !== null || [
+    KeyCode.KeyW, KeyCode.ArrowUp,
+    KeyCode.KeyA, KeyCode.ArrowLeft,
+    KeyCode.KeyS, KeyCode.ArrowDown,
+    KeyCode.KeyD, KeyCode.ArrowRight,
+    KeyCode.Space
+  ].some(k => input.keyboard.wasPressed(k))) {
+    if (menu_fake_key !== null) console.log('had a fake key');
+    function btnp(ks: KeyCode[]) {
+      if (menu_fake_key !== null && ks.includes(menu_fake_key)) {
+        console.log('used a fake key');
+        return true;
+      }
+      return ks.some(k => CONFIG.ALWAYS_SLOWDOWN ? input.keyboard.wasReleased(k) : input.keyboard.wasPressed(k));
+    }
+    let delta = new Vec2(
+      (btnp([KeyCode.KeyD, KeyCode.ArrowRight, KeyCode.Space]) ? 1 : 0)
+      - (btnp([KeyCode.KeyA, KeyCode.ArrowLeft]) ? 1 : 0),
+      (btnp([KeyCode.KeyS, KeyCode.ArrowDown]) ? 1 : 0)
+      - (btnp([KeyCode.KeyW, KeyCode.ArrowUp]) ? 1 : 0)
+    );
+    if (menu_fake_key !== null) console.log('delta was: ', delta.toString());
+    if (delta.y != 0) {
+      const cur_index = menu_order.indexOf(menu_focus);
+      if (cur_index === -1) throw new Error("unreachable");
+      menu_focus = menu_order[mod(cur_index + delta.y, menu_order.length)];
+    }
+    if (delta.x !== 0) {
+      switch (menu_focus) {
+        case 'speed':
+          game_speed += delta.x;
+          game_speed = mod(game_speed, SPEEDS.length);
+          CONFIG.TURN_DURATION = SPEEDS[game_speed];
+          SOUNDS.menu1.play();
+          break;
+        case 'music':
+          SONGS[music_track].mute(true);
+          music_track += delta.x;
+          music_track = mod(music_track, SONGS.length);
+          SONGS[music_track].mute(false);
+          break;
+        case 'resume':
+          if (is_final_screen) break;
+          game_state = 'playing';
+          SOUNDS.menu2.play();
+          break;
+        default:
+          break;
+      }
+    }
+    menu_fake_key = null;
+  }
+
+  // mouse moved
+  if ((input.mouse.clientX !== input.mouse.prev_clientX || input.mouse.clientY !== input.mouse.prev_clientY)
+    && canvas_mouse_pos.y < BOARD_SIZE.y * TILE_SIZE) {
+    menu_focus = menu_order[argmin(menu_order.map(n => Math.abs(raw_mouse_pos.y - menuYCoordOf(n))))];
+  }
+
+  if (input.mouse.wasPressed(MouseButton.Left) && canvas_mouse_pos.y < BOARD_SIZE.y * TILE_SIZE) {
+    const dx = canvas_mouse_pos.x / (BOARD_SIZE.x * TILE_SIZE) < 1 / 3 ? -1 : 1;
+    switch (menu_focus) {
+      case 'speed':
+        game_speed += dx;
+        game_speed = mod(game_speed, SPEEDS.length);
+        CONFIG.TURN_DURATION = SPEEDS[game_speed];
+        SOUNDS.menu1.play();
+        user_clicked_something = true;
+        break;
+      case 'music':
+        SONGS[music_track].mute(true);
+        music_track += dx;
+        music_track = mod(music_track, SONGS.length);
+        SONGS[music_track].mute(false);
+        user_clicked_something = true;
+        break;
+      case 'resume':
+        if (is_final_screen) break;
+        game_state = 'playing';
+        SOUNDS.menu2.play();
+        user_clicked_something = true;
+        break;
+      default:
+        break;
+    }
+  }
+
+  return user_clicked_something;
 }
 
 function draw(bullet_time: boolean) {
@@ -1504,12 +1515,12 @@ function draw(bullet_time: boolean) {
       new Vec2(canvas_ctx.width / 2, menuYCoordOf("logo")));
 
     drawCenteredShadowedTextWithColor(
-      (mod(last_timestamp / 1200, 1) < 0.5) ? COLORS.TEXT : COLORS.GRAY_TEXT, 
+      (mod(last_timestamp / 1200, 1) < 0.5) ? COLORS.TEXT : COLORS.GRAY_TEXT,
       `${is_phone ? 'Tap' : 'Click'} anywhere to`,
       menuYCoordOf("start") - 1 * TILE_SIZE
     );
     drawCenteredShadowedTextWithColor(
-      (mod(last_timestamp / 1200, 1) < 0.5) ? COLORS.TEXT : COLORS.GRAY_TEXT, 
+      (mod(last_timestamp / 1200, 1) < 0.5) ? COLORS.TEXT : COLORS.GRAY_TEXT,
       `Start!`,
       menuYCoordOf("start")
     );
@@ -1530,11 +1541,20 @@ function draw(bullet_time: boolean) {
     }
 
     drawCenteredShadowedTextWithColor(
-      (menu_focus === "resume") ? COLORS.TEXT : COLORS.GRAY_TEXT, 
+      (menu_focus === "resume") ? COLORS.TEXT : COLORS.GRAY_TEXT,
       `Resume`,
       menuYCoordOf("resume")
     );
   } else if (game_state === "lost") {
+
+    drawCenteredShadowedText(`Speed: ${game_speed}`, menuYCoordOf("speed"));
+    drawCenteredShadowedText(`Song: ${music_track}`, menuYCoordOf("music"));
+
+    if (menu_focus !== "resume") {
+      drawMenuArrow(menu_focus, false);
+      drawMenuArrow(menu_focus, true);
+    }
+
     drawCenteredShadowedText(`Score: ${score}`, (TOP_OFFSET + MARGIN + BOARD_SIZE.y / 4) * TILE_SIZE);
     drawCenteredShadowedText(is_phone ? 'Touch here to Restart' : `R to Restart`, (TOP_OFFSET + MARGIN + BOARD_SIZE.y * 3 / 4) * TILE_SIZE);
 
@@ -1613,7 +1633,7 @@ function menuYCoordOf(setting: "resume" | "speed" | "music" | "start" | "logo" |
       s = .6;
       break;
     case "share":
-      s = .5;
+      s = .6;
       break;
     default:
       throw new Error("unhandled");
