@@ -497,7 +497,7 @@ const COLORS = {
   SCARF_OUT: "#2d3ba4",
   SCARF_IN: "#547e2a",
   HEAD: "#85ce36",
-  HIGHLIGHT_BAR: "cyan",
+  HIGHLIGHT_BAR: "white",
   TEXT_WIN_SCORE: "black",
   TEXT_WIN_SCORE_2: "cyan",
 };
