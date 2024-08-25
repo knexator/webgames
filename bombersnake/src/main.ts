@@ -623,11 +623,11 @@ if (CONFIG.START_ON_BORDER) {
 score = 0
 input_queue = [];
 cur_collectables = RECORDING_GIF ? [
-    new Multiplier(new Vec2(5, 5)),
-    new Bomb(new Vec2(3, 3)),
-    new Bomb(new Vec2(7, 5)),
-    new Bomb(new Vec2(4, 7))
-  ] : [new Bomb(BOARD_SIZE.sub(Vec2.both(2)))];
+  new Multiplier(new Vec2(5, 5)),
+  new Bomb(new Vec2(3, 3)),
+  new Bomb(new Vec2(7, 5)),
+  new Bomb(new Vec2(4, 7))
+] : [new Bomb(BOARD_SIZE.sub(Vec2.both(2)))];
 turn_offset = 0.99; // always between 0..1
 exploding_cross_particles = [];
 collected_stuff_particles = [];
@@ -1500,75 +1500,44 @@ function draw(bullet_time: boolean) {
   ctx.fillStyle = COLORS.TEXT;
   if (game_state === "loading_menu") {
 
-    drawImageCentered( (mod(last_timestamp / 600, 1) > 0.5) ? TEXTURES.logo.frame1 : TEXTURES.logo.frame2, 
+    drawImageCentered((mod(last_timestamp / 600, 1) > 0.5) ? TEXTURES.logo.frame1 : TEXTURES.logo.frame2,
       new Vec2(canvas_ctx.width / 2, menuYCoordOf("logo")));
-
 
     ctx.font = `bold ${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
 
-    ctx.fillStyle = "black";
-    ctx.fillText(`${is_phone ? 'Tap' : 'Click'} anywhere to`, canvas_ctx.width / 2 + CONFIG.SHADOW_TEXT, menuYCoordOf("start") - 1 * TILE_SIZE + CONFIG.SHADOW_TEXT);
-    ctx.fillText(`Start!`, canvas_ctx.width / 2 + CONFIG.SHADOW_TEXT, menuYCoordOf("start") + CONFIG.SHADOW_TEXT);
-    ctx.fillText(`By knexator & Pinchazumos`, canvas_ctx.width / 2 + CONFIG.SHADOW_TEXT, (MARGIN + TOP_OFFSET + BOARD_SIZE.y * 1.05) * TILE_SIZE + CONFIG.SHADOW_TEXT);
+    drawCenteredShadowedTextWithColor(
+      (mod(last_timestamp / 1200, 1) < 0.5) ? COLORS.TEXT : COLORS.GRAY_TEXT, 
+      `${is_phone ? 'Tap' : 'Click'} anywhere to`,
+      menuYCoordOf("start") - 1 * TILE_SIZE
+    );
+    drawCenteredShadowedTextWithColor(
+      (mod(last_timestamp / 1200, 1) < 0.5) ? COLORS.TEXT : COLORS.GRAY_TEXT, 
+      `Start!`,
+      menuYCoordOf("start")
+    );
 
-    ctx.fillStyle = (mod(last_timestamp / 1200, 1) < 0.5) ? COLORS.TEXT : COLORS.GRAY_TEXT;
-
-    ctx.fillText(`${is_phone ? 'Tap' : 'Click'} anywhere to`, canvas_ctx.width / 2, menuYCoordOf("start") - 1 * TILE_SIZE);
-    ctx.fillText(`Start!`, canvas_ctx.width / 2, menuYCoordOf("start"));
-    ctx.fillStyle = COLORS.TEXT;
-    ctx.fillText(`By knexator & Pinchazumos`, canvas_ctx.width / 2, (MARGIN + TOP_OFFSET + BOARD_SIZE.y * 1.05) * TILE_SIZE);
+    drawCenteredShadowedText('By knexator & Pinchazumos', (MARGIN + TOP_OFFSET + BOARD_SIZE.y * 1.05) * TILE_SIZE);
   } else if (game_state === "pause_menu") {
 
     drawImageCentered(TEXTURES.pause_text, new Vec2(canvas_ctx.width / 2, menuYCoordOf("logo")));
 
-    ctx.fillStyle = "black";
     ctx.font = `bold ${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
-    ctx.fillText(`Speed: ${game_speed}`, canvas_ctx.width / 2 + CONFIG.SHADOW_TEXT, menuYCoordOf("speed") + CONFIG.SHADOW_TEXT);
-
-    ctx.font = `bold ${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
-    ctx.fillText(`Song: ${music_track}`, canvas_ctx.width / 2 + CONFIG.SHADOW_TEXT, menuYCoordOf("music") + CONFIG.SHADOW_TEXT);
-
-    if (menu_focus !== "resume") {
-      drawMenuArrow(menu_focus, false);
-      drawMenuArrow(menu_focus, true);
-    }
-    ctx.fillStyle = "black";
-    ctx.font = `bold ${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
-    ctx.fillText(`Resume`, canvas_ctx.width / 2 + CONFIG.SHADOW_TEXT, menuYCoordOf("resume") + CONFIG.SHADOW_TEXT);
-
-    ctx.fillStyle = menu_focus === "speed" ? COLORS.TEXT : COLORS.GRAY_TEXT;
-    ctx.font = `bold ${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
-    ctx.fillText(`Speed: ${game_speed}`, canvas_ctx.width / 2, menuYCoordOf("speed"));
-
-    ctx.fillStyle = menu_focus === "music" ? COLORS.TEXT : COLORS.GRAY_TEXT;
-    ctx.font = `bold ${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
-    ctx.fillText(`Song: ${music_track}`, canvas_ctx.width / 2, menuYCoordOf("music"));
+    drawCenteredShadowedText(`Speed: ${game_speed}`, menuYCoordOf("speed"));
+    drawCenteredShadowedText(`Song: ${music_track}`, menuYCoordOf("music"));
 
     if (menu_focus !== "resume") {
       drawMenuArrow(menu_focus, false);
       drawMenuArrow(menu_focus, true);
     }
 
-    ctx.fillStyle = menu_focus === "resume" ? COLORS.TEXT : COLORS.GRAY_TEXT;
-    ctx.font = `bold ${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
-    ctx.fillText(`Resume`, canvas_ctx.width / 2, menuYCoordOf("resume"));
-
-    // TODO: WASD/Arrows to play
+    drawCenteredShadowedTextWithColor(
+      (menu_focus === "resume") ? COLORS.TEXT : COLORS.GRAY_TEXT, 
+      `Resume`,
+      menuYCoordOf("resume")
+    );
   } else if (game_state === "lost") {
-
-    ctx.font = `bold ${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
-    ctx.fillStyle = "black";
-    ctx.fillText(`Score: ${score}`, canvas_ctx.width / 2 + CONFIG.SHADOW_TEXT, (TOP_OFFSET + MARGIN + BOARD_SIZE.y / 4) * TILE_SIZE + CONFIG.SHADOW_TEXT);
-    ctx.fillText(is_phone ? 'Touch here to Restart' : `R to Restart`, canvas_ctx.width / 2 + CONFIG.SHADOW_TEXT, (TOP_OFFSET + MARGIN + BOARD_SIZE.y * 3 / 4) * TILE_SIZE + CONFIG.SHADOW_TEXT);
-
-    ctx.fillStyle = COLORS.TEXT;
-    ctx.fillText(`Score: ${score}`, canvas_ctx.width / 2, (TOP_OFFSET + MARGIN + BOARD_SIZE.y / 4) * TILE_SIZE);
-    ctx.fillText(is_phone ? 'Touch here to Restart' : `R to Restart`, canvas_ctx.width / 2, (TOP_OFFSET + MARGIN + BOARD_SIZE.y * 3 / 4) * TILE_SIZE);
-
-    // if (share_button_state === ) {
-    //   drawImageCentered(TEXTURES.share.vanilla_shadow, new Vec2(canvas_ctx.width / 2, menuYCoordOf("share")).add(Vec2.both(CONFIG.SHADOW_TEXT)));
-    //   drawImageCentered(TEXTURES.share.vanilla, new Vec2(canvas_ctx.width / 2, menuYCoordOf("share")));
-    // }
+    drawCenteredShadowedText(`Score: ${score}`, (TOP_OFFSET + MARGIN + BOARD_SIZE.y / 4) * TILE_SIZE);
+    drawCenteredShadowedText(is_phone ? 'Touch here to Restart' : `R to Restart`, (TOP_OFFSET + MARGIN + BOARD_SIZE.y * 3 / 4) * TILE_SIZE);
 
     if (share_button_state.folded) {
       const pos = new Vec2(canvas_ctx.width / 2, menuYCoordOf("share"));
@@ -1915,6 +1884,17 @@ function textTile(text: string, pos: Vec2) {
 
 function anyBlockAt(pos: Vec2): boolean {
   return snake_blocks.some(b => pos.equal(b.pos));
+}
+
+function drawCenteredShadowedText(text: string, yCoord: number) {
+  drawCenteredShadowedTextWithColor(COLORS.TEXT, text, yCoord);
+}
+
+function drawCenteredShadowedTextWithColor(color: string, text: string, yCoord: number) {
+  ctx.fillStyle = "black";
+  ctx.fillText(text, canvas_ctx.width / 2 + CONFIG.SHADOW_TEXT, yCoord + CONFIG.SHADOW_TEXT);
+  ctx.fillStyle = color;
+  ctx.fillText(text, canvas_ctx.width / 2, yCoord);
 }
 
 function drawImageCentered(image: HTMLImageElement, center: Vec2) {
