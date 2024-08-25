@@ -1516,6 +1516,8 @@ function draw(bullet_time: boolean) {
       menuYCoordOf("start")
     );
 
+    drawCenteredShadowedText('Please read the description!', (MARGIN + TOP_OFFSET + BOARD_SIZE.y * 0.80) * TILE_SIZE);
+
     drawCenteredShadowedText('By knexator & Pinchazumos', (MARGIN + TOP_OFFSET + BOARD_SIZE.y * 1.05) * TILE_SIZE);
   } else if (game_state === "pause_menu") {
 
