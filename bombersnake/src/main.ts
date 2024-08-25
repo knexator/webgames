@@ -20,7 +20,7 @@ import gifUrl from "./images/tweet.gif?url"
 // TODO: slide move
 // TODO: only have 2 buttons on tap
 
-const RECORDING_GIF = true;
+const RECORDING_GIF = false;
 
 const input = new Input();
 const canvas_ctx = document.querySelector<HTMLCanvasElement>("#ctx_canvas")!;
