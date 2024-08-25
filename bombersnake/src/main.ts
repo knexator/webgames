@@ -475,7 +475,7 @@ const GRAYSCALE = {
 };
 
 const COLORS = {
-  WEB_BG: "#83c253",
+  WEB_BG: "#417e62",
   BORDER: "#8ccbf2",
   BACKGROUND: "#203c3c",
   BACKGROUND_2: "#253d3d",
