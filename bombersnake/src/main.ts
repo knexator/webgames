@@ -46,7 +46,7 @@ const textures_async = await Promise.all(["bomb", "clock", "heart", "star"].flat
   .concat(["left", "right"].map(s => loadImage("menu_arrow_" + s)))
   .concat([loadImage("side_arrow_W"), loadImage("side_arrow_R")])
   .concat([loadImage("title3"), loadImage("title3A")])
-  .concat([loadImage("pause"), loadImage("title_B")])
+  .concat([loadImage("pause")])
   .concat([loadImage("bomb_G"), loadImage("clock_G"), loadImage("star_G")]) // 21
   .concat([loadImage(`cross`)])
   .concat("UDLR".split('').map(c => loadImage(`Cross${c}`)))
@@ -83,22 +83,22 @@ const TEXTURES = {
     red: textures_async[14],
   },
   logo: {
-    main: textures_async[15],
-    shadow: textures_async[16],
+    frame1: textures_async[15],
+    frame2: textures_async[16],
   },
   pause_text: textures_async[17],
   cross: {
-    none: textures_async[22],
-    U: textures_async[23],
-    D: textures_async[24],
-    L: textures_async[25],
-    R: textures_async[26],
+    none: textures_async[21],
+    U: textures_async[22],
+    D: textures_async[23],
+    L: textures_async[24],
+    R: textures_async[25],
   },
   share: {
-    vanilla: textures_async[27],
-    vanilla_shadow: textures_async[28],
-    twitter: textures_async[29],
-    bsky: textures_async[30],
+    vanilla: textures_async[26],
+    vanilla_shadow: textures_async[27],
+    twitter: textures_async[28],
+    bsky: textures_async[29],
   }
 };
 
@@ -1500,8 +1500,8 @@ function draw(bullet_time: boolean) {
   ctx.fillStyle = COLORS.TEXT;
   if (game_state === "loading_menu") {
 
-    drawImageCentered(TEXTURES.logo.shadow, new Vec2(canvas_ctx.width / 2 + CONFIG.SHADOW_TEXT * 2, menuYCoordOf("logo") + CONFIG.SHADOW_TEXT * 2));
-    drawImageCentered(TEXTURES.logo.main, new Vec2(canvas_ctx.width / 2, menuYCoordOf("logo")));
+    drawImageCentered( (mod(last_timestamp / 400, 1) < 0.5) ? TEXTURES.logo.frame1 : TEXTURES.logo.frame2, 
+      new Vec2(canvas_ctx.width / 2, menuYCoordOf("logo")));
 
 
     ctx.font = `bold ${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
@@ -1629,7 +1629,8 @@ function menuYCoordOf(setting: "resume" | "speed" | "music" | "start" | "logo" |
   let s = 0;
   switch (setting) {
     case "logo":
-      s = .10 + Math.sin(last_timestamp * 1 / 1000) * .01;
+      s = .10;
+      // s = .10 + Math.sin(last_timestamp * 1 / 1000) * .01;
       break;
     case "speed":
       s = .36;
