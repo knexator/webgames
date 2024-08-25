@@ -751,7 +751,7 @@ document.querySelector<HTMLButtonElement>("#sliders_button")?.addEventListener("
   touch_input_base_point = null;
 });
 
-objectMap(SOUNDS, x => x.mute(true));
+// objectMap(SOUNDS, x => x.mute(true));
 
 let last_timestamp = 0;
 // main loop; game logic lives here
