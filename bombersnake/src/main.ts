@@ -1503,8 +1503,6 @@ function draw(bullet_time: boolean) {
     drawImageCentered((mod(last_timestamp / 600, 1) > 0.5) ? TEXTURES.logo.frame1 : TEXTURES.logo.frame2,
       new Vec2(canvas_ctx.width / 2, menuYCoordOf("logo")));
 
-    ctx.font = `bold ${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
-
     drawCenteredShadowedTextWithColor(
       (mod(last_timestamp / 1200, 1) < 0.5) ? COLORS.TEXT : COLORS.GRAY_TEXT, 
       `${is_phone ? 'Tap' : 'Click'} anywhere to`,
@@ -1523,7 +1521,6 @@ function draw(bullet_time: boolean) {
 
     drawImageCentered(TEXTURES.pause_text, new Vec2(canvas_ctx.width / 2, menuYCoordOf("logo")));
 
-    ctx.font = `bold ${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
     drawCenteredShadowedText(`Speed: ${game_speed}`, menuYCoordOf("speed"));
     drawCenteredShadowedText(`Song: ${music_track}`, menuYCoordOf("music"));
 
@@ -1893,6 +1890,7 @@ function drawCenteredShadowedText(text: string, yCoord: number) {
 }
 
 function drawCenteredShadowedTextWithColor(color: string, text: string, yCoord: number) {
+  ctx.font = `bold ${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
   ctx.fillStyle = "black";
   ctx.fillText(text, canvas_ctx.width / 2 + CONFIG.SHADOW_TEXT, yCoord + CONFIG.SHADOW_TEXT);
   ctx.fillStyle = color;
