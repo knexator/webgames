@@ -203,7 +203,7 @@ if (is_phone) {
         cross_back_to_normal = null;
       }
     }
-    if (game_state === 'pause_menu') {
+    if (game_state === 'pause_menu' || game_state === 'lost') {
       const touch = ev.changedTouches.item(ev.changedTouches.length - 1)!;
       const place = touchPos(touch);
       const dir = roundToCardinalDirection(place);
@@ -1083,7 +1083,9 @@ function every_frame(cur_timestamp: number) {
 
 function doMenu(canvas_mouse_pos: Vec2, raw_mouse_pos: Vec2, is_final_screen: boolean): boolean {
   let user_clicked_something = false;
-  const menu_order = ["haptic", "speed", "music", "resume"] as const;
+  const menu_order = is_phone
+    ? ["haptic", "speed", "music", "resume"] as const
+    : ["speed", "music", "resume"] as const;
   if (menu_fake_key !== null || [
     KeyCode.KeyW, KeyCode.ArrowUp,
     KeyCode.KeyA, KeyCode.ArrowLeft,
@@ -1107,9 +1109,15 @@ function doMenu(canvas_mouse_pos: Vec2, raw_mouse_pos: Vec2, is_final_screen: bo
     );
     if (menu_fake_key !== null) console.log('delta was: ', delta.toString());
     if (delta.y != 0) {
-      const cur_index = menu_order.indexOf(menu_focus);
-      if (cur_index === -1) throw new Error("unreachable");
+      // @ts-expect-error
+      let cur_index = menu_order.indexOf(menu_focus);
+      if (cur_index === -1) {
+        cur_index = 0;
+      }
       menu_focus = menu_order[mod(cur_index + delta.y, menu_order.length)];
+      if (is_final_screen && menu_focus === 'resume') {
+        menu_focus = delta.y > 0 ? menu_order[0] : menu_order[menu_order.length - 2];
+      }
     }
     if (delta.x !== 0) {
       switch (menu_focus) {
@@ -1559,7 +1567,7 @@ function draw(bullet_time: boolean) {
     drawCenteredShadowedText(`Speed: ${game_speed}`, menuYCoordOf("speed"));
     drawCenteredShadowedText(`Song: ${music_track}`, menuYCoordOf("music"));
 
-    if (menu_focus !== "resume" && menu_focus !== "haptic") {
+    if (menu_focus !== "resume") {
       drawMenuArrow(menu_focus, false);
       drawMenuArrow(menu_focus, true);
     }
@@ -1579,13 +1587,13 @@ function draw(bullet_time: boolean) {
     drawCenteredShadowedText(`Speed: ${game_speed}`, menuYCoordOf("speed"));
     drawCenteredShadowedText(`Song: ${music_track}`, menuYCoordOf("music"));
 
-    if (menu_focus !== "resume" && menu_focus !== "haptic") {
+    if (menu_focus !== "resume") {
       drawMenuArrow(menu_focus, false);
       drawMenuArrow(menu_focus, true);
     }
 
     // drawCenteredShadowedText(`Score: ${score}`, (TOP_OFFSET + MARGIN + BOARD_SIZE.y / 4) * TILE_SIZE);
-    drawCenteredShadowedText(is_phone ? 'Touch here to Restart' : `R to Restart`, (TOP_OFFSET + MARGIN + BOARD_SIZE.y * 3 / 4) * TILE_SIZE);
+    drawCenteredShadowedText(is_phone ? 'Tap here to Restart' : `R to Restart`, (TOP_OFFSET + MARGIN + BOARD_SIZE.y * 3 / 4) * TILE_SIZE);
 
     if (share_button_state.folded) {
       const pos = new Vec2(canvas_ctx.width / 2, menuYCoordOf("share"));
@@ -1689,6 +1697,7 @@ function percX(x: number): number {
 function lose() {
   stopTickTockSound();
   game_state = "lost";
+  menu_focus = 'music';
 
   // draw(false);
   // canvas_ctx.toBlob(async (blob) => {
@@ -1702,7 +1711,7 @@ function lose() {
 
 }
 
-function drawMenuArrow(setting: "speed" | "music", left: boolean): void {
+function drawMenuArrow(setting: "speed" | "music" | "haptic", left: boolean): void {
   ctx.fillStyle = COLORS.TEXT;
   const pos = menuArrowPos(setting, left);
   drawImageCentered(left ? TEXTURES.menu_arrow.left : TEXTURES.menu_arrow.right, pos);
@@ -1713,7 +1722,7 @@ function menuArrowSize(): Vec2 {
   return new Vec2(1, 1).scale(TILE_SIZE);
 }
 
-function menuArrowPos(setting: "speed" | "music", left: boolean): Vec2 {
+function menuArrowPos(setting: "speed" | "music" | "haptic", left: boolean): Vec2 {
   return new Vec2(
     canvas_ctx.width / 2 + (left ? -1 : 1) * 3 * TILE_SIZE,
     menuYCoordOf(setting));
