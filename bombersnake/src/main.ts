@@ -10,6 +10,8 @@ import { initGL2, IVec, Vec2, Color, GenericDrawer, StatefulDrawer, CircleDrawer
 import * as noise from './kommon/noise';
 import { generateGradient } from "./kommon/kolor";
 import triangle_pattern_url from "./images/triangle_pattern.png?url"
+import gifUrl from "./images/tweet.gif?url"
+
 
 // TODO: animated scarf not rounded right after corner
 // TODO: proper loading of assets
@@ -17,6 +19,8 @@ import triangle_pattern_url from "./images/triangle_pattern.png?url"
 // TODO: haptic
 // TODO: slide move
 // TODO: only have 2 buttons on tap
+
+const RECORDING_GIF = true;
 
 const input = new Input();
 const canvas_ctx = document.querySelector<HTMLCanvasElement>("#ctx_canvas")!;
@@ -618,7 +622,12 @@ if (CONFIG.START_ON_BORDER) {
 }
 score = 0
 input_queue = [];
-cur_collectables = [new Bomb(BOARD_SIZE.sub(Vec2.both(2)))];
+cur_collectables = RECORDING_GIF ? [
+    new Multiplier(new Vec2(5, 5)),
+    new Bomb(new Vec2(3, 3)),
+    new Bomb(new Vec2(7, 5)),
+    new Bomb(new Vec2(4, 7))
+  ] : [new Bomb(BOARD_SIZE.sub(Vec2.both(2)))];
 turn_offset = 0.99; // always between 0..1
 exploding_cross_particles = [];
 collected_stuff_particles = [];
@@ -793,10 +802,10 @@ function every_frame(cur_timestamp: number) {
     // turn_offset += delta_time / CONFIG.TURN_DURATION;
 
     if (input.mouse.wasPressed(MouseButton.Left)) {
-      for (let k = cur_collectables.length; k < CONFIG.N_BOMBS; k++) {
+      for (let k = cur_collectables.filter(x => x instanceof Bomb).length; k < CONFIG.N_BOMBS; k++) {
         cur_collectables.push(placeBomb());
       }
-      for (let k = 0; k < CONFIG.N_MULTIPLIERS; k++) {
+      for (let k = cur_collectables.filter(x => x instanceof Multiplier).length; k < CONFIG.N_MULTIPLIERS; k++) {
         cur_collectables.push(placeMultiplier());
       }
       cur_collectables.push(new Clock());
@@ -1620,7 +1629,7 @@ function menuYCoordOf(setting: "resume" | "speed" | "music" | "start" | "logo" |
   let s = 0;
   switch (setting) {
     case "logo":
-      s = .10 + Math.sin(last_timestamp * 1/ 1000) * .01;
+      s = .10 + Math.sin(last_timestamp * 1 / 1000) * .01;
       break;
     case "speed":
       s = .36;
