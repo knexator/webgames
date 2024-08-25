@@ -492,7 +492,7 @@ const COLORS = {
   SCARF_OUT: "#2d3ba4",
   SCARF_IN: "#547e2a",
   HEAD: "#85ce36",
-  HIGHLIGHT_BAR: "cyan",
+  HIGHLIGHT_BAR: "white",
   TEXT_WIN_SCORE: "black",
 };
 
@@ -1592,7 +1592,14 @@ function draw(bullet_time: boolean) {
   ctx.textAlign = "left";
   ctx.textBaseline = "bottom";
   ctx.fillStyle = game_state === 'lost' ? COLORS.TEXT_WIN_SCORE : COLORS.TEXT;
-  fillJumpyText('score', `Score: ${score}`, .2 * TILE_SIZE, TILE_SIZE);
+  
+  if (game_state === 'lost') {
+	ctx.font = `bold ${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
+	fillJumpyText('score', `FINAL SCORE: ${score}`, .2 * TILE_SIZE, TILE_SIZE);
+  }
+  else {
+    fillJumpyText('score', `Score: ${score}`, .2 * TILE_SIZE, TILE_SIZE);
+  }
   // ctx.drawImage(TEXTURES.multiplier, 12.5 * TILE_SIZE, 0, TILE_SIZE, TILE_SIZE);
   fillJumpyText('multiplier', `x${multiplier}`, 13.6 * TILE_SIZE, TILE_SIZE);
 
