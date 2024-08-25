@@ -472,6 +472,7 @@ const GRAYSCALE = {
   HEAD: "#848484",
   HIGHLIGHT_BAR: 'cyan',
   TEXT_WIN_SCORE: 'black',
+  TEXT_WIN_SCORE_2: "gray",
 };
 
 const COLORS = {
@@ -494,6 +495,7 @@ const COLORS = {
   HEAD: "#85ce36",
   HIGHLIGHT_BAR: "cyan",
   TEXT_WIN_SCORE: "black",
+  TEXT_WIN_SCORE_2: "cyan",
 };
 
 {
@@ -1584,17 +1586,19 @@ function draw(bullet_time: boolean) {
 
 
   // draw UI bar
-  ctx.font = `${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
-  ctx.translate(MARGIN * TILE_SIZE, (TOP_OFFSET + MARGIN - CONFIG.DRAW_WRAP - 1 - .2) * TILE_SIZE);
+  ctx.font = `bold ${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
+  ctx.translate(MARGIN * TILE_SIZE, (TOP_OFFSET + MARGIN - CONFIG.DRAW_WRAP - 1 - .4) * TILE_SIZE);
   ctx.fillStyle = game_state === 'lost' ? COLORS.HIGHLIGHT_BAR : "black";
-  ctx.fillRect(-CONFIG.DRAW_WRAP * TILE_SIZE, 0, (BOARD_SIZE.x + CONFIG.DRAW_WRAP * 2) * TILE_SIZE, TILE_SIZE);
+  ctx.fillRect(-CONFIG.DRAW_WRAP * TILE_SIZE, 0, (BOARD_SIZE.x + CONFIG.DRAW_WRAP * 2) * TILE_SIZE, TILE_SIZE * 1.2);
   ctx.fillStyle = "white";
   ctx.textAlign = "left";
   ctx.textBaseline = "bottom";
-  ctx.fillStyle = game_state === 'lost' ? COLORS.TEXT_WIN_SCORE : COLORS.TEXT;
-  fillJumpyText('score', `Score: ${score}`, .2 * TILE_SIZE, TILE_SIZE);
+  ctx.fillStyle = game_state === 'lost'
+    ? blinking(600, last_timestamp, COLORS.TEXT_WIN_SCORE, COLORS.TEXT_WIN_SCORE_2)
+    : COLORS.TEXT;
+  fillJumpyText('score', `Score: ${score}`, .2 * TILE_SIZE, 1.15 * TILE_SIZE);
   // ctx.drawImage(TEXTURES.multiplier, 12.5 * TILE_SIZE, 0, TILE_SIZE, TILE_SIZE);
-  fillJumpyText('multiplier', `x${multiplier}`, 13.6 * TILE_SIZE, TILE_SIZE);
+  fillJumpyText('multiplier', `x${multiplier}`, 13.6 * TILE_SIZE, 1.15 * TILE_SIZE);
 
   // extra arrows
   if (CONFIG.BORDER_ARROWS) {
@@ -1941,7 +1945,7 @@ function fillJumpyText(id: string, text: string, x: number, y: number) {
   if (id === 'multiplier') {
     ctx.translate(x, y);
     ctx.scale(1 + v * .2, 1 + v * .2);
-    ctx.drawImage(TEXTURES.multiplier, (12.5 - 13.6) * TILE_SIZE, -y, TILE_SIZE, TILE_SIZE);
+    ctx.drawImage(TEXTURES.multiplier, (12.5 - 13.6) * TILE_SIZE, -TILE_SIZE, TILE_SIZE, TILE_SIZE);
     ctx.fillText(text, 0, 0);
   }
   else if (id === 'score') {
@@ -1951,6 +1955,10 @@ function fillJumpyText(id: string, text: string, x: number, y: number) {
   }
 
   ctx.restore();
+}
+
+function blinking(period: number, cur_time: number, color1: string, color2: string): string {
+  return (mod(cur_time / period, 1) < 0.5) ? color1 : color2;
 }
 
 // document.addEventListener("click", ev => {
