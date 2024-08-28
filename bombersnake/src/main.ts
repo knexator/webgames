@@ -276,6 +276,7 @@ if (is_phone) {
 // }
 
 let CONFIG = {
+  SECONDS_OF_DISABLED_INPUT: .5,
   SWIPE_CONTROLS: false,
   SWIPE_DIST: 1,
   SWIPE_MARGIN: 1,
@@ -549,6 +550,7 @@ let game_speed: number;
 let music_track: number;
 let menu_focus: "speed" | "music" | "resume" | "haptic";
 let share_button_state: { folded: boolean, hovered: null | 'vanilla' | 'twitter' | 'bsky' };
+let last_lost_timestamp = 0;
 // let music = SOUNDS.song1;
 // music.play();
 
@@ -1093,6 +1095,7 @@ function every_frame(cur_timestamp: number) {
 }
 
 function doMenu(canvas_mouse_pos: Vec2, raw_mouse_pos: Vec2, is_final_screen: boolean): boolean {
+  if (Math.abs(last_lost_timestamp - last_timestamp) < (1000 * CONFIG.SECONDS_OF_DISABLED_INPUT)) return false;
   let user_clicked_something = false;
   const menu_order = is_phone
     ? ["haptic", "speed", "music", "resume"] as const
@@ -1564,7 +1567,7 @@ function draw(bullet_time: boolean) {
     );
 
     drawCenteredShadowedText('Please scroll down', (MARGIN + TOP_OFFSET + BOARD_SIZE.y * 0.41) * TILE_SIZE);
-	drawCenteredShadowedText('to learn to play', (MARGIN + TOP_OFFSET + BOARD_SIZE.y * 0.49) * TILE_SIZE);
+    drawCenteredShadowedText('to learn to play', (MARGIN + TOP_OFFSET + BOARD_SIZE.y * 0.49) * TILE_SIZE);
 
     drawCenteredShadowedText('By knexator & Pinchazumos', (MARGIN + TOP_OFFSET + BOARD_SIZE.y * 1.05) * TILE_SIZE);
   } else if (game_state === "pause_menu") {
@@ -1641,7 +1644,7 @@ function draw(bullet_time: boolean) {
   ctx.textAlign = "left";
   ctx.textBaseline = "bottom";
   fillJumpyText('multiplier', `x${multiplier}`, 13.6 * TILE_SIZE, 1.15 * TILE_SIZE);
-  
+
   ctx.fillStyle = game_state === 'lost'
     ? blinking(1000, last_timestamp, COLORS.TEXT_WIN_SCORE, COLORS.TEXT_WIN_SCORE_2)
     : COLORS.TEXT;
@@ -1712,6 +1715,7 @@ function lose() {
   stopTickTockSound();
   game_state = "lost";
   menu_focus = 'music';
+  last_lost_timestamp = last_timestamp;
 
   // draw(false);
   // canvas_ctx.toBlob(async (blob) => {
