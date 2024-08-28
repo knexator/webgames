@@ -1570,8 +1570,8 @@ function draw(bullet_time: boolean) {
         (menu_focus === "haptic") ? COLORS.TEXT : COLORS.GRAY_TEXT,
         `Haptic: ${haptic ? 'on' : 'off'}`, menuYCoordOf("haptic"));
     }
-    drawCenteredShadowedText(`Speed: ${game_speed}`, menuYCoordOf("speed"));
-    drawCenteredShadowedText(`Song: ${music_track}`, menuYCoordOf("music"));
+    drawCenteredShadowedText(`Speed: ${game_speed + 1}`, menuYCoordOf("speed"));
+    drawCenteredShadowedText(`Song: ${music_track + 1}`, menuYCoordOf("music"));
 
     if (menu_focus !== "resume") {
       drawMenuArrow(menu_focus, false);
@@ -1590,8 +1590,8 @@ function draw(bullet_time: boolean) {
         (menu_focus === "haptic") ? COLORS.TEXT : COLORS.GRAY_TEXT,
         `Vibrate: ${haptic ? 'on' : 'off'}`, menuYCoordOf("haptic"));
     }
-    drawCenteredShadowedText(`Speed: ${game_speed}`, menuYCoordOf("speed"));
-    drawCenteredShadowedText(`Song: ${music_track}`, menuYCoordOf("music"));
+    drawCenteredShadowedText(`Speed: ${game_speed + 1}`, menuYCoordOf("speed"));
+    drawCenteredShadowedText(`Song: ${music_track + 1}`, menuYCoordOf("music"));
 
     if (menu_focus !== "resume") {
       drawMenuArrow(menu_focus, false);
