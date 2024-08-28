@@ -1691,6 +1691,7 @@ function draw(bullet_time: boolean) {
     // drawCenteredShadowedText(`Score: ${score}`, (TOP_OFFSET + MARGIN + BOARD_SIZE.y / 4) * TILE_SIZE);
     drawCenteredShadowedText(is_phone ? 'Tap here to Restart' : `R to Restart`, (TOP_OFFSET + MARGIN + BOARD_SIZE.y * 3 / 4) * TILE_SIZE);
 
+    drawCenteredShadowedText('we have no marketing, pls share', menuYCoordOf("share") - TILE_SIZE * 2.3, .6);
     const share_button_scale = CONFIG.SHARE_BUTTON_SCALE;
     if (share_button_state.folded) {
       const pos = new Vec2(canvas_ctx.width / 2, menuYCoordOf("share"));
@@ -2050,12 +2051,12 @@ function anyBlockAt(pos: Vec2): boolean {
   return snake_blocks.some(b => pos.equal(b.pos));
 }
 
-function drawCenteredShadowedText(text: string, yCoord: number) {
-  drawCenteredShadowedTextWithColor(COLORS.TEXT, text, yCoord);
+function drawCenteredShadowedText(text: string, yCoord: number, scale: number = 1) {
+  drawCenteredShadowedTextWithColor(COLORS.TEXT, text, yCoord, scale);
 }
 
-function drawCenteredShadowedTextWithColor(color: string, text: string, yCoord: number) {
-  ctx.font = `bold ${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
+function drawCenteredShadowedTextWithColor(color: string, text: string, yCoord: number, scale: number = 1) {
+  ctx.font = `bold ${Math.floor(scale * 30 * TILE_SIZE / 32)}px sans-serif`;
   ctx.fillStyle = "black";
   ctx.fillText(text, canvas_ctx.width / 2 + CONFIG.SHADOW_TEXT, yCoord + CONFIG.SHADOW_TEXT);
   ctx.fillStyle = color;
