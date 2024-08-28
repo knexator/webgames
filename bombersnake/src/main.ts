@@ -431,6 +431,10 @@ const SOUNDS = {
     src: [wavUrl("menu2")],
     volume: 0.5,
   }),
+  waffel: new Howl({
+    src: [wavUrl("waffel")],
+    volume: .7,
+  }),
 };
 const SONGS = [SOUNDS.song1, SOUNDS.song2, SOUNDS.song3, SOUNDS.song4, SOUNDS.song5, SOUNDS.song6];
 SONGS.forEach((x, k) => {
@@ -822,6 +826,7 @@ function every_frame(cur_timestamp: number) {
         cur_collectables.push(placeMultiplier());
       }
       cur_collectables.push(new Clock());
+      SOUNDS.waffel.play();
       game_state = "playing";
     }
   } else if (game_state === "pause_menu") {
@@ -849,6 +854,7 @@ function every_frame(cur_timestamp: number) {
         share_button_state.folded = false;
         share_button_state.hovered = null;
         pressed_some_menu_button = true;
+        SOUNDS.waffel.play();
       }
     } else {
       const share_vanilla = new Vec2(percX(.5), menuYCoordOf('share'));
