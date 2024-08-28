@@ -196,7 +196,7 @@ if (is_phone) {
       const place = touchPos(touch);
       const dir = roundToCardinalDirection(place);
       input_queue.push(dir);
-      // vibrate(100);
+      vibrate(100);
       dpad.src = TEXTURES.cross[dirToImage(dir)].src;
       if (cross_back_to_normal !== null) {
         clearTimeout(cross_back_to_normal);
@@ -359,7 +359,7 @@ const SOUNDS = {
   song2: new Howl({
     src: [mp3Url("Song2")],
     loop: true,
-    volume: .5,
+    volume: .6,
   }),
   song3: new Howl({
     src: [oggUrl("Song3")],
@@ -374,10 +374,15 @@ const SOUNDS = {
   song5: new Howl({
     src: [mp3Url("Song5")],
     loop: true,
-    volume: .5,
+    volume: 1.5,
   }),
   song6: new Howl({
-    src: [oggUrl("Song6")],
+    src: [mp3Url("Song6")],
+    loop: true,
+    volume: .5,
+  }),
+  song7: new Howl({
+    src: [oggUrl("Song7")],
     loop: true,
     volume: .5,
   }),
@@ -497,9 +502,9 @@ const COLORS = {
   SCARF_OUT: "#2d3ba4",
   SCARF_IN: "#547e2a",
   HEAD: "#85ce36",
-  HIGHLIGHT_BAR: "white",
-  TEXT_WIN_SCORE: "black",
-  TEXT_WIN_SCORE_2: "cyan",
+  HIGHLIGHT_BAR: "black",
+  TEXT_WIN_SCORE: "white",
+  TEXT_WIN_SCORE_2: "grey",
 };
 
 {
@@ -1510,7 +1515,7 @@ function draw(bullet_time: boolean) {
     let t = remap(turn + turn_offset, particle.turn, particle.turn + 3, 0, 1);
     if (t > 1) return false;
     let dx = particle.center.x > BOARD_SIZE.x - 2 ? -1 : 1;
-    ctx.font = `bold ${Math.floor((is_phone ? 35 : 25) * TILE_SIZE / 32)}px sans-serif`;
+    ctx.font = `bold ${Math.floor((is_phone ? 35 : 25) * TILE_SIZE / 25)}px sans-serif`;
     // text outline:
     // ctx.strokeStyle = "black";
     // ctx.strokeText(particle.text, (particle.center.x + dx) * TILE_SIZE, (particle.center.y + 1 - t * 1.5) * TILE_SIZE);
@@ -1548,11 +1553,12 @@ function draw(bullet_time: boolean) {
     );
     drawCenteredShadowedTextWithColor(
       (mod(last_timestamp / 1200, 1) < 0.5) ? COLORS.TEXT : COLORS.GRAY_TEXT,
-      `Start!`,
+      `start`,
       menuYCoordOf("start")
     );
 
-    drawCenteredShadowedText('Please read the description!', (MARGIN + TOP_OFFSET + BOARD_SIZE.y * 0.80) * TILE_SIZE);
+    drawCenteredShadowedText('Please scroll down', (MARGIN + TOP_OFFSET + BOARD_SIZE.y * 0.41) * TILE_SIZE);
+	drawCenteredShadowedText('to learn to play', (MARGIN + TOP_OFFSET + BOARD_SIZE.y * 0.49) * TILE_SIZE);
 
     drawCenteredShadowedText('By knexator & Pinchazumos', (MARGIN + TOP_OFFSET + BOARD_SIZE.y * 1.05) * TILE_SIZE);
   } else if (game_state === "pause_menu") {
@@ -1582,7 +1588,7 @@ function draw(bullet_time: boolean) {
     if (is_phone) {
       drawCenteredShadowedTextWithColor(
         (menu_focus === "haptic") ? COLORS.TEXT : COLORS.GRAY_TEXT,
-        `Haptic: ${haptic ? 'on' : 'off'}`, menuYCoordOf("haptic"));
+        `Vibrate: ${haptic ? 'on' : 'off'}`, menuYCoordOf("haptic"));
     }
     drawCenteredShadowedText(`Speed: ${game_speed}`, menuYCoordOf("speed"));
     drawCenteredShadowedText(`Song: ${music_track}`, menuYCoordOf("music"));
@@ -1628,12 +1634,14 @@ function draw(bullet_time: boolean) {
   ctx.fillStyle = "white";
   ctx.textAlign = "left";
   ctx.textBaseline = "bottom";
+  fillJumpyText('multiplier', `x${multiplier}`, 13.6 * TILE_SIZE, 1.15 * TILE_SIZE);
+  
   ctx.fillStyle = game_state === 'lost'
-    ? blinking(600, last_timestamp, COLORS.TEXT_WIN_SCORE, COLORS.TEXT_WIN_SCORE_2)
+    ? blinking(1000, last_timestamp, COLORS.TEXT_WIN_SCORE, COLORS.TEXT_WIN_SCORE_2)
     : COLORS.TEXT;
   fillJumpyText('score', `Score: ${score}`, .2 * TILE_SIZE, 1.15 * TILE_SIZE);
   // ctx.drawImage(TEXTURES.multiplier, 12.5 * TILE_SIZE, 0, TILE_SIZE, TILE_SIZE);
-  fillJumpyText('multiplier', `x${multiplier}`, 13.6 * TILE_SIZE, 1.15 * TILE_SIZE);
+
 
   // extra arrows
   if (CONFIG.BORDER_ARROWS) {
@@ -1669,7 +1677,7 @@ function menuYCoordOf(setting: "resume" | "haptic" | "speed" | "music" | "start"
       s = .45;
       break;
     case "start":
-      s = .47;
+      s = .85;
       break;
     case "resume":
       s = .6;
@@ -1780,7 +1788,7 @@ if (import.meta.hot) {
 let animation_id: number;
 const loading_screen_element = document.querySelector<HTMLDivElement>("#loading_screen")!;
 if (loading_screen_element) {
-  loading_screen_element.innerText = "Press to start!";
+  loading_screen_element.innerText = "Press to start";
   document.addEventListener("pointerdown", _event => {
     loading_screen_element.style.opacity = "0";
     animation_id = requestAnimationFrame(every_frame);
