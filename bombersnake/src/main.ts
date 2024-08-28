@@ -439,10 +439,18 @@ const SOUNDS = {
   }),
 };
 const SONGS = [SOUNDS.song1, SOUNDS.song2, SOUNDS.song3, SOUNDS.song4, SOUNDS.song5, SOUNDS.song6];
-SONGS.forEach((x, k) => {
-  x.play();
-  x.mute(k != 0);
-})
+// SONGS.forEach((x, k) => {
+//   x.play();
+//   x.mute(k != 0);
+// })
+// SONGS[0].play();
+
+function updateSong() {
+  // SONGS.forEach((x, k) => x.mute(k !== music_track));
+  SONGS.forEach(x => x.stop())
+  SONGS[music_track].play();
+}
+
 Howler.volume(.75);
 // Howler.volume(0);
 
@@ -829,7 +837,17 @@ function every_frame(cur_timestamp: number) {
         cur_collectables.push(placeMultiplier());
       }
       cur_collectables.push(new Clock());
-      SOUNDS.waffel.play();
+      setTimeout(() => {
+        SOUNDS.waffel.play();
+      }, 500);
+      SONGS[music_track].play()
+      // setTimeout(() => {
+      //   SONGS[music_track].play()
+      //   // SONGS[music_track].fade(0, 1, 200);
+      // }, 1200);
+      // setTimeout(() => SONGS[music_track].play(), 1500);
+      // SONGS[music_track].play();
+      // SONGS[music_track].fade(0, 1, 2000);
       game_state = "playing";
     }
   } else if (game_state === "pause_menu") {
@@ -1148,10 +1166,9 @@ function doMenu(canvas_mouse_pos: Vec2, raw_mouse_pos: Vec2, is_final_screen: bo
           SOUNDS.menu1.play();
           break;
         case 'music':
-          SONGS[music_track].mute(true);
           music_track += delta.x;
           music_track = mod(music_track, SONGS.length);
-          SONGS[music_track].mute(false);
+          updateSong();
           break;
         case 'resume':
           if (is_final_screen) break;
@@ -1188,10 +1205,9 @@ function doMenu(canvas_mouse_pos: Vec2, raw_mouse_pos: Vec2, is_final_screen: bo
         user_clicked_something = true;
         break;
       case 'music':
-        SONGS[music_track].mute(true);
         music_track += dx;
         music_track = mod(music_track, SONGS.length);
-        SONGS[music_track].mute(false);
+        updateSong();
         user_clicked_something = true;
         break;
       case 'resume':
@@ -1867,7 +1883,7 @@ function drawRotatedTextureNoWrap(center: Vec2, texture: HTMLImageElement, angle
   ctx.rotate(angle_in_radians);
   ctx.scale(scale, scale);
   ctx.drawImage(texture, -TILE_SIZE / 2, -TILE_SIZE / 2, TILE_SIZE * size.x, TILE_SIZE * size.y);
-  ctx.scale(1/scale, 1/scale);
+  ctx.scale(1 / scale, 1 / scale);
   ctx.rotate(-angle_in_radians);
   ctx.translate(-px_center.x, -px_center.y);
 }
@@ -1888,7 +1904,7 @@ function drawFlippedTexture(center: Vec2, texture: HTMLImageElement, scale: numb
       ctx.translate(px_center.x, px_center.y);
       ctx.scale(-scale, scale);
       ctx.drawImage(texture, -TILE_SIZE / 2, -TILE_SIZE / 2, TILE_SIZE, TILE_SIZE);
-      ctx.scale(-1/scale, 1/scale);
+      ctx.scale(-1 / scale, 1 / scale);
       ctx.translate(-px_center.x, -px_center.y);
     }
   }
