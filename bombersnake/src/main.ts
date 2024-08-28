@@ -277,7 +277,8 @@ if (is_phone) {
 
 let CONFIG = {
   EYE_BOUNCE: .4,
-  SECONDS_OF_DISABLED_INPUT: .5,
+  SECONDS_OF_DISABLED_INPUT: 0,
+  SHARE_BUTTON_SCALE: 1.5,
   SWIPE_CONTROLS: false,
   SWIPE_DIST: 1,
   SWIPE_MARGIN: 1,
@@ -867,10 +868,10 @@ function every_frame(cur_timestamp: number) {
       game_state = "pause_menu";
     }
 
-    let pressed_some_menu_button = doMenu(canvas_mouse_pos, raw_mouse_pos, true);
+    let pressed_some_menu_button = false;
     if (share_button_state.folded) {
       const share_vanilla = new Vec2(percX(.5), menuYCoordOf('share'));
-      share_button_state.hovered = (share_vanilla.sub(raw_mouse_pos).mag() < TILE_SIZE) ? "vanilla" : null;
+      share_button_state.hovered = (share_vanilla.sub(raw_mouse_pos).mag() < TILE_SIZE * CONFIG.SHARE_BUTTON_SCALE) ? "vanilla" : null;
       if (input.mouse.wasPressed(MouseButton.Left) && share_button_state.hovered === 'vanilla') {
         share_button_state.folded = false;
         share_button_state.hovered = null;
@@ -881,9 +882,9 @@ function every_frame(cur_timestamp: number) {
       const share_vanilla = new Vec2(percX(.5), menuYCoordOf('share'));
       const pos_twitter = share_vanilla.addX(-TILE_SIZE * 2);
       const pos_bsky = share_vanilla.addX(TILE_SIZE * 2);
-      share_button_state.hovered = (pos_twitter.sub(raw_mouse_pos).mag() < TILE_SIZE)
+      share_button_state.hovered = (pos_twitter.sub(raw_mouse_pos).mag() < TILE_SIZE * CONFIG.SHARE_BUTTON_SCALE)
         ? "twitter"
-        : (pos_bsky.sub(raw_mouse_pos).mag() < TILE_SIZE)
+        : (pos_bsky.sub(raw_mouse_pos).mag() < TILE_SIZE * CONFIG.SHARE_BUTTON_SCALE)
           ? 'bsky'
           : null;
       if (input.mouse.wasPressed(MouseButton.Left) && share_button_state.hovered !== null) {
@@ -1687,37 +1688,25 @@ function draw(bullet_time: boolean) {
     );
   } else if (game_state === "lost") {
 
-    if (is_phone) {
-      drawCenteredShadowedTextWithColor(
-        (menu_focus === "haptic") ? COLORS.TEXT : COLORS.GRAY_TEXT,
-        `Vibrate: ${haptic ? 'on' : 'off'}`, menuYCoordOf("haptic"));
-    }
-    drawCenteredShadowedText(`Speed: ${game_speed + 1}`, menuYCoordOf("speed"));
-    drawCenteredShadowedText(`Song: ${music_track + 1}`, menuYCoordOf("music"));
-
-    if (menu_focus !== "resume") {
-      drawMenuArrow(menu_focus, false);
-      drawMenuArrow(menu_focus, true);
-    }
-
     // drawCenteredShadowedText(`Score: ${score}`, (TOP_OFFSET + MARGIN + BOARD_SIZE.y / 4) * TILE_SIZE);
     drawCenteredShadowedText(is_phone ? 'Tap here to Restart' : `R to Restart`, (TOP_OFFSET + MARGIN + BOARD_SIZE.y * 3 / 4) * TILE_SIZE);
 
+    const share_button_scale = CONFIG.SHARE_BUTTON_SCALE;
     if (share_button_state.folded) {
       const pos = new Vec2(canvas_ctx.width / 2, menuYCoordOf("share"));
-      drawImageCentered(TEXTURES.share.vanilla_shadow, pos.add(Vec2.both(CONFIG.SHADOW_TEXT)));
+      drawImageCentered(TEXTURES.share.vanilla_shadow, pos.add(Vec2.both(CONFIG.SHADOW_TEXT)), share_button_scale);
       if (share_button_state.hovered === 'vanilla') {
-        drawImageCentered(TEXTURES.share.vanilla, pos.sub(Vec2.both(CONFIG.SHADOW_TEXT / 2)));
+        drawImageCentered(TEXTURES.share.vanilla, pos.sub(Vec2.both(CONFIG.SHADOW_TEXT / 2)), share_button_scale);
       }
       else {
-        drawImageCentered(TEXTURES.share.vanilla, pos);
+        drawImageCentered(TEXTURES.share.vanilla, pos, share_button_scale);
       }
     } else {
       const center = new Vec2(canvas_ctx.width / 2, menuYCoordOf("share"));
       drawImageCentered(TEXTURES.share.twitter, center.addX(-TILE_SIZE * 2)
-        .sub(share_button_state.hovered === 'twitter' ? Vec2.both(CONFIG.SHADOW_TEXT / 2) : Vec2.zero));
+        .sub(share_button_state.hovered === 'twitter' ? Vec2.both(CONFIG.SHADOW_TEXT / 2) : Vec2.zero), share_button_scale);
       drawImageCentered(TEXTURES.share.bsky, center.addX(TILE_SIZE * 2)
-        .sub(share_button_state.hovered === 'bsky' ? Vec2.both(CONFIG.SHADOW_TEXT / 2) : Vec2.zero));
+        .sub(share_button_state.hovered === 'bsky' ? Vec2.both(CONFIG.SHADOW_TEXT / 2) : Vec2.zero), share_button_scale);
     }
 
     // ctx.fillText("", canvas.width / 2, canvas.height / 2);
@@ -1785,7 +1774,7 @@ function menuYCoordOf(setting: "resume" | "haptic" | "speed" | "music" | "start"
       s = .6;
       break;
     case "share":
-      s = .6;
+      s = .4;
       break;
     default:
       throw new Error("unhandled");
@@ -2073,8 +2062,8 @@ function drawCenteredShadowedTextWithColor(color: string, text: string, yCoord: 
   ctx.fillText(text, canvas_ctx.width / 2, yCoord);
 }
 
-function drawImageCentered(image: HTMLImageElement, center: Vec2) {
-  const display_size = new Vec2(image.width, image.height).scale(TILE_SIZE / 32);
+function drawImageCentered(image: HTMLImageElement, center: Vec2, scale: number = 1) {
+  const display_size = new Vec2(image.width, image.height).scale(scale * TILE_SIZE / 32);
   const offset = center.sub(display_size.scale(.5));
   ctx.drawImage(image, offset.x, offset.y, display_size.x, display_size.y);
 }
