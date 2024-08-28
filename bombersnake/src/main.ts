@@ -374,7 +374,7 @@ const SOUNDS = {
     volume: .5,
   }),
   song5: new Howl({
-    src: [mp3Url("Song5")],
+    src: [oggUrl("Song5")],
     loop: true,
     volume: 1.5,
   }),
