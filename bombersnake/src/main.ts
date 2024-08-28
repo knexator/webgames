@@ -438,7 +438,7 @@ const SOUNDS = {
     volume: .7,
   }),
 };
-const SONGS = [SOUNDS.song1, SOUNDS.song2, SOUNDS.song3, SOUNDS.song4, SOUNDS.song5, SOUNDS.song6];
+const SONGS = [SOUNDS.song1, SOUNDS.song2, SOUNDS.song3, SOUNDS.song4, SOUNDS.song5, SOUNDS.song6, SOUNDS.song7];
 // SONGS.forEach((x, k) => {
 //   x.play();
 //   x.mute(k != 0);
