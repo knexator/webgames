@@ -276,6 +276,7 @@ if (is_phone) {
 // }
 
 let CONFIG = {
+  EYE_BOUNCE: .4,
   SECONDS_OF_DISABLED_INPUT: .5,
   SWIPE_CONTROLS: false,
   SWIPE_DIST: 1,
@@ -1373,6 +1374,7 @@ function draw(bullet_time: boolean) {
         fillTile(cur_block.pos, fill);
       }
     } else if (cur_block.out_dir.equal(Vec2.zero)) {
+      const bounce = Math.max((bouncyTexts.get('multiplier') ?? 0), (bouncyTexts.get('score') ?? 0))
       if (CONFIG.HEAD_COLOR) {
         fill = "HEAD";
         ctx.fillStyle = COLORS.HEAD;
@@ -1405,10 +1407,10 @@ function draw(bullet_time: boolean) {
           ? TEXTURES.eye.closed
           : TEXTURES.eye.open;
       if (cur_block.in_dir.equal(new Vec2(1, 0))) {
-        drawFlippedTexture(center, eye_texture);
+        drawFlippedTexture(center, eye_texture, 1 + CONFIG.EYE_BOUNCE * bounce);
       } else {
         drawRotatedTexture(center, eye_texture,
-          Math.atan2(-cur_block.in_dir.y, -cur_block.in_dir.x));
+          Math.atan2(-cur_block.in_dir.y, -cur_block.in_dir.x), 1 + CONFIG.EYE_BOUNCE * bounce);
       }
       // drawTexture(cur_block.pos, game_state === "lost" ? textures.eye.KO : textures.eye.open);
       // ctx.beginPath();
@@ -1858,33 +1860,35 @@ function drawItem(top_left: Vec2, item: "bomb" | "multiplier" | "clock", is_shad
   }
 }
 
-function drawRotatedTextureNoWrap(center: Vec2, texture: HTMLImageElement, angle_in_radians: number, size: Vec2 = Vec2.one) {
+function drawRotatedTextureNoWrap(center: Vec2, texture: HTMLImageElement, angle_in_radians: number, size: Vec2 = Vec2.one, scale: number = 1) {
   const px_center = center.scale(TILE_SIZE);
 
   ctx.translate(px_center.x, px_center.y);
   ctx.rotate(angle_in_radians);
+  ctx.scale(scale, scale);
   ctx.drawImage(texture, -TILE_SIZE / 2, -TILE_SIZE / 2, TILE_SIZE * size.x, TILE_SIZE * size.y);
+  ctx.scale(1/scale, 1/scale);
   ctx.rotate(-angle_in_radians);
   ctx.translate(-px_center.x, -px_center.y);
 }
 
-function drawRotatedTexture(center: Vec2, texture: HTMLImageElement, angle_in_radians: number) {
+function drawRotatedTexture(center: Vec2, texture: HTMLImageElement, angle_in_radians: number, scale: number) {
   for (let i = -1; i <= 1; i++) {
     for (let j = -1; j <= 1; j++) {
-      drawRotatedTextureNoWrap(center.add(BOARD_SIZE.mul(new Vec2(i, j))), texture, angle_in_radians);
+      drawRotatedTextureNoWrap(center.add(BOARD_SIZE.mul(new Vec2(i, j))), texture, angle_in_radians, Vec2.one, scale);
     }
   }
 }
 
-function drawFlippedTexture(center: Vec2, texture: HTMLImageElement) {
+function drawFlippedTexture(center: Vec2, texture: HTMLImageElement, scale: number) {
   for (let i = -1; i <= 1; i++) {
     for (let j = -1; j <= 1; j++) {
       const px_center = center.add(BOARD_SIZE.mul(new Vec2(i, j))).scale(TILE_SIZE);
 
       ctx.translate(px_center.x, px_center.y);
-      ctx.scale(-1, 1);
+      ctx.scale(-scale, scale);
       ctx.drawImage(texture, -TILE_SIZE / 2, -TILE_SIZE / 2, TILE_SIZE, TILE_SIZE);
-      ctx.scale(-1, 1);
+      ctx.scale(-1/scale, 1/scale);
       ctx.translate(-px_center.x, -px_center.y);
     }
   }
