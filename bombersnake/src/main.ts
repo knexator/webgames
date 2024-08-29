@@ -278,7 +278,8 @@ if (is_phone) {
 // }
 
 let CONFIG = {
-  EYE_BOUNCE: .4,
+  HEAD_BOUNCE: .4,
+  EYE_BOUNCE: 0,
   SECONDS_OF_DISABLED_INPUT: 0,
   SHARE_BUTTON_SCALE: 1.5,
   SWIPE_CONTROLS: false,
@@ -1489,6 +1490,13 @@ function draw(bullet_time: boolean) {
       if (turn_offset < CONFIG.ANIM_PERC) {
         center = center.add(cur_block.in_dir.scale(1 - turn_offset / CONFIG.ANIM_PERC));
       }
+
+      const real_center = center.scale(TILE_SIZE);
+      ctx.translate(real_center.x, real_center.y);
+      const bounce_scale = 1 + CONFIG.HEAD_BOUNCE * bounce;
+      ctx.scale(bounce_scale, bounce_scale);
+      center = Vec2.zero;
+
       fillTileCenterSize(center.add(cur_block.in_dir.scale(rounded_size / 2)),
         new Vec2(
           cur_block.in_dir.x == 0 ? 1 : 1 - rounded_size,
@@ -1525,6 +1533,10 @@ function draw(bullet_time: boolean) {
       // ctx.fillStyle = "black";
       // drawCircle(center.add(cur_block.in_dir.scale(-.2)), .1);
       // ctx.fill();
+
+      ctx.scale(1 / bounce_scale, 1 / bounce_scale);
+      ctx.translate(-real_center.x, -real_center.y);
+
     } else {
       const center = cur_block.pos.addXY(.5, .5)
       if (is_scarf && turn_offset < CONFIG.ANIM_PERC) {
