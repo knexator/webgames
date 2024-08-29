@@ -851,8 +851,9 @@ function every_frame(cur_timestamp: number) {
       SOUNDS.waffel.play();
       // SONGS[music_track].play()
       // setTimeout(() => {
+      const original_volume = SONGS[music_track].volume()
       SONGS[music_track].play()
-      SONGS[music_track].fade(0, 1, 1200);
+      SONGS[music_track].fade(0, original_volume, 1200);
       // }, 200);
       // setTimeout(() => SONGS[music_track].play(), 1500);
       // SONGS[music_track].play();
