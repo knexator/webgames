@@ -438,8 +438,8 @@ const SOUNDS = {
     volume: 0.5,
   }),
   waffel: new Howl({
-    src: [wavUrl("waffel")],
-    volume: .7,
+    src: [oggUrl("waffel")],
+    volume: 2,
   }),
 };
 const SONGS = [SOUNDS.song1, SOUNDS.song2, SOUNDS.song3, SOUNDS.song4, SOUNDS.song5, SOUNDS.song6, SOUNDS.song7];
