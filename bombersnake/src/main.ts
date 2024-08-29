@@ -664,7 +664,7 @@ tick_or_tock = false;
 touch_input_base_point = null;
 game_speed = is_phone ? 0 : 1;
 haptic = true;
-music_track = 0;
+music_track = 1;
 menu_focus = "resume";
 share_button_state = { folded: true, hovered: null };
 
@@ -838,14 +838,15 @@ function every_frame(cur_timestamp: number) {
         cur_collectables.push(placeMultiplier());
       }
       cur_collectables.push(new Clock());
-      setTimeout(() => {
-        SOUNDS.waffel.play();
-      }, 500);
-      SONGS[music_track].play()
       // setTimeout(() => {
-      //   SONGS[music_track].play()
-      //   // SONGS[music_track].fade(0, 1, 200);
-      // }, 1200);
+      //   SOUNDS.waffel.play();
+      // }, 400);
+      SOUNDS.waffel.play();
+      // SONGS[music_track].play()
+      // setTimeout(() => {
+      SONGS[music_track].play()
+      SONGS[music_track].fade(0, 1, 1200);
+      // }, 200);
       // setTimeout(() => SONGS[music_track].play(), 1500);
       // SONGS[music_track].play();
       // SONGS[music_track].fade(0, 1, 2000);
