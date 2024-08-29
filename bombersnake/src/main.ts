@@ -56,6 +56,7 @@ const textures_async = await Promise.all(["bomb", "clock", "heart", "star"].flat
   .concat("UDLR".split('').map(c => loadImage(`Cross${c}`)))
   .concat([loadImage("shareSG"), loadImage("shareSB")])
   .concat([loadImage("logoX"), loadImage("logoBSKY")])
+  .concat([loadImage("settings")])
 );
 const TEXTURES = {
   bomb: textures_async[0],
@@ -103,7 +104,8 @@ const TEXTURES = {
     vanilla_shadow: textures_async[27],
     twitter: textures_async[28],
     bsky: textures_async[29],
-  }
+  },
+  settings: textures_async[30],
 };
 
 function wavUrl(name: string): string {
@@ -561,6 +563,7 @@ let music_track: number;
 let menu_focus: "speed" | "music" | "resume" | "haptic";
 let share_button_state: { folded: boolean, hovered: null | 'vanilla' | 'twitter' | 'bsky' };
 let last_lost_timestamp = 0;
+let settings_overlapped = false;
 // let music = SOUNDS.song1;
 // music.play();
 
@@ -827,6 +830,9 @@ function every_frame(cur_timestamp: number) {
 
   let bullet_time = false;
 
+  settings_overlapped = canvas_mouse_pos.sub(
+    new Vec2(-TILE_SIZE * 1.1, -TILE_SIZE * 2.5)).mag() < TILE_SIZE * .7;
+
   if (game_state === "loading_menu") {
     // turn_offset += delta_time / CONFIG.TURN_DURATION;
 
@@ -864,7 +870,7 @@ function every_frame(cur_timestamp: number) {
     if (input.keyboard.wasPressed(KeyCode.KeyR)) {
       restartGame();
     }
-    else if (input.keyboard.wasPressed(KeyCode.Escape)) {
+    else if (input.keyboard.wasPressed(KeyCode.Escape) || (input.mouse.wasPressed(MouseButton.Left) && settings_overlapped)) {
       restartGame();
       game_state = "pause_menu";
     }
@@ -972,7 +978,7 @@ function every_frame(cur_timestamp: number) {
       turn_offset += delta_time / cur_turn_duration;
     }
 
-    if (input.keyboard.wasPressed(KeyCode.Escape)) {
+    if (input.keyboard.wasPressed(KeyCode.Escape) || (input.mouse.wasPressed(MouseButton.Left) && settings_overlapped)) {
       game_state = "pause_menu";
     }
   } else {
@@ -1264,6 +1270,11 @@ function doMenu(canvas_mouse_pos: Vec2, raw_mouse_pos: Vec2, is_final_screen: bo
     && canvas_mouse_pos.y < BOARD_SIZE.y * TILE_SIZE) {
     menu_focus = menu_order[argmin(menu_order.map(n => Math.abs(raw_mouse_pos.y - menuYCoordOf(n))))];
   }
+
+  if (settings_overlapped) {
+    menu_focus = 'resume';
+  }
+  // (input.mouse.wasPressed(MouseButton.Left) && settings_overlapped)
 
   if (input.mouse.wasPressed(MouseButton.Left) && canvas_mouse_pos.y < BOARD_SIZE.y * TILE_SIZE) {
     const dx = canvas_mouse_pos.x / (BOARD_SIZE.x * TILE_SIZE) < 1 / 3 ? -1 : 1;
@@ -1727,14 +1738,17 @@ function draw(bullet_time: boolean) {
   ctx.fillStyle = "white";
   ctx.textAlign = "left";
   ctx.textBaseline = "bottom";
-  fillJumpyText('multiplier', `x${multiplier}`, 13.6 * TILE_SIZE, 1.15 * TILE_SIZE);
+  fillJumpyText('multiplier', `x${multiplier}`, (16.5 - .5 * Math.floor(Math.log10(multiplier))) * TILE_SIZE, 1.15 * TILE_SIZE);
 
   ctx.fillStyle = game_state === 'lost'
     ? blinking(1000, last_timestamp, COLORS.TEXT_WIN_SCORE, COLORS.TEXT_WIN_SCORE_2)
     : COLORS.TEXT;
-  fillJumpyText('score', `Score: ${score}`, .2 * TILE_SIZE, 1.15 * TILE_SIZE);
+  fillJumpyText('score', `Score: ${score}`, (5.9 - .25 * Math.floor(Math.log10(Math.max(1, score)))) * TILE_SIZE, 1.15 * TILE_SIZE);
   // ctx.drawImage(TEXTURES.multiplier, 12.5 * TILE_SIZE, 0, TILE_SIZE, TILE_SIZE);
 
+  if (game_state !== 'loading_menu') {
+    drawImageCentered(TEXTURES.settings, new Vec2(-TILE_SIZE * 1.2, TILE_SIZE * .6), settings_overlapped ? .8 : .7);
+  }
 
   // extra arrows
   if (CONFIG.BORDER_ARROWS) {
