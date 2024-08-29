@@ -278,7 +278,7 @@ if (is_phone) {
 // }
 
 let CONFIG = {
-  HEAD_BOUNCE: .4,
+  HEAD_BOUNCE: 0,
   EYE_BOUNCE: 0,
   SECONDS_OF_DISABLED_INPUT: 0,
   SHARE_BUTTON_SCALE: 1.5,
