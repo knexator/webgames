@@ -360,12 +360,12 @@ const SOUNDS = {
     src: [oggUrl("Song1")],
     // autoplay: true,
     loop: true,
-    volume: .5,
+    volume: 1.5,
   }),
   song2: new Howl({
-    src: [mp3Url("Song2")],
+    src: [oggUrl("Song2")],
     loop: true,
-    volume: .6,
+    volume: .5,
   }),
   song3: new Howl({
     src: [oggUrl("Song3")],
@@ -378,9 +378,9 @@ const SOUNDS = {
     volume: .5,
   }),
   song5: new Howl({
-    src: [oggUrl("Song5")],
+    src: [mp3Url("Song5")],
     loop: true,
-    volume: 1.5,
+    volume: .6,
   }),
   song6: new Howl({
     src: [mp3Url("Song6")],
@@ -668,7 +668,7 @@ tick_or_tock = false;
 touch_input_base_point = null;
 game_speed = is_phone ? 0 : 1;
 haptic = true;
-music_track = 1;
+music_track = 0;
 menu_focus = "resume";
 share_button_state = { folded: true, hovered: null };
 
