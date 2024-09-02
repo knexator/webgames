@@ -554,6 +554,7 @@ let tick_tock_interval_id: number | null = null;
 let game_state: "loading_menu" | "pause_menu" | "playing" | "lost";
 let turn: number;
 let snake_blocks: { pos: Vec2, in_dir: Vec2, out_dir: Vec2, t: number }[];
+let started_at_timestamp: number;
 let score: number;
 let input_queue: Vec2[];
 let cur_collectables: Collectable[];
@@ -590,6 +591,7 @@ function restartGame() {
       { pos: new Vec2(8, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(0, 0), t: 2 },
     ];
   }
+  started_at_timestamp = last_timestamp;
   score = 0
   input_queue = [];
   cur_collectables = [];
@@ -1172,6 +1174,10 @@ function generateShareMessage() {
     messages.push(`max speed is still easy, wtf Devs?`);
   }
   messages.push(`My fav song is ${songName(music_track)}, props to ${songAuthor(music_track)}`);
+
+  if ((last_lost_timestamp - started_at_timestamp) / 1000 < 4) {
+    return "Are you dying on purpose to see all messages?"
+  }
 
   return randomChoice(intros) + randomChoice(messages);
 }
