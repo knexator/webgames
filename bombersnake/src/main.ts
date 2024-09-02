@@ -31,7 +31,7 @@ const ctx = canvas_ctx.getContext("2d")!;
 
 const vibrate = navigator.vibrate ? () => {
   if (haptic) {
-    navigator.vibrate(50)
+    navigator.vibrate(1)
   }
 } : () => { };
 
@@ -362,7 +362,7 @@ const SOUNDS = {
     src: [oggUrl("Song1")],
     // autoplay: true,
     loop: true,
-    volume: 1.5,
+    volume: 50,
   }),
   song2: new Howl({
     src: [oggUrl("Song2")],
