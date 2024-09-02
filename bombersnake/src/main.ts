@@ -364,92 +364,60 @@ const gui = new GUI();
 }
 gui.hide();
 
+
+function loadSoundAsync(url: string, volume: number, loop: boolean = true) {
+  return new Promise<Howl>((resolve, reject) => {
+    const asdf = new Howl({
+      src: [url],
+      loop,
+      volume,
+      onload: () => resolve(asdf),
+    });
+  });
+}
+
+const sounds_async = await Promise.all([
+  loadSoundAsync(oggUrl("Song1"), 1, true),
+  loadSoundAsync(oggUrl("Song2"), 0.35, true),
+  loadSoundAsync(oggUrl("Song3"), 0.35, true),
+  loadSoundAsync(oggUrl("Song4"), 0.35, true),
+  loadSoundAsync(mp3Url("Song5"), 0.45, true),
+  loadSoundAsync(mp3Url("Song6"), 0.45, true),
+  loadSoundAsync(oggUrl("Song7"), 0.35, true),
+  loadSoundAsync(wavUrl("hiss1"), 0.25),
+  loadSoundAsync(wavUrl("apple"), 0.5),
+  loadSoundAsync(wavUrl("move1"), 0.25),
+  loadSoundAsync(wavUrl("move2"), 0.25),
+  loadSoundAsync(wavUrl("crash"), 0.5),
+  loadSoundAsync(wavUrl("star"), 1.5),
+  loadSoundAsync(wavUrl("clock"), 1.2),
+  loadSoundAsync(mp3Url("tick"), 1),
+  loadSoundAsync(mp3Url("tock"), 1),
+  loadSoundAsync(wavUrl("menu1"), .25),
+  loadSoundAsync(wavUrl("menu2"), .25),
+  loadSoundAsync(oggUrl("waffel"), 1.1),
+]);
+
 const SOUNDS = {
-  song1: new Howl({
-    src: [oggUrl("Song1")],
-    // autoplay: true,
-    loop: true,
-    volume: 1,
-  }),
-  song2: new Howl({
-    src: [oggUrl("Song2")],
-    loop: true,
-    volume: 0.35,
-  }),
-  song3: new Howl({
-    src: [oggUrl("Song3")],
-    loop: true,
-    volume: 0.35,
-  }),
-  song4: new Howl({
-    src: [oggUrl("Song4")],
-    loop: true,
-    volume: 0.35,
-  }),
-  song5: new Howl({
-    src: [mp3Url("Song5")],
-    loop: true,
-    volume: 0.45,
-  }),
-  song6: new Howl({
-    src: [mp3Url("Song6")],
-    loop: true,
-    volume: 0.45,
-  }),
-  song7: new Howl({
-    src: [oggUrl("Song7")],
-    loop: true,
-    volume: 0.35,
-  }),
-  hiss1: new Howl({
-    src: [wavUrl("hiss1")],
-    // autoplay: true,
-    volume: 0.25,
-  }),
-  bomb: new Howl({
-    src: [wavUrl("apple")],
-    volume: 0.5,
-  }),
-  move1: new Howl({
-    src: [wavUrl("move1")],
-    volume: 0.25,
-  }),
-  move2: new Howl({
-    src: [wavUrl("move2")],
-    volume: 0.25,
-  }),
-  crash: new Howl({
-    src: [wavUrl("crash")],
-    volume: 0.5,
-  }),
-  star: new Howl({
-    src: [wavUrl("star")],
-    volume: 1.5,
-  }),
-  clock: new Howl({
-    src: [wavUrl("clock")],
-    volume: 1.2,
-  }),
-  tick: new Howl({
-    src: [mp3Url("tick")],
-    volume: 1,
-  }),
-  tock: new Howl({
-    src: [mp3Url("tock")],
-    volume: 1,
-  }),
-  menu1: new Howl({
-    src: [wavUrl("menu1")],
-    volume: 0.25,
-  }),
-  menu2: new Howl({
-    src: [wavUrl("menu2")],
-    volume: 0.25,
-  }),
-  waffel: new Howl({
-    src: [oggUrl("waffel")],
-    volume: 1.1,
-  }),
+  song1: sounds_async[0],
+  song2: sounds_async[1],
+  song3: sounds_async[2],
+  song4: sounds_async[3],
+  song5: sounds_async[4],
+  song6: sounds_async[5],
+  song7: sounds_async[6],
+  hiss1: sounds_async[7],
+  bomb: sounds_async[8],
+  move1: sounds_async[9],
+  move2: sounds_async[10],
+  crash: sounds_async[11],
+  star: sounds_async[12],
+  clock: sounds_async[13],
+  tick: sounds_async[14],
+  tock: sounds_async[15],
+  menu1: sounds_async[16],
+  menu2: sounds_async[17],
+  waffel: sounds_async[18],
 };
 const SONGS = [null, SOUNDS.song1, SOUNDS.song2, SOUNDS.song3, SOUNDS.song4, SOUNDS.song5, SOUNDS.song6, SOUNDS.song7];
 // SONGS.forEach((x, k) => {
@@ -1710,7 +1678,7 @@ function draw(bullet_time: boolean) {
     drawCenteredShadowedText('By knexator & Pinchazumos', (MARGIN + TOP_OFFSET + BOARD_SIZE.y * 1.05) * TILE_SIZE);
   } else if (game_state === "pause_menu") {
 
-    drawImageCentered(TEXTURES.pause_text, new Vec2(canvas_ctx.width / 2, menuYCoordOf("logo")*0.85));
+    drawImageCentered(TEXTURES.pause_text, new Vec2(canvas_ctx.width / 2, menuYCoordOf("logo") * 0.85));
 
     if (is_phone) {
       drawCenteredShadowedTextWithColor(
