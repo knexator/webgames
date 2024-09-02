@@ -29,11 +29,11 @@ const ctx = canvas_ctx.getContext("2d")!;
 // const gl = initGL2(canvas_gl)!;
 // gl.clearColor(.5, .5, .5, 1);
 
-const vibrate = navigator.vibrate ? (n: number) => {
+const vibrate = navigator.vibrate ? () => {
   if (haptic) {
-    navigator.vibrate(n)
+    navigator.vibrate(50)
   }
-} : (n: number) => { };
+} : () => { };
 
 function loadImage(name: string): Promise<HTMLImageElement> {
   return new Promise(resolve => {
@@ -170,7 +170,7 @@ if (is_phone) {
   pause_button.addEventListener("pointerdown", ev => {
     switch (game_state) {
       case "loading_menu":
-        vibrate(100);
+        vibrate();
         break;
       case "pause_menu":
         game_state = 'playing';
@@ -198,7 +198,7 @@ if (is_phone) {
       const place = touchPos(touch);
       const dir = roundToCardinalDirection(place);
       input_queue.push(dir);
-      vibrate(100);
+      vibrate();
       dpad.src = TEXTURES.cross[dirToImage(dir)].src;
       if (cross_back_to_normal !== null) {
         clearTimeout(cross_back_to_normal);
@@ -214,7 +214,7 @@ if (is_phone) {
           ? ((dir.x > 0) ? KeyCode.ArrowRight : KeyCode.ArrowLeft)
           : ((dir.y > 0) ? KeyCode.ArrowDown : KeyCode.ArrowUp)
       );
-      vibrate(100);
+      vibrate();
       console.log('pushed fake key: ', menu_fake_key);
       dpad.src = TEXTURES.cross[dirToImage(dir)].src;
       if (cross_back_to_normal !== null) {
@@ -729,7 +729,7 @@ function explodeBomb(k: number) {
   cur_collectables[k] = placeBomb();
   score += multiplier;
   bounceText('score');
-  vibrate(100);
+  vibrate();
   collected_stuff_particles.push({ center: cur_bomb.pos, text: '+' + multiplier.toString(), turn: turn });
   SOUNDS.bomb.play();
   exploding_cross_particles.push({ center: cur_bomb.pos, turn: turn });
@@ -1718,7 +1718,7 @@ function draw(bullet_time: boolean) {
     // drawCenteredShadowedText(`Score: ${score}`, (TOP_OFFSET + MARGIN + BOARD_SIZE.y / 4) * TILE_SIZE);
     drawCenteredShadowedText(is_phone ? 'Tap here to Restart' : `R to Restart`, (TOP_OFFSET + MARGIN + BOARD_SIZE.y * 3 / 4) * TILE_SIZE);
 
-    drawCenteredShadowedText('we have no marketing, pls share', menuYCoordOf("share") - TILE_SIZE * 2.3, .6);
+    drawCenteredShadowedTextMultiline(['We suck at PR, please help us', 'bring the game to more people.'], menuYCoordOf("share") - TILE_SIZE * 3, .6);
     const share_button_scale = CONFIG.SHARE_BUTTON_SCALE;
     if (share_button_state.folded) {
       const pos = new Vec2(canvas_ctx.width / 2, menuYCoordOf("share"));
@@ -2083,6 +2083,10 @@ function anyBlockAt(pos: Vec2): boolean {
 
 function drawCenteredShadowedText(text: string, yCoord: number, scale: number = 1) {
   drawCenteredShadowedTextWithColor(COLORS.TEXT, text, yCoord, scale);
+}
+
+function drawCenteredShadowedTextMultiline(lines: string[], yCoord: number, scale: number = 1) {
+  lines.forEach((line, k) => drawCenteredShadowedTextWithColor(COLORS.TEXT, line, yCoord + k * scale * TILE_SIZE * 1.05, scale));
 }
 
 function drawCenteredShadowedTextWithColor(color: string, text: string, yCoord: number, scale: number = 1) {
