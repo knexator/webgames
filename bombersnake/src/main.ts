@@ -369,86 +369,86 @@ const SOUNDS = {
     src: [oggUrl("Song1")],
     // autoplay: true,
     loop: true,
-    volume: 50,
+    volume: 1,
   }),
   song2: new Howl({
     src: [oggUrl("Song2")],
     loop: true,
-    volume: .5,
+    volume: 0.35,
   }),
   song3: new Howl({
     src: [oggUrl("Song3")],
     loop: true,
-    volume: .5,
+    volume: 0.35,
   }),
   song4: new Howl({
     src: [oggUrl("Song4")],
     loop: true,
-    volume: .5,
+    volume: 0.35,
   }),
   song5: new Howl({
     src: [mp3Url("Song5")],
     loop: true,
-    volume: .6,
+    volume: 0.45,
   }),
   song6: new Howl({
     src: [mp3Url("Song6")],
     loop: true,
-    volume: .5,
+    volume: 0.45,
   }),
   song7: new Howl({
     src: [oggUrl("Song7")],
     loop: true,
-    volume: .5,
+    volume: 0.35,
   }),
   hiss1: new Howl({
     src: [wavUrl("hiss1")],
     // autoplay: true,
-    volume: 1,
+    volume: 0.25,
   }),
   bomb: new Howl({
     src: [wavUrl("apple")],
-    volume: 0.7,
+    volume: 0.5,
   }),
   move1: new Howl({
     src: [wavUrl("move1")],
-    volume: 1.0,
+    volume: 0.25,
   }),
   move2: new Howl({
     src: [wavUrl("move2")],
-    volume: 1.0,
+    volume: 0.25,
   }),
   crash: new Howl({
     src: [wavUrl("crash")],
-    volume: 1.0,
+    volume: 0.5,
   }),
   star: new Howl({
     src: [wavUrl("star")],
-    volume: 2.5,
+    volume: 1.5,
   }),
   clock: new Howl({
     src: [wavUrl("clock")],
-    volume: 2.2,
+    volume: 1.2,
   }),
   tick: new Howl({
     src: [mp3Url("tick")],
-    volume: 2.5,
+    volume: 1,
   }),
   tock: new Howl({
     src: [mp3Url("tock")],
-    volume: 2.5,
+    volume: 1,
   }),
   menu1: new Howl({
     src: [wavUrl("menu1")],
-    volume: 0.5,
+    volume: 0.25,
   }),
   menu2: new Howl({
     src: [wavUrl("menu2")],
-    volume: 0.5,
+    volume: 0.25,
   }),
   waffel: new Howl({
     src: [oggUrl("waffel")],
-    volume: 2,
+    volume: 1.1,
   }),
 };
 const SONGS = [null, SOUNDS.song1, SOUNDS.song2, SOUNDS.song3, SOUNDS.song4, SOUNDS.song5, SOUNDS.song6, SOUNDS.song7];
@@ -467,7 +467,7 @@ function updateSong() {
   }
 }
 
-Howler.volume(.75);
+Howler.volume(1);
 // Howler.volume(0);
 
 const INITIAL_VOLUME = objectMap(SOUNDS, x => x.volume());
@@ -1710,7 +1710,7 @@ function draw(bullet_time: boolean) {
     drawCenteredShadowedText('By knexator & Pinchazumos', (MARGIN + TOP_OFFSET + BOARD_SIZE.y * 1.05) * TILE_SIZE);
   } else if (game_state === "pause_menu") {
 
-    drawImageCentered(TEXTURES.pause_text, new Vec2(canvas_ctx.width / 2, menuYCoordOf("logo")));
+    drawImageCentered(TEXTURES.pause_text, new Vec2(canvas_ctx.width / 2, menuYCoordOf("logo")*0.85));
 
     if (is_phone) {
       drawCenteredShadowedTextWithColor(
@@ -1735,7 +1735,7 @@ function draw(bullet_time: boolean) {
     // drawCenteredShadowedText(`Score: ${score}`, (TOP_OFFSET + MARGIN + BOARD_SIZE.y / 4) * TILE_SIZE);
     drawCenteredShadowedText(is_phone ? 'Tap here to Restart' : `R to Restart`, (TOP_OFFSET + MARGIN + BOARD_SIZE.y * 3 / 4) * TILE_SIZE);
 
-    drawCenteredShadowedTextMultiline(['We suck at PR, please help us', 'bring the game to more people.'], menuYCoordOf("share") - TILE_SIZE * 3, .6);
+    drawCenteredShadowedTextMultiline(['We suck at PR, please help us', 'bring the game to more people.'], menuYCoordOf("share") - TILE_SIZE * 4.5, 1);
     const share_button_scale = CONFIG.SHARE_BUTTON_SCALE;
     if (share_button_state.folded) {
       const pos = new Vec2(canvas_ctx.width / 2, menuYCoordOf("share"));
@@ -1822,7 +1822,7 @@ function menuYCoordOf(setting: "resume" | "haptic" | "speed" | "music" | "start"
       s = .6;
       break;
     case "share":
-      s = .4;
+      s = .5;
       break;
     default:
       throw new Error("unhandled");
