@@ -136,7 +136,8 @@ const TOP_OFFSET = 2;
 
 const container = document.querySelector("#canvas_container") as HTMLElement;
 
-const TILE_SIZE = is_phone ? Math.round(container.clientWidth / (BOARD_SIZE.x + MARGIN * 2)) : 32;
+// const TILE_SIZE = is_phone ? Math.round(container.clientWidth / (BOARD_SIZE.x + MARGIN * 2)) : 32;
+const TILE_SIZE = is_phone ? 15 : 32;
 MARGIN = Math.round(TILE_SIZE * MARGIN) / TILE_SIZE;
 
 container.style.width = `${TILE_SIZE * (BOARD_SIZE.x + MARGIN * 2)}px`
@@ -442,7 +443,7 @@ const SOUNDS = {
     volume: 2,
   }),
 };
-const SONGS = [SOUNDS.song1, SOUNDS.song2, SOUNDS.song3, SOUNDS.song4, SOUNDS.song5, SOUNDS.song6, SOUNDS.song7];
+const SONGS = [null, SOUNDS.song1, SOUNDS.song2, SOUNDS.song3, SOUNDS.song4, SOUNDS.song5, SOUNDS.song6, SOUNDS.song7];
 // SONGS.forEach((x, k) => {
 //   x.play();
 //   x.mute(k != 0);
@@ -451,8 +452,11 @@ const SONGS = [SOUNDS.song1, SOUNDS.song2, SOUNDS.song3, SOUNDS.song4, SOUNDS.so
 
 function updateSong() {
   // SONGS.forEach((x, k) => x.mute(k !== music_track));
-  SONGS.forEach(x => x.stop())
-  SONGS[music_track].play();
+  SONGS.forEach(x => x?.stop())
+  const song = SONGS[music_track];
+  if (song !== null) {
+    song.play();
+  }
 }
 
 Howler.volume(.75);
@@ -668,7 +672,7 @@ tick_or_tock = false;
 touch_input_base_point = null;
 game_speed = is_phone ? 0 : 1;
 haptic = true;
-music_track = 0;
+music_track = 1;
 menu_focus = "resume";
 share_button_state = { folded: true, hovered: null };
 
@@ -743,7 +747,7 @@ function explodeBomb(k: number) {
 function startTickTockSound(): void {
   tick_or_tock = false;
   SOUNDS.tick.play();
-  SONGS.forEach(music => music.fade(music.volume(), CONFIG.MUSIC_DURING_TICKTOCK * INITIAL_VOLUME.song1, .3));
+  SONGS.forEach(music => music?.fade(music.volume(), CONFIG.MUSIC_DURING_TICKTOCK * INITIAL_VOLUME.song1, .3));
   SOUNDS.bomb.fade(SOUNDS.bomb.volume(), CONFIG.MUSIC_DURING_TICKTOCK * INITIAL_VOLUME.bomb, .3);
   SOUNDS.star.fade(SOUNDS.star.volume(), CONFIG.MUSIC_DURING_TICKTOCK * INITIAL_VOLUME.star, .3);
   tick_tock_interval_id = setInterval(() => {
@@ -753,7 +757,7 @@ function startTickTockSound(): void {
 }
 function stopTickTockSound(): void {
   if (tick_tock_interval_id !== null) {
-    SONGS.forEach(music => music.fade(music.volume(), INITIAL_VOLUME.song1, .3));
+    SONGS.forEach(music => music?.fade(music.volume(), INITIAL_VOLUME.song1, .3));
     SOUNDS.bomb.fade(SOUNDS.bomb.volume(), INITIAL_VOLUME.bomb, .3);
     SOUNDS.star.fade(SOUNDS.star.volume(), INITIAL_VOLUME.star, .3);
     clearInterval(tick_tock_interval_id);
@@ -849,11 +853,12 @@ function every_frame(cur_timestamp: number) {
       //   SOUNDS.waffel.play();
       // }, 400);
       SOUNDS.waffel.play();
+      const initial_song = SONGS[music_track]!;
       // SONGS[music_track].play()
       // setTimeout(() => {
-      const original_volume = SONGS[music_track].volume()
-      SONGS[music_track].play()
-      SONGS[music_track].fade(0, original_volume, 1200);
+      const original_volume = initial_song.volume()
+      initial_song.play()
+      initial_song.fade(0, original_volume, 1200);
       // }, 200);
       // setTimeout(() => SONGS[music_track].play(), 1500);
       // SONGS[music_track].play();
@@ -1279,7 +1284,7 @@ function doMenu(canvas_mouse_pos: Vec2, raw_mouse_pos: Vec2, is_final_screen: bo
   // (input.mouse.wasPressed(MouseButton.Left) && settings_overlapped)
 
   if (input.mouse.wasPressed(MouseButton.Left) && canvas_mouse_pos.y < BOARD_SIZE.y * TILE_SIZE) {
-    const dx = canvas_mouse_pos.x / (BOARD_SIZE.x * TILE_SIZE) < 1 / 3 ? -1 : 1;
+    const dx = canvas_mouse_pos.x / (BOARD_SIZE.x * TILE_SIZE) < 1 / 2 ? -1 : 1;
     switch (menu_focus) {
       case 'haptic':
         if (!is_phone) break;
@@ -1669,12 +1674,12 @@ function draw(bullet_time: boolean) {
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillStyle = COLORS.TEXT;
-  
-  
+
+
   if (game_state === "loading_menu") {
-	drawImageCentered((mod(last_timestamp / 600, 1) > 0.5) ? TEXTURES.logo.frame1 : TEXTURES.logo.frame2,
+    drawImageCentered((mod(last_timestamp / 600, 1) > 0.5) ? TEXTURES.logo.frame1 : TEXTURES.logo.frame2,
       new Vec2(canvas_ctx.width / 2, menuYCoordOf("logo")));
-		
+
 
     drawCenteredShadowedTextWithColor(
       (mod(last_timestamp / 1200, 1) < 0.5) ? COLORS.TEXT : COLORS.GRAY_TEXT,
@@ -1701,7 +1706,7 @@ function draw(bullet_time: boolean) {
         `Haptic: ${haptic ? 'on' : 'off'}`, menuYCoordOf("haptic"));
     }
     drawCenteredShadowedText(`Speed: ${game_speed + 1}`, menuYCoordOf("speed"));
-    drawCenteredShadowedText(`Song: ${music_track + 1}`, menuYCoordOf("music"));
+    drawCenteredShadowedText(`Song: ${music_track === 0 ? 'None' : music_track}`, menuYCoordOf("music"));
 
     if (menu_focus !== "resume") {
       drawMenuArrow(menu_focus, false);
