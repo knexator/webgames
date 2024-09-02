@@ -1139,7 +1139,7 @@ function generateShareMessage() {
   // all shared phrases start with “playing #bombsnack: score xxx, speed y.
   // If playing on mobile, add it at the end of the first sentence. Then follow with…
   const intros = [
-    `playing #bombsnack: score ${score}, speed ${game_speed}💣🐍 `
+    `playing #bombsnack${is_phone ? ' on mobile' : ''}: score ${score}, speed ${game_speed}💣🐍 `
   ]
 
   let messages = [
@@ -1177,7 +1177,7 @@ function generateShareMessage() {
     return "Are you dying on purpose to see all messages?😜"
   }
 
-  return randomChoice(intros) + randomChoice(messages);
+  return randomChoice(intros) + randomChoice(messages) + ' Play at https://pinchazumos.itch.io/bombsnack';
 }
 
 function songName(track: number) {
