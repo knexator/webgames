@@ -31,9 +31,16 @@ const ctx = canvas_ctx.getContext("2d")!;
 
 const vibrate = navigator.vibrate ? () => {
   if (haptic) {
+    navigator.vibrate(1)
+  }
+} : () => { };
+
+const vibrateBomb = navigator.vibrate ? () => {
+  if (haptic) {
     navigator.vibrate([0, 100, 1])
   }
 } : () => { };
+
 
 function loadImage(name: string): Promise<HTMLImageElement> {
   return new Promise(resolve => {
@@ -737,7 +744,7 @@ function explodeBomb(k: number) {
   cur_collectables[k] = placeBomb();
   score += multiplier;
   bounceText('score');
-  vibrate();
+  vibrateBomb();
   collected_stuff_particles.push({ center: cur_bomb.pos, text: '+' + multiplier.toString(), turn: turn });
   SOUNDS.bomb.play();
   exploding_cross_particles.push({ center: cur_bomb.pos, turn: turn });
