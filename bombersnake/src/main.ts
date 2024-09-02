@@ -286,7 +286,7 @@ let CONFIG = {
   SWIPE_DIST: 1,
   SWIPE_MARGIN: 1,
   PAUSED: false,
-  TURN_DURATION: .15,
+  TURN_DURATION: .16,
   ANIM_PERC: 0.2,
   BORDER_ARROWS: false,
   CHEAT_INMORTAL: false,
@@ -655,10 +655,10 @@ if (CONFIG.START_ON_BORDER) {
 score = 0
 input_queue = [];
 cur_collectables = RECORDING_GIF ? [
-  new Multiplier(new Vec2(5, 5)),
-  new Bomb(new Vec2(3, 3)),
-  new Bomb(new Vec2(7, 5)),
-  new Bomb(new Vec2(4, 7))
+  new Multiplier(new Vec2(11, 6)),
+  new Bomb(new Vec2(11, 14)),
+  new Bomb(new Vec2(12, 8)),
+  new Bomb(new Vec2(5, 6))
 ] : [new Bomb(BOARD_SIZE.sub(Vec2.both(2)))];
 turn_offset = 0.99; // always between 0..1
 exploding_cross_particles = [];
@@ -1669,10 +1669,12 @@ function draw(bullet_time: boolean) {
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillStyle = COLORS.TEXT;
+  
+  
   if (game_state === "loading_menu") {
-
-    drawImageCentered((mod(last_timestamp / 600, 1) > 0.5) ? TEXTURES.logo.frame1 : TEXTURES.logo.frame2,
+	drawImageCentered((mod(last_timestamp / 600, 1) > 0.5) ? TEXTURES.logo.frame1 : TEXTURES.logo.frame2,
       new Vec2(canvas_ctx.width / 2, menuYCoordOf("logo")));
+		
 
     drawCenteredShadowedTextWithColor(
       (mod(last_timestamp / 1200, 1) < 0.5) ? COLORS.TEXT : COLORS.GRAY_TEXT,
@@ -1784,7 +1786,7 @@ function menuYCoordOf(setting: "resume" | "haptic" | "speed" | "music" | "start"
   let s = 0;
   switch (setting) {
     case "logo":
-      s = .10;
+      s = .18;
       // s = .10 + Math.sin(last_timestamp * 1 / 1000) * .01;
       break;
     case "haptic":
