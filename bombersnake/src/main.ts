@@ -365,7 +365,7 @@ const gui = new GUI();
 gui.hide();
 
 
-function loadSoundAsync(url: string, volume: number, loop: boolean = true) {
+function loadSoundAsync(url: string, volume: number, loop: boolean = false) {
   return new Promise<Howl>((resolve, reject) => {
     const asdf = new Howl({
       src: [url],
