@@ -362,86 +362,86 @@ const SOUNDS = {
     src: [oggUrl("Song1")],
     // autoplay: true,
     loop: true,
-    volume: 50,
+    volume: 1,
   }),
   song2: new Howl({
     src: [oggUrl("Song2")],
     loop: true,
-    volume: .5,
+    volume: 0,
   }),
   song3: new Howl({
     src: [oggUrl("Song3")],
     loop: true,
-    volume: .5,
+    volume: 0.3,
   }),
   song4: new Howl({
     src: [oggUrl("Song4")],
     loop: true,
-    volume: .5,
+    volume: 0.3,
   }),
   song5: new Howl({
     src: [mp3Url("Song5")],
     loop: true,
-    volume: .6,
+    volume: 0.4,
   }),
   song6: new Howl({
     src: [mp3Url("Song6")],
     loop: true,
-    volume: .5,
+    volume: 0.3,
   }),
   song7: new Howl({
     src: [oggUrl("Song7")],
     loop: true,
-    volume: .5,
+    volume: 0.3,
   }),
   hiss1: new Howl({
     src: [wavUrl("hiss1")],
     // autoplay: true,
-    volume: 1,
+    volume: 0.25,
   }),
   bomb: new Howl({
     src: [wavUrl("apple")],
-    volume: 0.7,
+    volume: 0.5,
   }),
   move1: new Howl({
     src: [wavUrl("move1")],
-    volume: 1.0,
+    volume: 0.25,
   }),
   move2: new Howl({
     src: [wavUrl("move2")],
-    volume: 1.0,
+    volume: 0.25,
   }),
   crash: new Howl({
     src: [wavUrl("crash")],
-    volume: 1.0,
+    volume: 0.5,
   }),
   star: new Howl({
     src: [wavUrl("star")],
-    volume: 2.5,
+    volume: 1.5,
   }),
   clock: new Howl({
     src: [wavUrl("clock")],
-    volume: 2.2,
+    volume: 1.2,
   }),
   tick: new Howl({
     src: [mp3Url("tick")],
-    volume: 2.5,
+    volume: 1,
   }),
   tock: new Howl({
     src: [mp3Url("tock")],
-    volume: 2.5,
+    volume: 1,
   }),
   menu1: new Howl({
     src: [wavUrl("menu1")],
-    volume: 0.5,
+    volume: 0.25,
   }),
   menu2: new Howl({
     src: [wavUrl("menu2")],
-    volume: 0.5,
+    volume: 0.25,
   }),
   waffel: new Howl({
     src: [oggUrl("waffel")],
-    volume: 2,
+    volume: 1.5,
   }),
 };
 const SONGS = [null, SOUNDS.song1, SOUNDS.song2, SOUNDS.song3, SOUNDS.song4, SOUNDS.song5, SOUNDS.song6, SOUNDS.song7];
@@ -460,7 +460,7 @@ function updateSong() {
   }
 }
 
-Howler.volume(.75);
+Howler.volume(1);
 // Howler.volume(0);
 
 const INITIAL_VOLUME = objectMap(SOUNDS, x => x.volume());
