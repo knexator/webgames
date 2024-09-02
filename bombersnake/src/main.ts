@@ -136,8 +136,8 @@ const TOP_OFFSET = 2;
 
 const container = document.querySelector("#canvas_container") as HTMLElement;
 
-// const TILE_SIZE = is_phone ? Math.round(container.clientWidth / (BOARD_SIZE.x + MARGIN * 2)) : 32;
-const TILE_SIZE = is_phone ? 15 : 32;
+const TILE_SIZE = is_phone ? Math.round(container.clientWidth / (BOARD_SIZE.x + MARGIN * 2)) : 32;
+// const TILE_SIZE = is_phone ? 15 : 32;
 MARGIN = Math.round(TILE_SIZE * MARGIN) / TILE_SIZE;
 
 container.style.width = `${TILE_SIZE * (BOARD_SIZE.x + MARGIN * 2)}px`
