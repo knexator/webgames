@@ -376,71 +376,6 @@ function loadSoundAsync(url: string, volume: number, loop: boolean = true) {
   });
 }
 
-const sounds_async = await Promise.all([
-  loadSoundAsync(oggUrl("Song1"), 1, true),
-  loadSoundAsync(oggUrl("Song2"), 0.35, true),
-  loadSoundAsync(oggUrl("Song3"), 0.35, true),
-  loadSoundAsync(oggUrl("Song4"), 0.35, true),
-  loadSoundAsync(mp3Url("Song5"), 0.45, true),
-  loadSoundAsync(mp3Url("Song6"), 0.45, true),
-  loadSoundAsync(oggUrl("Song7"), 0.35, true),
-  loadSoundAsync(wavUrl("hiss1"), 0.25),
-  loadSoundAsync(wavUrl("apple"), 0.5),
-  loadSoundAsync(wavUrl("move1"), 0.25),
-  loadSoundAsync(wavUrl("move2"), 0.25),
-  loadSoundAsync(wavUrl("crash"), 0.5),
-  loadSoundAsync(wavUrl("star"), 1.5),
-  loadSoundAsync(wavUrl("clock"), 1.2),
-  loadSoundAsync(mp3Url("tick"), 1),
-  loadSoundAsync(mp3Url("tock"), 1),
-  loadSoundAsync(wavUrl("menu1"), .25),
-  loadSoundAsync(wavUrl("menu2"), .25),
-  loadSoundAsync(oggUrl("waffel"), 1.1),
-]);
-
-const SOUNDS = {
-  song1: sounds_async[0],
-  song2: sounds_async[1],
-  song3: sounds_async[2],
-  song4: sounds_async[3],
-  song5: sounds_async[4],
-  song6: sounds_async[5],
-  song7: sounds_async[6],
-  hiss1: sounds_async[7],
-  bomb: sounds_async[8],
-  move1: sounds_async[9],
-  move2: sounds_async[10],
-  crash: sounds_async[11],
-  star: sounds_async[12],
-  clock: sounds_async[13],
-  tick: sounds_async[14],
-  tock: sounds_async[15],
-  menu1: sounds_async[16],
-  menu2: sounds_async[17],
-  waffel: sounds_async[18],
-};
-const SONGS = [null, SOUNDS.song1, SOUNDS.song2, SOUNDS.song3, SOUNDS.song4, SOUNDS.song5, SOUNDS.song6, SOUNDS.song7];
-// SONGS.forEach((x, k) => {
-//   x.play();
-//   x.mute(k != 0);
-// })
-// SONGS[0].play();
-
-function updateSong() {
-  // SONGS.forEach((x, k) => x.mute(k !== music_track));
-  SONGS.forEach(x => x?.stop())
-  const song = SONGS[music_track];
-  if (song !== null) {
-    song.play();
-  }
-}
-
-Howler.volume(1);
-// Howler.volume(0);
-
-const INITIAL_VOLUME = objectMap(SOUNDS, x => x.volume());
-const INITIAL_VOLUME_SONGS = SONGS.map(x => x?.volume());
-
 const SPEEDS = [0.2, 0.16, 0.12];
 
 // https://lospec.com/palette-list/sweetie-16
@@ -655,6 +590,77 @@ music_track = 1;
 menu_focus = "resume";
 share_button_state = { folded: true, hovered: null };
 
+let last_timestamp = 0;
+const bouncyTexts = new Map<string, number>();
+
+drawLoadingScreen();
+
+const sounds_async = await Promise.all([
+  loadSoundAsync(oggUrl("Song1"), 1, true),
+  loadSoundAsync(oggUrl("Song2"), 0.35, true),
+  loadSoundAsync(oggUrl("Song3"), 0.35, true),
+  loadSoundAsync(oggUrl("Song4"), 0.35, true),
+  loadSoundAsync(mp3Url("Song5"), 0.45, true),
+  loadSoundAsync(mp3Url("Song6"), 0.45, true),
+  loadSoundAsync(oggUrl("Song7"), 0.35, true),
+  loadSoundAsync(wavUrl("hiss1"), 0.25),
+  loadSoundAsync(wavUrl("apple"), 0.5),
+  loadSoundAsync(wavUrl("move1"), 0.25),
+  loadSoundAsync(wavUrl("move2"), 0.25),
+  loadSoundAsync(wavUrl("crash"), 0.5),
+  loadSoundAsync(wavUrl("star"), 1.5),
+  loadSoundAsync(wavUrl("clock"), 1.2),
+  loadSoundAsync(mp3Url("tick"), 1),
+  loadSoundAsync(mp3Url("tock"), 1),
+  loadSoundAsync(wavUrl("menu1"), .25),
+  loadSoundAsync(wavUrl("menu2"), .25),
+  loadSoundAsync(oggUrl("waffel"), 1.1),
+]);
+
+const SOUNDS = {
+  song1: sounds_async[0],
+  song2: sounds_async[1],
+  song3: sounds_async[2],
+  song4: sounds_async[3],
+  song5: sounds_async[4],
+  song6: sounds_async[5],
+  song7: sounds_async[6],
+  hiss1: sounds_async[7],
+  bomb: sounds_async[8],
+  move1: sounds_async[9],
+  move2: sounds_async[10],
+  crash: sounds_async[11],
+  star: sounds_async[12],
+  clock: sounds_async[13],
+  tick: sounds_async[14],
+  tock: sounds_async[15],
+  menu1: sounds_async[16],
+  menu2: sounds_async[17],
+  waffel: sounds_async[18],
+};
+const SONGS = [null, SOUNDS.song1, SOUNDS.song2, SOUNDS.song3, SOUNDS.song4, SOUNDS.song5, SOUNDS.song6, SOUNDS.song7];
+// SONGS.forEach((x, k) => {
+//   x.play();
+//   x.mute(k != 0);
+// })
+// SONGS[0].play();
+
+function updateSong() {
+  // SONGS.forEach((x, k) => x.mute(k !== music_track));
+  SONGS.forEach(x => x?.stop())
+  const song = SONGS[music_track];
+  if (song !== null) {
+    song.play();
+  }
+}
+
+Howler.volume(1);
+// Howler.volume(0);
+
+const INITIAL_VOLUME = objectMap(SOUNDS, x => x.volume());
+const INITIAL_VOLUME_SONGS = SONGS.map(x => x?.volume());
+
+
 function findSpotWithoutWall(): Vec2 {
   let pos: Vec2;
   let valid: boolean;
@@ -761,7 +767,7 @@ document.querySelector<HTMLButtonElement>("#sliders_button")?.addEventListener("
 
 // objectMap(SOUNDS, x => x.mute(true));
 
-let last_timestamp = 0;
+last_timestamp = 0;
 // main loop; game logic lives here
 function every_frame(cur_timestamp: number) {
   // in seconds
@@ -2088,7 +2094,6 @@ function drawImageCentered(image: HTMLImageElement, center: Vec2, scale: number 
   ctx.drawImage(image, offset.x, offset.y, display_size.x, display_size.y);
 }
 
-const bouncyTexts = new Map<string, number>();
 function bounceText(id: string) {
   bouncyTexts.set(id, 1);
 }
@@ -2127,3 +2132,413 @@ function blinking(period: number, cur_time: number, color1: string, color2: stri
 //   music.play();
 //   console.log('asdf')
 // }, {once: true});
+
+function drawLoadingScreen() {
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.translate(cur_screen_shake.x, cur_screen_shake.y);
+  // cur_screen_shake.actualMag = lerp(cur_screen_shake.actualMag, cur_screen_shake.targetMag, .1);
+
+  if (CONFIG.CHECKERED_BACKGROUND === "no") {
+    ctx.fillStyle = false ? (CONFIG.ALWAYS_SLOWDOWN ? "#191b2b" : "black") : COLORS.BACKGROUND;
+    ctx.fillRect(0, 0, canvas_ctx.width, canvas_ctx.height);
+  }
+  // ctx.fillRect(0, 0, BOARD_SIZE.x * TILE_SIZE, BOARD_SIZE.y * TILE_SIZE);
+
+  ctx.translate(MARGIN * TILE_SIZE, (MARGIN + TOP_OFFSET) * TILE_SIZE);
+
+  if (CONFIG.CHECKERED_BACKGROUND !== "no") {
+    let fill: keyof typeof COLORS;
+    for (let i = 0; i < BOARD_SIZE.x; i++) {
+      for (let j = 0; j < BOARD_SIZE.y; j++) {
+        if (CONFIG.CHECKERED_BACKGROUND === "2") {
+          fill = mod(i + j, 2) === 0 ? "BACKGROUND" : "BACKGROUND_2";
+        } else if (CONFIG.CHECKERED_BACKGROUND === "3") {
+          fill = mod(i + j, 2) === 0 ? "BACKGROUND_3"
+            : mod(i, 2) === 0 ? "BACKGROUND" : "BACKGROUND_2";
+        } else if (CONFIG.CHECKERED_BACKGROUND === "3_v2") {
+          fill = mod(i + j, 2) === 0 ? "BACKGROUND_3"
+            : mod(i + j + 1, 4) === 0 ? "BACKGROUND" : "BACKGROUND_2";
+        } else {
+          throw new Error("unreachable");
+        }
+        fillTile(new Vec2(i, j), fill);
+      }
+    }
+  }
+
+  if (CONFIG.SHADOW) {
+    snake_blocks.forEach((cur_block, k) => {
+      const is_scarf = CONFIG.SCARF === "full" && turn - cur_block.t === 1;
+      if (cur_block.in_dir.equal(cur_block.out_dir.scale(-1))) {
+        if (is_scarf && turn_offset < CONFIG.ANIM_PERC) {
+          const center = cur_block.pos.add(Vec2.both(CONFIG.SHADOW_DIST)).addXY(.5, .5).add(cur_block.in_dir.scale((1 - turn_offset / CONFIG.ANIM_PERC) / 2));
+          fillTileCenterSize(center, Vec2.both(1), "SHADOW");
+        } else {
+          fillTile(cur_block.pos.add(Vec2.both(CONFIG.SHADOW_DIST)), "SHADOW");
+        }
+      } else if (cur_block.out_dir.equal(Vec2.zero)) {
+        let rounded_size = Math.min(.5, CONFIG.ROUNDED_SIZE);
+        // let rounded_size = .5;
+        let center = cur_block.pos.addXY(.5, .5).add(Vec2.both(CONFIG.SHADOW_DIST));
+        if (turn_offset < CONFIG.ANIM_PERC) {
+          center = center.add(cur_block.in_dir.scale(1 - turn_offset / CONFIG.ANIM_PERC));
+        }
+        fillTileCenterSize(center.add(cur_block.in_dir.scale(rounded_size / 2)),
+          new Vec2(
+            cur_block.in_dir.x == 0 ? 1 : 1 - rounded_size,
+            cur_block.in_dir.y == 0 ? 1 : 1 - rounded_size,
+          ), "SHADOW"
+        )
+        fillTileCenterSize(center,
+          new Vec2(
+            cur_block.in_dir.y == 0 ? 1 : 1 - rounded_size * 2,
+            cur_block.in_dir.x == 0 ? 1 : 1 - rounded_size * 2,
+          ), "SHADOW"
+        )
+        fillCircle(center.add(cur_block.in_dir.add(rotQuarterA(cur_block.in_dir)).scale(rounded_size - .5)), rounded_size, "SHADOW");
+        fillCircle(center.add(cur_block.in_dir.add(rotQuarterB(cur_block.in_dir)).scale(rounded_size - .5)), rounded_size, "SHADOW");
+      } else {
+        const center = cur_block.pos.addXY(.5, .5).add(Vec2.both(CONFIG.SHADOW_DIST));
+        fillTileCenterSize(center.add(cur_block.in_dir.scale(CONFIG.ROUNDED_SIZE / 2)),
+          new Vec2(
+            cur_block.in_dir.x == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
+            cur_block.in_dir.y == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
+          ), "SHADOW"
+        )
+        fillTileCenterSize(center.add(cur_block.out_dir.scale(CONFIG.ROUNDED_SIZE / 2)),
+          new Vec2(
+            cur_block.out_dir.x == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
+            cur_block.out_dir.y == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
+          ), "SHADOW"
+        )
+        ctx.save();
+        // ctx.beginPath();
+        ctx.clip(tileRegion(cur_block.pos.add(Vec2.both(CONFIG.SHADOW_DIST))));
+        fillCircle(center.add(cur_block.in_dir.add(cur_block.out_dir).scale(CONFIG.ROUNDED_SIZE - .5)), CONFIG.ROUNDED_SIZE, "SHADOW");
+        ctx.restore();
+      }
+    });
+
+    // draw collectables
+    for (let k = 0; k < cur_collectables.length; k++) {
+      const cur_collectable = cur_collectables[k];
+      if (cur_collectable instanceof Bomb) {
+        const cur_bomb = cur_collectable;
+        drawItem(cur_bomb.pos.add(Vec2.both(CONFIG.SHADOW_DIST)), 'bomb', true);
+        // ctx.fillStyle = COLORS.SHADOW;
+        // fillTile(cur_bomb.pos.add(Vec2.both(CONFIG.SHADOW_DIST)));
+        if (cur_bomb.ticking || CONFIG.FUSE_DURATION > 0) {
+          ctx.fillStyle = "black";
+          textTile(cur_bomb.fuse_left.toString(), cur_bomb.pos);
+        }
+      } else if (cur_collectable instanceof Multiplier) {
+        // ctx.fillStyle = COLORS.SHADOW;
+        // fillTile(cur_collectable.pos.add(Vec2.both(CONFIG.SHADOW_DIST));
+        drawItem(cur_collectable.pos.add(Vec2.both(CONFIG.SHADOW_DIST)), 'multiplier', true);
+      } else if (cur_collectable instanceof Clock) {
+        const clock = cur_collectable;
+        if (clock.active) {
+          drawItem(clock.pos.add(Vec2.both(CONFIG.SHADOW_DIST)), 'clock', true);
+        }
+      } else {
+        throw new Error();
+      }
+    }
+  }
+
+  // explosion particles
+  ctx.fillStyle = COLORS.EXPLOSION;
+  ctx.strokeStyle = COLORS.EXPLOSION;
+  ctx.lineWidth = 3;
+  exploding_cross_particles = exploding_cross_particles.filter(particle => {
+    if (particle.turn !== turn) return false;
+    // for (let x=0; x<BOARD_SIZE.x; x++) {
+    //   let d = Math.abs(x - particle.center.x) / BOARD_SIZE.x;
+    //   // d *= d;
+    //   if (Math.abs(d - turn_offset) < .5) {
+    //     ctx.fillRect(x * S, particle.center.y * S, S, S);
+    //   }
+    // }
+    // for (let y=0; y<BOARD_SIZE.y; y++) {
+    //   let d = Math.abs(y - particle.center.y) / BOARD_SIZE.y;
+    //   // d *= d;
+    //   if (Math.abs(d - turn_offset) < .5) {
+    //     ctx.fillRect(particle.center.x * S, y * S, S, S);
+    //   }
+    // }
+    // return true;
+
+    if (CONFIG.EXPLOSION_CIRCLE) {
+      ctx.beginPath();
+      drawCircleNoWrap(particle.center.add(Vec2.both(.5)), 8 * turn_offset);
+      ctx.stroke();
+    }
+
+    for (let y = 0; y < BOARD_SIZE.y; y++) {
+      fillTile(new Vec2(particle.center.x, y), "EXPLOSION");
+    }
+    for (let x = 0; x < BOARD_SIZE.y; x++) {
+      fillTile(new Vec2(x, particle.center.y), "EXPLOSION");
+    }
+    return true;
+  });
+
+  // snake body
+  snake_blocks.forEach((cur_block, k) => {
+    let fill: keyof typeof COLORS = mod(cur_block.t, 2) == 1 ? "SNAKE_HEAD" : "SNAKE_WALL";
+    const is_scarf = CONFIG.SCARF === "full" && turn - cur_block.t === 1;
+    if (is_scarf) {
+      fill = "SCARF_IN";
+    }
+    ctx.fillStyle = COLORS[fill];
+    if (cur_block.in_dir.equal(cur_block.out_dir.scale(-1))) {
+      if (is_scarf && turn_offset < CONFIG.ANIM_PERC) {
+        const center = cur_block.pos.addXY(.5, .5).add(cur_block.in_dir.scale(1 - turn_offset / CONFIG.ANIM_PERC));
+        fillTileCenterSize(center, Vec2.both(1), fill);
+      } else {
+        fillTile(cur_block.pos, fill);
+      }
+    } else if (cur_block.out_dir.equal(Vec2.zero)) {
+      const bounce = Math.max((bouncyTexts.get('multiplier') ?? 0), (bouncyTexts.get('score') ?? 0))
+      if (CONFIG.HEAD_COLOR) {
+        fill = "HEAD";
+        ctx.fillStyle = COLORS.HEAD;
+      }
+      let rounded_size = Math.min(.5, CONFIG.ROUNDED_SIZE);
+      // let rounded_size = .5;
+      let center = cur_block.pos.addXY(.5, .5);
+      if (turn_offset < CONFIG.ANIM_PERC) {
+        center = center.add(cur_block.in_dir.scale(1 - turn_offset / CONFIG.ANIM_PERC));
+      }
+
+      const real_center = center.scale(TILE_SIZE);
+      ctx.translate(real_center.x, real_center.y);
+      const bounce_scale = 1 + CONFIG.HEAD_BOUNCE * bounce;
+      ctx.scale(bounce_scale, bounce_scale);
+      center = Vec2.zero;
+
+      fillTileCenterSize(center.add(cur_block.in_dir.scale(rounded_size / 2)),
+        new Vec2(
+          cur_block.in_dir.x == 0 ? 1 : 1 - rounded_size,
+          cur_block.in_dir.y == 0 ? 1 : 1 - rounded_size,
+        ), fill
+      )
+      fillTileCenterSize(center,
+        new Vec2(
+          cur_block.in_dir.y == 0 ? 1 : 1 - rounded_size * 2,
+          cur_block.in_dir.x == 0 ? 1 : 1 - rounded_size * 2,
+        ), fill
+      )
+      fillCircle(center.add(cur_block.in_dir.add(rotQuarterA(cur_block.in_dir)).scale(rounded_size - .5)), rounded_size, fill);
+      fillCircle(center.add(cur_block.in_dir.add(rotQuarterB(cur_block.in_dir)).scale(rounded_size - .5)), rounded_size, fill);
+
+      // eye
+      let eye_texture = game_state === "lost"
+        ? TEXTURES.eye.KO
+        : false
+          ? TEXTURES.eye.closed
+          : TEXTURES.eye.open;
+      if (cur_block.in_dir.equal(new Vec2(1, 0))) {
+        drawFlippedTexture(center, eye_texture, 1 + CONFIG.EYE_BOUNCE * bounce);
+      } else {
+        drawRotatedTexture(center, eye_texture,
+          Math.atan2(-cur_block.in_dir.y, -cur_block.in_dir.x), 1 + CONFIG.EYE_BOUNCE * bounce);
+      }
+      // drawTexture(cur_block.pos, game_state === "lost" ? textures.eye.KO : textures.eye.open);
+      // ctx.beginPath();
+      // ctx.fillStyle = "white";
+      // drawCircle(center.add(cur_block.in_dir.scale(-.1)), .3);
+      // ctx.fill();
+      // ctx.beginPath();
+      // ctx.fillStyle = "black";
+      // drawCircle(center.add(cur_block.in_dir.scale(-.2)), .1);
+      // ctx.fill();
+
+      ctx.scale(1 / bounce_scale, 1 / bounce_scale);
+      ctx.translate(-real_center.x, -real_center.y);
+
+    } else {
+      const center = cur_block.pos.addXY(.5, .5)
+      if (is_scarf && turn_offset < CONFIG.ANIM_PERC) {
+        let anim_t = turn_offset / CONFIG.ANIM_PERC;
+        // center = center.add(cur_block.in_dir.scale(1 - ));
+        fillTileCenterSize(center.add(cur_block.in_dir.scale(.5 + (1 - anim_t) / 2)), new Vec2(
+          cur_block.in_dir.x == 0 ? 1 : 1 - anim_t,
+          cur_block.in_dir.y == 0 ? 1 : 1 - anim_t,
+        ), fill);
+      }
+      fillTileCenterSize(center.add(cur_block.in_dir.scale(CONFIG.ROUNDED_SIZE / 2)),
+        new Vec2(
+          cur_block.in_dir.x == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
+          cur_block.in_dir.y == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
+        ), fill
+      )
+      fillTileCenterSize(center.add(cur_block.out_dir.scale(CONFIG.ROUNDED_SIZE / 2)),
+        new Vec2(
+          cur_block.out_dir.x == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
+          cur_block.out_dir.y == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
+        ), fill
+      )
+      ctx.save();
+      ctx.beginPath();
+      ctx.clip(tileRegion(cur_block.pos));
+      fillCircle(center.add(cur_block.in_dir.add(cur_block.out_dir).scale(CONFIG.ROUNDED_SIZE - .5)), CONFIG.ROUNDED_SIZE, fill);
+      ctx.restore();
+    }
+  });
+
+  if (CONFIG.SCARF !== "no") {
+    snake_blocks.forEach((cur_block, k) => {
+      if (turn - cur_block.t !== 1) return;
+      ctx.fillStyle = COLORS.SCARF_OUT;
+      // fillTile(cur_block.pos);
+      const center = cur_block.pos.addXY(.5, .5)
+      if (CONFIG.SCARF === "full") {
+        fillTileCenterSize(
+          center.add(cur_block.in_dir.scale(.5 - CONFIG.SCARF_BORDER_WIDTH / 2)),
+          new Vec2(
+            cur_block.in_dir.x == 0 ? 1 : CONFIG.SCARF_BORDER_WIDTH,
+            cur_block.in_dir.y == 0 ? 1 : CONFIG.SCARF_BORDER_WIDTH
+          ), "SCARF_OUT"
+        );
+      }
+      fillTileCenterSize(
+        center.add(cur_block.out_dir.scale(.5 - CONFIG.SCARF_BORDER_WIDTH / 2)),
+        new Vec2(
+          cur_block.out_dir.x == 0 ? 1 : CONFIG.SCARF_BORDER_WIDTH,
+          cur_block.out_dir.y == 0 ? 1 : CONFIG.SCARF_BORDER_WIDTH
+        ), "SCARF_OUT"
+      );
+    });
+  }
+
+  // draw collectables
+  for (let k = 0; k < cur_collectables.length; k++) {
+    const cur_collectable = cur_collectables[k];
+    if (cur_collectable instanceof Bomb) {
+      const cur_bomb = cur_collectable;
+      drawItem(cur_bomb.pos, 'bomb');
+      // ctx.fillStyle = COLORS.BOMB;
+      // fillTile(cur_bomb.pos);
+      if (cur_bomb.ticking || CONFIG.FUSE_DURATION > 0) {
+        ctx.fillStyle = "black";
+        textTile(cur_bomb.fuse_left.toString(), cur_bomb.pos);
+      }
+    } else if (cur_collectable instanceof Multiplier) {
+      // ctx.fillStyle = COLORS.MULTIPLIER;
+      // fillTile(cur_collectable.pos);
+      drawItem(cur_collectable.pos, 'multiplier');
+    } else if (cur_collectable instanceof Clock) {
+      const clock = cur_collectable;
+      if (clock.active) {
+        drawItem(clock.pos, 'clock');
+        for (let i = -1; i <= 1; i++) {
+          for (let j = -1; j <= 1; j++) {
+            if (!CONFIG.WRAP_ITEMS && (i !== 0 || j !== 0)) continue;
+            ctx.strokeStyle = "black";
+            ctx.beginPath();
+            const center = clock.pos.add(Vec2.both(.5)).add(new Vec2(i * BOARD_SIZE.x, j * BOARD_SIZE.y));
+            const hand_delta = Vec2.fromTurns(
+              remap(clock.remaining_turns - turn_offset, 0, CONFIG.CLOCK_DURATION, -1 / 4, -5 / 4)
+            ).scale(.3);
+            moveTo(center.scale(TILE_SIZE));
+            lineTo(center.add(hand_delta).scale(TILE_SIZE));
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.fillStyle = "black";
+            drawCircleNoWrap(center, .05);
+            drawCircleNoWrap(center.add(hand_delta), .05);
+            ctx.fill();
+          }
+        }
+      }
+    } else {
+      throw new Error();
+    }
+  }
+
+  // won points particles
+  collected_stuff_particles = collected_stuff_particles.filter(particle => {
+    let t = remap(turn + turn_offset, particle.turn, particle.turn + 3, 0, 1);
+    if (t > 1) return false;
+    let dx = particle.center.x > BOARD_SIZE.x - 2 ? -1 : 1;
+    ctx.font = `bold ${Math.floor((is_phone ? 35 : 25) * TILE_SIZE / 25)}px sans-serif`;
+    // text outline:
+    // ctx.strokeStyle = "black";
+    // ctx.strokeText(particle.text, (particle.center.x + dx) * TILE_SIZE, (particle.center.y + 1 - t * 1.5) * TILE_SIZE);
+    // text shadow
+    ctx.fillStyle = "black";
+    ctx.fillText(particle.text, (particle.center.x + dx + CONFIG.SHADOW_DIST * 0.5) * TILE_SIZE, (particle.center.y + 1 - t * 1.5 + CONFIG.SHADOW_DIST * 0.5) * TILE_SIZE);
+    // the text itself
+    ctx.fillStyle = COLORS.TEXT;
+
+    ctx.fillText(particle.text, (particle.center.x + dx) * TILE_SIZE, (particle.center.y + 1 - t * 1.5) * TILE_SIZE);
+    return true;
+  });
+
+  ctx.resetTransform();
+
+  // draw borders to hide stuff
+  ctx.fillStyle = COLORS.WEB_BG;
+  ctx.fillRect(0, 0, canvas_ctx.width, (TOP_OFFSET + MARGIN - CONFIG.DRAW_WRAP) * TILE_SIZE);
+  ctx.fillRect(0, 0, (MARGIN - CONFIG.DRAW_WRAP) * TILE_SIZE, canvas_ctx.height);
+  ctx.fillRect(0, (TOP_OFFSET + MARGIN + BOARD_SIZE.y + CONFIG.DRAW_WRAP) * TILE_SIZE, canvas_ctx.width, (TOP_OFFSET + MARGIN - CONFIG.DRAW_WRAP + 1) * TILE_SIZE);
+  ctx.fillRect((MARGIN + BOARD_SIZE.x + CONFIG.DRAW_WRAP) * TILE_SIZE, 0, (MARGIN - CONFIG.DRAW_WRAP + 1) * TILE_SIZE, canvas_ctx.height);
+
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillStyle = COLORS.TEXT;
+
+
+  drawImageCentered((mod(last_timestamp / 600, 1) > 0.5) ? TEXTURES.logo.frame1 : TEXTURES.logo.frame2,
+    new Vec2(canvas_ctx.width / 2, menuYCoordOf("logo")));
+
+
+  drawCenteredShadowedTextWithColor(
+    (mod(last_timestamp / 1200, 1) < 0.5) ? COLORS.TEXT : COLORS.GRAY_TEXT,
+    'Loading...',
+    menuYCoordOf("start") - 1 * TILE_SIZE
+  );
+
+  drawCenteredShadowedText('Please scroll down', (MARGIN + TOP_OFFSET + BOARD_SIZE.y * 0.41) * TILE_SIZE);
+  drawCenteredShadowedText('to learn to play', (MARGIN + TOP_OFFSET + BOARD_SIZE.y * 0.49) * TILE_SIZE);
+
+  drawCenteredShadowedText('By knexator & Pinchazumos', (MARGIN + TOP_OFFSET + BOARD_SIZE.y * 1.05) * TILE_SIZE);
+
+
+  // draw UI bar
+  ctx.font = `bold ${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
+  ctx.translate(MARGIN * TILE_SIZE, (TOP_OFFSET + MARGIN - CONFIG.DRAW_WRAP - 1 - .4) * TILE_SIZE);
+  ctx.fillStyle = game_state === 'lost' ? COLORS.HIGHLIGHT_BAR : "black";
+  ctx.fillRect(-CONFIG.DRAW_WRAP * TILE_SIZE, 0, (BOARD_SIZE.x + CONFIG.DRAW_WRAP * 2) * TILE_SIZE, TILE_SIZE * 1.2);
+  ctx.fillStyle = "white";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "bottom";
+  fillJumpyText('multiplier', `x${multiplier}`, (16.5 - .5 * Math.floor(Math.log10(multiplier))) * TILE_SIZE, 1.15 * TILE_SIZE);
+
+  ctx.fillStyle = game_state === 'lost'
+    ? blinking(1000, last_timestamp, COLORS.TEXT_WIN_SCORE, COLORS.TEXT_WIN_SCORE_2)
+    : COLORS.TEXT;
+  fillJumpyText('score', `Score: ${score}`, (5.9 - .25 * Math.floor(Math.log10(Math.max(1, score)))) * TILE_SIZE, 1.15 * TILE_SIZE);
+  // ctx.drawImage(TEXTURES.multiplier, 12.5 * TILE_SIZE, 0, TILE_SIZE, TILE_SIZE);
+
+  if (game_state !== 'loading_menu') {
+    drawImageCentered(TEXTURES.settings, new Vec2(-TILE_SIZE * 1.2, TILE_SIZE * .6), settings_overlapped ? .8 : .7);
+  }
+
+  // extra arrows
+  if (CONFIG.BORDER_ARROWS) {
+    ctx.resetTransform();
+    ctx.translate(MARGIN * TILE_SIZE, (TOP_OFFSET + MARGIN) * TILE_SIZE);
+    ctx.fillStyle = 'red';
+    const head_position = snake_blocks[snake_blocks.length - 1].pos;
+    drawRotatedTextureNoWrap(new Vec2(-1, head_position.y).add(Vec2.both(.5)),
+      anyBlockAt(new Vec2(BOARD_SIZE.x - 1, head_position.y)) ? TEXTURES.border_arrow.red : TEXTURES.border_arrow.white, Math.PI, new Vec2(.5, 1));
+    drawRotatedTextureNoWrap(new Vec2(BOARD_SIZE.x, head_position.y).add(Vec2.both(.5)),
+      anyBlockAt(new Vec2(0, head_position.y)) ? TEXTURES.border_arrow.red : TEXTURES.border_arrow.white, 0, new Vec2(.5, 1));
+    drawRotatedTextureNoWrap(new Vec2(head_position.x, -1).add(Vec2.both(.5)),
+      anyBlockAt(new Vec2(head_position.x, BOARD_SIZE.y - 1)) ? TEXTURES.border_arrow.red : TEXTURES.border_arrow.white, -Math.PI / 2, new Vec2(.5, 1));
+    drawRotatedTextureNoWrap(new Vec2(head_position.x, BOARD_SIZE.y).add(Vec2.both(.5)),
+      anyBlockAt(new Vec2(head_position.x, 1)) ? TEXTURES.border_arrow.red : TEXTURES.border_arrow.white, Math.PI / 2, new Vec2(.5, 1));
+  }
+}
