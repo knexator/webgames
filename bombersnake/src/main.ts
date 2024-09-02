@@ -464,6 +464,7 @@ Howler.volume(.75);
 // Howler.volume(0);
 
 const INITIAL_VOLUME = objectMap(SOUNDS, x => x.volume());
+const INITIAL_VOLUME_SONGS = SONGS.map(x => x?.volume());
 
 const SPEEDS = [0.2, 0.16, 0.12];
 
@@ -750,7 +751,7 @@ function explodeBomb(k: number) {
 function startTickTockSound(): void {
   tick_or_tock = false;
   SOUNDS.tick.play();
-  SONGS.forEach(music => music?.fade(music.volume(), CONFIG.MUSIC_DURING_TICKTOCK * INITIAL_VOLUME.song1, .3));
+  SONGS.forEach((music, k) => music?.fade(music.volume(), CONFIG.MUSIC_DURING_TICKTOCK * INITIAL_VOLUME_SONGS[k]!, .3));
   SOUNDS.bomb.fade(SOUNDS.bomb.volume(), CONFIG.MUSIC_DURING_TICKTOCK * INITIAL_VOLUME.bomb, .3);
   SOUNDS.star.fade(SOUNDS.star.volume(), CONFIG.MUSIC_DURING_TICKTOCK * INITIAL_VOLUME.star, .3);
   tick_tock_interval_id = setInterval(() => {
@@ -760,7 +761,7 @@ function startTickTockSound(): void {
 }
 function stopTickTockSound(): void {
   if (tick_tock_interval_id !== null) {
-    SONGS.forEach(music => music?.fade(music.volume(), INITIAL_VOLUME.song1, .3));
+    SONGS.forEach((music, k) => music?.fade(music.volume(), INITIAL_VOLUME_SONGS[k]!, .3));
     SOUNDS.bomb.fade(SOUNDS.bomb.volume(), INITIAL_VOLUME.bomb, .3);
     SOUNDS.star.fade(SOUNDS.star.volume(), INITIAL_VOLUME.star, .3);
     clearInterval(tick_tock_interval_id);
