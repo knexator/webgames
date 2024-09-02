@@ -1138,45 +1138,42 @@ function generateShareMessage() {
   // all shared phrases start with “playing #bombsnack: score xxx, speed y.
   // If playing on mobile, add it at the end of the first sentence. Then follow with…
   const intros = [
-    `playing #bombsnack: score ${score}, speed ${game_speed}. `
+    `playing #bombsnack: score ${score}, speed ${game_speed}💣🐍 `
   ]
 
   let messages = [
-    `Ate a bomb, had a blast. (Drum roll)`,
-    `No clue what clocks do, don't wanna read instructions.`,
-    `Gaem is fun but wheres the story, what are the snakes motivations?`,
-    `cheat code: x sequence of buttons activates the debug mode.`,
-    `big secret: if you play for 30s without collecting anything you unlock a hidden level.`,
-    `can you believe the Devs chose this BS over a proper leaderboard?`,
-    `Ofc I don't die in the first 5 seconds, ther speed options are for softies #git gud.`,
-    `funny how the snake seems to change mood depending on her direction.`,
-    `this way of tracking scores allows cheating, and I totally didn't rewrite mine to raise it.`,
-    `insider info: the Devs wanted to include bullet time, but it was cut. Imagine that.`,
-    `nsider info: one of the Devs is such a city-boy he has never seen a snake irl.`,
-    `Insider info: one of the Devs is on the spectrum! Everyone is getting labelled these days am I right?`,
-    `insider info: the alpha snake used to wear a scarf but snakes don't use clothes (they do eat bombs ofc).`,
-    `don't eat bombs at home.`,
-    `insider info: the amazing border-view almost didn't make the cut.`,
-    `insider info: this game also cheats in your favour. Sometimes it tries to spawn bombs on the most crowded lines, otherwise those could get stale.`,
-    `the clock icon might become obsolete eventually as new kids don't use them.`,
-    `insider info: the game took 40 times longer than planned to be finished.`,
-    `insider info: this tiny game was tested by over 30 students! ❤️ you all, and u too @sai.`,
-    `Supongo que toca escribir al menos 1 de estos en español. Lo sentimos pero traducir todo y detectar tu idioma sería demasiado incordio.`,
-    `I'm tired of the Devs forcing their bad punchlines on me (but I do like the game).`,
-    `Devs: you can write your own stuff too you know.`,
-    `I'm still trying to find out all the predefined phrases, send help.`,
+    `Ate a bomb, had a blast💥🥁`,
+    `No clue what clocks do 🕒 don't wanna read instructions.`,
+    `Gaem is fun but wheres the story, what are the snakes motivations?🤓`,
+    `cheat code: ⬆️⬆️⬇️⬇️⬅️➡️⬅➡️ activates the debug mode😜`,
+    `big secret: if you play for 30s without collecting anything you unlock a hidden level😜`,
+    `can you believe the Devs chose this BS over a proper leaderboard?😜`,
+    `Ofc I didn't die in the first 10 seconds, speed options are for softies #git gud😎`,
+    `funny how the snake seems to change mood depending on her direction😆`,
+    `this way of tracking scores allows cheating, and I totally didn't rewrite mine to raise it😎`,
+    `insider info: one of the Devs is such a city-boy he has never seen a snake irl🤫`,
+    `Insider info: one of the Devs is on the spectrum! Omg too many labels these days amirite?😆`,
+    `insider info: the alpha snake used to wear a scarf but snakes don't use clothes (they do eat bombs ofc)🐍`,
+    `don't eat bombs at home⚠️`,
+    `insider info: this game also cheats in your favour. Sometimes it tries to spawn bombs on the most crowded lines, otherwise those could get stale🤫`,
+    `insider info: the game took 40 times longer than planned to be finished😅`,
+    `insider info: this tiny game was tested by over 30 students! ❤️ you all, and u too Sai`,
+    `Supongo que toca escribir al menos 1 de estos en español. Lo sentimos pero traducir todo y detectar tu idioma sería demasiado incordio😅`,
+    `I'm tired of the Devs forcing their bad punchlines on me (but I do like the game)😜`,
+    `Devs: you can write your own stuff too you know😜`,
+    `I'm still trying to find out all the predefined phrases, send help😅`,
   ]
-  if (multiplier === 0) messages.push(`That many points without a single clock, take that Pinch.`);
-  if (multiplier * 10 > score) messages.push(`got a ${multiplier} multiplier but very few bombs :(. Facepalm.`);
+  //if (multiplier === 0) messages.push(`That many points without a single clock, take that Pinch.`);
+  if (multiplier * 10 > score) messages.push(`got a ${multiplier} multiplier but very few bombs 😅😅😅 too greedy`);
 
-  if (game_speed == 2) {
+  /*if (game_speed == 2) {
     messages.push(`max speed is insane, wtf Devs?`);
     messages.push(`max speed is still easy, wtf Devs?`);
   }
   messages.push(`My fav song is ${songName(music_track)}, props to ${songAuthor(music_track)}`);
-
+*/
   if ((last_lost_timestamp - started_at_timestamp) / 1000 < 4) {
-    return "Are you dying on purpose to see all messages?"
+    return "Are you dying on purpose to see all messages?😜"
   }
 
   return randomChoice(intros) + randomChoice(messages);
