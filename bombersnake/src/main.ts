@@ -31,7 +31,7 @@ const ctx = canvas_ctx.getContext("2d")!;
 
 const vibrate = navigator.vibrate ? () => {
   if (haptic) {
-    navigator.vibrate(1)
+    navigator.vibrate([0, 100, 1])
   }
 } : () => { };
 
