@@ -1156,7 +1156,7 @@ function generateShareMessage() {
   ]
   //if (multiplier === 0) messages.push(`That many points without a single clock, take that Pinch.`);
   if (multiplier * 3 > score) messages.push(`got a ${multiplier} multiplier but very few bombs 😅😅😅 too greedy`);
-  if (score > 961 && game_speed == 2) messages.push(`According to this I've beaten the pre-release record (score 961, speed 2)😎`);
+  if (score > 961 && game_speed == 1) messages.push(`According to this I've beaten the pre-release record (score 961, speed 2)😎`);
   /*if (game_speed == 2) {
     messages.push(`max speed is insane, wtf Devs?`);
     messages.push(`max speed is still easy, wtf Devs?`);
