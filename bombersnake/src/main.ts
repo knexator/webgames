@@ -801,14 +801,14 @@ function every_frame(cur_timestamp: number) {
     CONFIG.PAUSED = !CONFIG.PAUSED;
   }
 */
-  if (input.keyboard.wasPressed(KeyCode.KeyH)) {
-    gui.show(gui._hidden);
-  }
+  // if (input.keyboard.wasPressed(KeyCode.KeyH)) {
+  //   gui.show(gui._hidden);
+  // }
 
-  if (input.keyboard.wasPressed(KeyCode.KeyM)) {
-    // SONGS[music_track].mute(!SONGS[music_track].mute());
-    objectMap(SOUNDS, x => x.mute(true));
-  }
+  // if (input.keyboard.wasPressed(KeyCode.KeyM)) {
+  //   // SONGS[music_track].mute(!SONGS[music_track].mute());
+  //   objectMap(SOUNDS, x => x.mute(true));
+  // }
 
   if (CONFIG.PAUSED) {
     draw(false);
@@ -953,7 +953,8 @@ function every_frame(cur_timestamp: number) {
       ));
     }
 
-    bullet_time = input.keyboard.isDown(KeyCode.Space);
+    bullet_time = false;
+    // bullet_time = input.keyboard.isDown(KeyCode.Space);
     if (CONFIG.ALWAYS_SLOWDOWN) {
       bullet_time = bullet_time || [
         KeyCode.KeyW, KeyCode.ArrowUp,
