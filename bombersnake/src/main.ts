@@ -63,7 +63,7 @@ const textures_async = await Promise.all(["bomb", "clock", "heart", "star"].flat
   .concat("UDLR".split('').map(c => loadImage(`Cross${c}`)))
   .concat([loadImage("shareSG"), loadImage("shareSB")])
   .concat([loadImage("logoX"), loadImage("logoBSKY")])
-  .concat([loadImage("settings")])
+  .concat([loadImage("settings"), loadImage("note"), loadImage("speed")])
 );
 const TEXTURES = {
   bomb: textures_async[0],
@@ -113,6 +113,8 @@ const TEXTURES = {
     bsky: textures_async[29],
   },
   settings: textures_async[30],
+  note: textures_async[31],
+  speed: textures_async[32],
 };
 
 function wavUrl(name: string): string {
@@ -1756,6 +1758,10 @@ function draw(bullet_time: boolean) {
 
   if (game_state !== 'loading_menu') {
     drawImageCentered(TEXTURES.settings, new Vec2(-TILE_SIZE * 1.2, TILE_SIZE * .6), settings_overlapped ? .8 : .7);
+    drawImageCentered(TEXTURES.speed, new Vec2(TILE_SIZE * .4, TILE_SIZE * .6));
+    ctx.fillText((game_speed + 1).toString(), TILE_SIZE * .9, TILE_SIZE * 1.175);
+    drawImageCentered(TEXTURES.note, new Vec2(TILE_SIZE * 2.3, TILE_SIZE * .6), .9);
+    ctx.fillText(music_track.toString(), TILE_SIZE * 2.6, TILE_SIZE * 1.175);
   }
 
   // extra arrows
@@ -2526,6 +2532,10 @@ function drawLoadingScreen() {
 
   if (game_state !== 'loading_menu') {
     drawImageCentered(TEXTURES.settings, new Vec2(-TILE_SIZE * 1.2, TILE_SIZE * .6), settings_overlapped ? .8 : .7);
+    drawImageCentered(TEXTURES.speed, new Vec2(TILE_SIZE * .4, TILE_SIZE * .6));
+    ctx.fillText((game_speed + 1).toString(), TILE_SIZE * .9, TILE_SIZE * 1.175);
+    drawImageCentered(TEXTURES.note, new Vec2(TILE_SIZE * 2.3, TILE_SIZE * .6), .9);
+    ctx.fillText((music_track + 1).toString(), TILE_SIZE * 2.6, TILE_SIZE * 1.175);
   }
 
   // extra arrows
