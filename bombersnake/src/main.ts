@@ -1146,7 +1146,7 @@ function generateShareMessage() {
     `I'm still trying to find out all the predefined phrases, send help😅`,
   ]
   //if (multiplier === 0) messages.push(`That many points without a single clock, take that Pinch.`);
-  if (multiplier * 10 > score) messages.push(`got a ${multiplier} multiplier but very few bombs 😅😅😅 too greedy`);
+  if (multiplier * 3 > score) messages.push(`got a ${multiplier} multiplier but very few bombs 😅😅😅 too greedy`);
 
   /*if (game_speed == 2) {
     messages.push(`max speed is insane, wtf Devs?`);
