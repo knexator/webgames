@@ -175,7 +175,7 @@ if (is_phone) {
   }
 
   pause_button.hidden = false;
-  pause_button.style.top = `${TILE_SIZE * (BOARD_SIZE.y + MARGIN * 2 + TOP_OFFSET) - 4}px`;
+  pause_button.style.top = `${TILE_SIZE * (BOARD_SIZE.y + MARGIN * 3 + TOP_OFFSET) - 4}px`;
   pause_button.addEventListener("pointerdown", ev => {
     switch (game_state) {
       case "loading_menu":
@@ -1142,12 +1142,14 @@ function generateShareMessage() {
     `insider info: this tiny game was tested by over 30 students! ❤️ you all, and u too Sai`,
     `Supongo que toca escribir al menos 1 de estos en español. Lo sentimos pero traducir todo y detectar tu idioma sería demasiado incordio😅`,
     `I'm tired of the Devs forcing their bad punchlines on me (but I do like the game)😜`,
+	`Props to the composers for making such bangers!❤️Devs wanted to thank you with direct @mentions, but some of u weren't active here`,
     `Devs: you can write your own stuff too you know😜`,
     `I'm still trying to find out all the predefined phrases, send help😅`,
+	
   ]
   //if (multiplier === 0) messages.push(`That many points without a single clock, take that Pinch.`);
   if (multiplier * 3 > score) messages.push(`got a ${multiplier} multiplier but very few bombs 😅😅😅 too greedy`);
-
+	if (score > 961 && speed != 1) messages.push(`According to this I've beaten the pre-release record (score 961, speed 2)😎`);
   /*if (game_speed == 2) {
     messages.push(`max speed is insane, wtf Devs?`);
     messages.push(`max speed is still easy, wtf Devs?`);
