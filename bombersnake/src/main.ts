@@ -594,6 +594,7 @@ share_button_state = { folded: true, hovered: null };
 
 let last_timestamp = 0;
 const bouncyTexts = new Map<string, number>();
+let hide_end_text = false;
 
 drawLoadingScreen();
 
@@ -804,6 +805,9 @@ function every_frame(cur_timestamp: number) {
   // if (input.keyboard.wasPressed(KeyCode.KeyH)) {
   //   gui.show(gui._hidden);
   // }
+  if (input.keyboard.wasPressed(KeyCode.KeyH)) {
+    hide_end_text = true;
+  }
 
   // if (input.keyboard.wasPressed(KeyCode.KeyM)) {
   //   // SONGS[music_track].mute(!SONGS[music_track].mute());
@@ -1145,14 +1149,14 @@ function generateShareMessage() {
     `insider info: this tiny game was tested by over 30 students! ❤️ you all, and u too Sai`,
     `Supongo que toca escribir al menos 1 de estos en español. Lo sentimos pero traducir todo y detectar tu idioma sería demasiado incordio😅`,
     `I'm tired of the Devs forcing their bad punchlines on me (but I do like the game)😜`,
-	`Props to the composers for making such bangers!❤️Devs wanted to thank you with direct @mentions, but some of u weren't active here`,
+    `Props to the composers for making such bangers!❤️Devs wanted to thank you with direct @mentions, but some of u weren't active here`,
     `Devs: you can write your own stuff too you know😜`,
     `I'm still trying to find out all the predefined phrases, send help😅`,
-	
+
   ]
   //if (multiplier === 0) messages.push(`That many points without a single clock, take that Pinch.`);
   if (multiplier * 3 > score) messages.push(`got a ${multiplier} multiplier but very few bombs 😅😅😅 too greedy`);
-	if (score > 961 && game_speed == 2) messages.push(`According to this I've beaten the pre-release record (score 961, speed 2)😎`);
+  if (score > 961 && game_speed == 2) messages.push(`According to this I've beaten the pre-release record (score 961, speed 2)😎`);
   /*if (game_speed == 2) {
     messages.push(`max speed is insane, wtf Devs?`);
     messages.push(`max speed is still easy, wtf Devs?`);
@@ -1714,7 +1718,9 @@ function draw(bullet_time: boolean) {
     // drawCenteredShadowedText(`Score: ${score}`, (TOP_OFFSET + MARGIN + BOARD_SIZE.y / 4) * TILE_SIZE);
     drawCenteredShadowedText(is_phone ? 'Tap here to Restart' : `R to Restart`, (TOP_OFFSET + MARGIN + BOARD_SIZE.y * 3 / 4) * TILE_SIZE);
 
-    drawCenteredShadowedTextMultiline(['We suck at PR, please help us', 'bring the game to more people.'], menuYCoordOf("share") - TILE_SIZE * 4.5, 1);
+    if (!hide_end_text) {
+      drawCenteredShadowedTextMultiline(['We suck at PR, please help us', 'bring the game to more people.'], menuYCoordOf("share") - TILE_SIZE * 4.5, 1);
+    }
     const share_button_scale = CONFIG.SHARE_BUTTON_SCALE;
     if (share_button_state.folded) {
       const pos = new Vec2(canvas_ctx.width / 2, menuYCoordOf("share"));
