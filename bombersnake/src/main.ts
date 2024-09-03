@@ -52,6 +52,8 @@ function loadImage(name: string): Promise<HTMLImageElement> {
   })
 }
 
+const song1Promise = loadSoundAsync(oggUrl("Song1"), 1, true);
+
 const textures_async = await Promise.all(["bomb", "clock", "heart", "star"].flatMap(name => [loadImage(name), loadImage(name + 'B')])
   .concat(["open", "KO", "closed"].map(s => loadImage("eye_" + s)))
   .concat(["left", "right"].map(s => loadImage("menu_arrow_" + s)))
@@ -599,7 +601,7 @@ let hide_end_text = false;
 draw(false, true);
 
 const sounds_async = await Promise.all([
-  loadSoundAsync(oggUrl("Song1"), 1, true),
+  song1Promise,
   // loadSoundAsync(oggUrl("Song2"), 0.35, true),
   // loadSoundAsync(oggUrl("Song3"), 0.35, true),
   // loadSoundAsync(oggUrl("Song4"), 0.35, true),
