@@ -1687,8 +1687,10 @@ function draw(bullet_time: boolean) {
       menuYCoordOf("start")
     );
 
-    drawCenteredShadowedText('Please scroll down', (MARGIN + TOP_OFFSET + BOARD_SIZE.y * 0.48) * TILE_SIZE);
-    drawCenteredShadowedText('to learn to play', (MARGIN + TOP_OFFSET + BOARD_SIZE.y * 0.56) * TILE_SIZE);
+    if (!is_phone) {
+      drawCenteredShadowedText('Please scroll down', (MARGIN + TOP_OFFSET + BOARD_SIZE.y * 0.48) * TILE_SIZE);
+      drawCenteredShadowedText('to learn to play', (MARGIN + TOP_OFFSET + BOARD_SIZE.y * 0.56) * TILE_SIZE);
+    }
 
     drawCenteredShadowedText('By knexator & Pinchazumos', (MARGIN + TOP_OFFSET + BOARD_SIZE.y * 1.05) * TILE_SIZE);
   } else if (game_state === "pause_menu") {
@@ -2515,8 +2517,10 @@ function drawLoadingScreen() {
     menuYCoordOf("start") - 1 * TILE_SIZE
   );
 
-  drawCenteredShadowedText('Please scroll down', (MARGIN + TOP_OFFSET + BOARD_SIZE.y * 0.48) * TILE_SIZE);
-  drawCenteredShadowedText('to learn to play', (MARGIN + TOP_OFFSET + BOARD_SIZE.y * 0.56) * TILE_SIZE);
+  if (!is_phone) {
+    drawCenteredShadowedText('Please scroll down', (MARGIN + TOP_OFFSET + BOARD_SIZE.y * 0.48) * TILE_SIZE);
+    drawCenteredShadowedText('to learn to play', (MARGIN + TOP_OFFSET + BOARD_SIZE.y * 0.56) * TILE_SIZE);
+  }
 
   drawCenteredShadowedText('By knexator & Pinchazumos', (MARGIN + TOP_OFFSET + BOARD_SIZE.y * 1.05) * TILE_SIZE);
 
