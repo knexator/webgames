@@ -600,12 +600,12 @@ draw(false, true);
 
 const sounds_async = await Promise.all([
   loadSoundAsync(oggUrl("Song1"), 1, true),
-  loadSoundAsync(oggUrl("Song2"), 0.35, true),
-  loadSoundAsync(oggUrl("Song3"), 0.35, true),
-  loadSoundAsync(oggUrl("Song4"), 0.35, true),
-  loadSoundAsync(oggUrl("Song5"), 0.40, true),
-  loadSoundAsync(oggUrl("Song6"), 0.40, true),
-  loadSoundAsync(oggUrl("Song7"), 0.35, true),
+  // loadSoundAsync(oggUrl("Song2"), 0.35, true),
+  // loadSoundAsync(oggUrl("Song3"), 0.35, true),
+  // loadSoundAsync(oggUrl("Song4"), 0.35, true),
+  // loadSoundAsync(oggUrl("Song5"), 0.40, true),
+  // loadSoundAsync(oggUrl("Song6"), 0.40, true),
+  // loadSoundAsync(oggUrl("Song7"), 0.35, true),
   loadSoundAsync(wavUrl("hiss1"), 0.25),
   loadSoundAsync(wavUrl("apple"), 0.5),
   loadSoundAsync(wavUrl("move1"), 0.25),
@@ -620,28 +620,54 @@ const sounds_async = await Promise.all([
   loadSoundAsync(oggUrl("waffel"), 1.1),
 ]);
 
+const async_songs = [
+  loadSoundAsync(oggUrl("Song2"), 0.35, true),
+  loadSoundAsync(oggUrl("Song3"), 0.35, true),
+  loadSoundAsync(oggUrl("Song4"), 0.35, true),
+  loadSoundAsync(oggUrl("Song5"), 0.40, true),
+  loadSoundAsync(oggUrl("Song6"), 0.40, true),
+  loadSoundAsync(oggUrl("Song7"), 0.35, true),
+];
+
+const INITIAL_VOLUME_SONGS = [
+  0, 1,
+  0.35,
+  0.35,
+  0.35,
+  0.40,
+  0.40,
+  0.35,
+];
+
+const SONGS = [null, sounds_async[0], ...async_songs.map(_ => null)];
+async_songs.forEach((x, k) => {
+  x.then(v => {
+    SONGS[k + 2] = v;
+  })
+});
+
 const SOUNDS = {
-  song1: sounds_async[0],
-  song2: sounds_async[1],
-  song3: sounds_async[2],
-  song4: sounds_async[3],
-  song5: sounds_async[4],
-  song6: sounds_async[5],
-  song7: sounds_async[6],
-  hiss1: sounds_async[7],
-  bomb: sounds_async[8],
-  move1: sounds_async[9],
-  move2: sounds_async[10],
-  crash: sounds_async[11],
-  star: sounds_async[12],
-  clock: sounds_async[13],
-  tick: sounds_async[14],
-  tock: sounds_async[15],
-  menu1: sounds_async[16],
-  menu2: sounds_async[17],
-  waffel: sounds_async[18],
+  // song1: sounds_async[0],
+  // song2: sounds_async[1],
+  // song3: sounds_async[2],
+  // song4: sounds_async[3],
+  // song5: sounds_async[4],
+  // song6: sounds_async[5],
+  // song7: sounds_async[6],
+  hiss1: sounds_async[1],
+  bomb: sounds_async[2],
+  move1: sounds_async[3],
+  move2: sounds_async[4],
+  crash: sounds_async[5],
+  star: sounds_async[6],
+  clock: sounds_async[7],
+  tick: sounds_async[8],
+  tock: sounds_async[9],
+  menu1: sounds_async[10],
+  menu2: sounds_async[11],
+  waffel: sounds_async[12],
 };
-const SONGS = [null, SOUNDS.song1, SOUNDS.song2, SOUNDS.song3, SOUNDS.song4, SOUNDS.song5, SOUNDS.song6, SOUNDS.song7];
+// const SONGS = [null, SOUNDS.song1, SOUNDS.song2, SOUNDS.song3, SOUNDS.song4, SOUNDS.song5, SOUNDS.song6, SOUNDS.song7];
 // SONGS.forEach((x, k) => {
 //   x.play();
 //   x.mute(k != 0);
@@ -661,7 +687,6 @@ Howler.volume(1);
 // Howler.volume(0);
 
 const INITIAL_VOLUME = objectMap(SOUNDS, x => x.volume());
-const INITIAL_VOLUME_SONGS = SONGS.map(x => x?.volume());
 
 
 function findSpotWithoutWall(): Vec2 {
@@ -1712,7 +1737,7 @@ function draw(bullet_time: boolean, is_loading: boolean = false) {
         `Haptic: ${haptic ? 'on' : 'off'}`, menuYCoordOf("haptic"));
     }
     drawCenteredShadowedText(`Speed: ${game_speed + 1}`, menuYCoordOf("speed"));
-    drawCenteredShadowedText(`Song: ${music_track === 0 ? 'None' : music_track}`, menuYCoordOf("music"));
+    drawCenteredShadowedText(`Song: ${music_track === 0 ? 'None' : (SONGS[music_track] === null ? 'loading' : music_track)}`, menuYCoordOf("music"));
 
     if (menu_focus !== "resume") {
       drawMenuArrow(menu_focus, false);
@@ -1872,7 +1897,7 @@ function menuArrowSize(): Vec2 {
 
 function menuArrowPos(setting: "speed" | "music" | "haptic", left: boolean): Vec2 {
   return new Vec2(
-    canvas_ctx.width / 2 + (left ? -1 : 1) * 3 * TILE_SIZE,
+    canvas_ctx.width / 2 + (left ? -1 : 1) * 3.25 * TILE_SIZE,
     menuYCoordOf(setting));
 }
 
