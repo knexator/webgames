@@ -2180,3 +2180,21 @@ function blinking(period: number, cur_time: number, color1: string, color2: stri
 //   music.play();
 //   console.log('asdf')
 // }, {once: true});
+
+window.addEventListener('beforeunload', function () {
+  if (Howler.ctx) {
+    Howler.ctx.close();
+  }
+});
+
+// Listen for page visibility changes
+document.addEventListener('visibilitychange', function () {
+  if (document.hidden) {
+    if (game_state === 'playing') {
+      game_state = 'pause_menu';
+    }
+    Howler.mute(true);
+  } else {
+    Howler.mute(false);
+  }
+});
