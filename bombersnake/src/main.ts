@@ -129,6 +129,11 @@ function mp3Url(name: string): string {
   return new URL(`./sounds/${name}.mp3`, import.meta.url).href;
 }
 
+function aacUrl(name: string): string {
+  console.log(name, 'aac', new URL(`./sounds/${name}.aac`, import.meta.url).href);
+  return new URL(`./sounds/${name}.aac`, import.meta.url).href;
+}
+
 const is_phone = (function () {
   let check = false;
   // @ts-ignore
