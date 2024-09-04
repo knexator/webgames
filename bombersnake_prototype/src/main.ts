@@ -10,8 +10,17 @@ import { initGL2, IVec, Vec2, Color, GenericDrawer, StatefulDrawer, CircleDrawer
 import * as noise from './kommon/noise';
 import { generateGradient } from "./kommon/kolor";
 import triangle_pattern_url from "./images/triangle_pattern.png?url"
+import gifUrl from "./images/tweet.gif?url"
+
 
 // TODO: animated scarf not rounded right after corner
+// TODO: proper loading of assets
+
+// TODO: haptic
+// TODO: slide move
+// TODO: only have 2 buttons on tap
+
+const RECORDING_GIF = false;
 
 const input = new Input();
 const canvas_ctx = document.querySelector<HTMLCanvasElement>("#ctx_canvas")!;
@@ -19,6 +28,19 @@ const ctx = canvas_ctx.getContext("2d")!;
 // const canvas_gl = document.querySelector<HTMLCanvasElement>("#gl_canvas")!;
 // const gl = initGL2(canvas_gl)!;
 // gl.clearColor(.5, .5, .5, 1);
+
+const vibrate = navigator.vibrate ? () => {
+  if (haptic) {
+    navigator.vibrate(1)
+  }
+} : () => { };
+
+const vibrateBomb = navigator.vibrate ? () => {
+  if (haptic) {
+    navigator.vibrate([0, 100, 1])
+  }
+} : () => { };
+
 
 function loadImage(name: string): Promise<HTMLImageElement> {
   return new Promise(resolve => {
@@ -30,8 +52,21 @@ function loadImage(name: string): Promise<HTMLImageElement> {
   })
 }
 
+const song1Promise = loadSoundAsync(mp3Url("Song1"), 1, true);
+
 const textures_async = await Promise.all(["bomb", "clock", "heart", "star"].flatMap(name => [loadImage(name), loadImage(name + 'B')])
-  .concat(["open", "KO", "closed"].map(n => loadImage("eye_" + n))));
+  .concat(["open", "KO", "closed"].map(s => loadImage("eye_" + s)))
+  .concat(["left", "right"].map(s => loadImage("menu_arrow_" + s)))
+  .concat([loadImage("side_arrow_W"), loadImage("side_arrow_R")])
+  .concat([loadImage("title4"), loadImage("title4A")])
+  .concat([loadImage("pause")])
+  .concat([loadImage("bomb_G"), loadImage("clock_G"), loadImage("star_G")]) // 21
+  .concat([loadImage(`cross`)])
+  .concat("UDLR".split('').map(c => loadImage(`Cross${c}`)))
+  .concat([loadImage("shareSG"), loadImage("shareSB")])
+  .concat([loadImage("logoX"), loadImage("logoBSKY")])
+  .concat([loadImage("settings"), loadImage("note"), loadImage("speed")])
+);
 const TEXTURES = {
   bomb: textures_async[0],
   clock: textures_async[2],
@@ -43,19 +78,61 @@ const TEXTURES = {
     heart: textures_async[5],
     multiplier: textures_async[7],
   },
+  gray: {
+    bomb: textures_async[19],
+    clock: textures_async[20],
+    multiplier: textures_async[21],
+  },
   eye: {
     open: textures_async[8],
     KO: textures_async[9],
     closed: textures_async[10],
-  }
+  },
+  menu_arrow: {
+    left: textures_async[11],
+    right: textures_async[12],
+  },
+  border_arrow: {
+    white: textures_async[13],
+    red: textures_async[14],
+  },
+  logo: {
+    frame1: textures_async[15],
+    frame2: textures_async[16],
+  },
+  pause_text: textures_async[17],
+  cross: {
+    none: textures_async[21],
+    U: textures_async[22],
+    D: textures_async[23],
+    L: textures_async[24],
+    R: textures_async[25],
+  },
+  share: {
+    vanilla: textures_async[26],
+    vanilla_shadow: textures_async[27],
+    twitter: textures_async[28],
+    bsky: textures_async[29],
+  },
+  settings: textures_async[30],
+  note: textures_async[31],
+  speed: textures_async[32],
 };
 
-function soundUrl(name: string): string {
-  return new URL(`./sounds/${name}`, import.meta.url).href;
+function wavUrl(name: string): string {
+  console.log(name, 'wav', new URL(`./sounds/${name}.wav`, import.meta.url).href);
+  return new URL(`./sounds/${name}.wav`, import.meta.url).href;
 }
 
-const BOARD_SIZE = new Vec2(16, 16);
-const MARGIN = new Vec2(1, 2);
+function oggUrl(name: string): string {
+  console.log(name, new URL(`./sounds/${name}.ogg`, import.meta.url).href);
+  return new URL(`./sounds/${name}.ogg`, import.meta.url).href;
+}
+
+function mp3Url(name: string): string {
+  console.log(name, 'mp3', new URL(`./sounds/${name}.mp3`, import.meta.url).href);
+  return new URL(`./sounds/${name}.mp3`, import.meta.url).href;
+}
 
 const is_phone = (function () {
   let check = false;
@@ -64,15 +141,129 @@ const is_phone = (function () {
   return check;
 })();
 
+const BOARD_SIZE = new Vec2(16, 16);
+let MARGIN = 2;
+const TOP_OFFSET = 2;
 
 const container = document.querySelector("#canvas_container") as HTMLElement;
 
-const TILE_SIZE = is_phone ? Math.round(container.clientWidth / (BOARD_SIZE.x + MARGIN.x * 2)) : 32;
-const SWIPE_DIST = TILE_SIZE * 2;
+const TILE_SIZE = is_phone ? Math.round(container.clientWidth / (BOARD_SIZE.x + MARGIN * 2)) : 32;
+// const TILE_SIZE = is_phone ? 15 : 32;
+MARGIN = Math.round(TILE_SIZE * MARGIN) / TILE_SIZE;
+console.log(TILE_SIZE, MARGIN);
 
-container.style.width = `${TILE_SIZE * (BOARD_SIZE.x + MARGIN.x * 2)}px`
-container.style.height = `${TILE_SIZE * (BOARD_SIZE.x + MARGIN.y * 2)}px`
+container.style.width = `${TILE_SIZE * (BOARD_SIZE.x + MARGIN * 2)}px`
+container.style.height = `${TILE_SIZE * (BOARD_SIZE.y + MARGIN * 2 + TOP_OFFSET)}px`
 twgl.resizeCanvasToDisplaySize(canvas_ctx);
+
+let menu_fake_key: KeyCode | null = null;
+let cross_back_to_normal: number | null = null;
+const dpad = document.querySelector("#dpad") as HTMLImageElement;
+const pause_button = document.querySelector("#pause_button") as HTMLImageElement;
+if (is_phone) {
+  function absorbEvent(e: Event) {
+    e = e || window.event;
+    e.preventDefault && e.preventDefault();
+    e.stopPropagation && e.stopPropagation();
+    e.cancelBubble = true;
+    e.returnValue = false;
+    return false;
+  }
+
+  function dirToImage(v: Vec2): 'U' | 'D' | 'L' | 'R' {
+    if (Math.abs(v.x) > Math.abs(v.y)) {
+      return v.x > 0 ? 'R' : 'L';
+    } else {
+      return v.y > 0 ? 'D' : 'U';
+    }
+  }
+
+  pause_button.hidden = false;
+  pause_button.style.top = `${TILE_SIZE * (BOARD_SIZE.y + MARGIN * 3 + TOP_OFFSET) - 4}px`;
+  pause_button.addEventListener("pointerdown", ev => {
+    switch (game_state) {
+      case "loading_menu":
+        vibrate();
+        break;
+      case "pause_menu":
+        game_state = 'playing';
+        break;
+      case "playing":
+        game_state = 'pause_menu';
+        break;
+      default:
+        break;
+    }
+    return absorbEvent(ev);
+  });
+
+  function touchPos(touch: Touch): Vec2 {
+    const rect = dpad.getBoundingClientRect();
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
+    return new Vec2(x - rect.width / 2, y - rect.height / 2);
+  }
+
+  dpad.hidden = false;
+  dpad.addEventListener("touchstart", ev => {
+    if (!CONFIG.SWIPE_CONTROLS && game_state === 'playing') {
+      const touch = ev.changedTouches.item(ev.changedTouches.length - 1)!;
+      const place = touchPos(touch);
+      const dir = roundToCardinalDirection(place);
+      input_queue.push(dir);
+      vibrate();
+      dpad.src = TEXTURES.cross[dirToImage(dir)].src;
+      if (cross_back_to_normal !== null) {
+        clearTimeout(cross_back_to_normal);
+        cross_back_to_normal = null;
+      }
+    }
+    if (game_state === 'pause_menu' || game_state === 'lost') {
+      const touch = ev.changedTouches.item(ev.changedTouches.length - 1)!;
+      const place = touchPos(touch);
+      const dir = roundToCardinalDirection(place);
+      menu_fake_key = (
+        (Math.abs(dir.x) > Math.abs(dir.y))
+          ? ((dir.x > 0) ? KeyCode.ArrowRight : KeyCode.ArrowLeft)
+          : ((dir.y > 0) ? KeyCode.ArrowDown : KeyCode.ArrowUp)
+      );
+      vibrate();
+      console.log('pushed fake key: ', menu_fake_key);
+      dpad.src = TEXTURES.cross[dirToImage(dir)].src;
+      if (cross_back_to_normal !== null) {
+        clearTimeout(cross_back_to_normal);
+        cross_back_to_normal = null;
+      }
+    }
+    return absorbEvent(ev);
+  });
+  dpad.addEventListener("touchmove", ev => {
+    if (!CONFIG.SWIPE_CONTROLS && game_state === 'playing') {
+      const touch = ev.changedTouches.item(ev.changedTouches.length - 1)!;
+      const place = touchPos(touch);
+      const dir = roundToCardinalDirection(place);
+      input_queue.push(dir);
+      dpad.src = TEXTURES.cross[dirToImage(dir)].src;
+      if (cross_back_to_normal !== null) {
+        clearTimeout(cross_back_to_normal);
+        cross_back_to_normal = null;
+      }
+    }
+    return absorbEvent(ev);
+  });
+  dpad.addEventListener("touchend", ev => {
+    if (cross_back_to_normal === null) {
+      cross_back_to_normal = setTimeout(() => {
+        dpad.src = TEXTURES.cross.none.src;
+        cross_back_to_normal = null;
+      }, 100);
+    }
+    return absorbEvent(ev);
+  })
+} else {
+  dpad.remove();
+  pause_button.remove();
+}
 
 // let CONFIG = {
 //   PAUSED: false,
@@ -100,35 +291,39 @@ twgl.resizeCanvasToDisplaySize(canvas_ctx);
 // }
 
 let CONFIG = {
+  HEAD_BOUNCE: 0,
+  EYE_BOUNCE: 0,
+  SECONDS_OF_DISABLED_INPUT: 0,
+  SHARE_BUTTON_SCALE: 1.5,
+  SWIPE_CONTROLS: false,
+  SWIPE_DIST: 1,
+  SWIPE_MARGIN: 1,
   PAUSED: false,
-  TURN_DURATION: .15,
-  ANIM_PERC: 0.3,
+  TURN_DURATION: .16,
+  ANIM_PERC: 0.2,
+  BORDER_ARROWS: false,
   CHEAT_INMORTAL: false,
   FUSE_DURATION: 0,
   PLAYER_CAN_EXPLODE: false,
   N_BOMBS: 3,
   N_MULTIPLIERS: 1,
-  CLOCK_DURATION: 20,
-  CLOCK_FREQUENCY: 50,
+  CLOCK_VALUE: 4,
+  CLOCK_DURATION: 25,
+  CLOCK_FREQUENCY: 55,
   TICKTOCK_SPEED: 400,
-  MUSIC_DURING_TICKTOCK: .2,
+  MUSIC_DURING_TICKTOCK: .25,
   LUCK: 5,
   SLOWDOWN: 3,
   TOTAL_SLOWDOWN: false,
   ALWAYS_SLOWDOWN: false,
-  DRAW_WRAP: 0,
-  DRAW_PATTERN: false,
-  DRAW_SNAKE_BORDER: false,
-  BORDER_SIZE: .2,
-  GRIDLINE: false,
-  GRIDLINE_OVER: false,
-  GRIDLINE_WIDTH: .05,
-  DRAW_ROUNDED: true,
+  DRAW_WRAP: 1.8,
+  WRAP_GRAY: true,
+  WRAP_ITEMS: false,
   ROUNDED_SIZE: .5,
-  CHECKERED_SNAKE: true,
   CHECKERED_BACKGROUND: "3_v2" as "no" | "2" | "3" | "3_v2",
   SHADOW: true,
   SHADOW_DIST: .2,
+  SHADOW_TEXT: 3,
   SCARF: "full" as "no" | "half" | "full",
   SCARF_BORDER_WIDTH: 0,
   HEAD_COLOR: true,
@@ -137,59 +332,55 @@ let CONFIG = {
 }
 
 const gui = new GUI();
-gui.add(CONFIG, "TURN_DURATION", .05, 1).name("MOVE SPEED");
-gui.add(CONFIG, "ANIM_PERC", 0, 1);
-gui.add(CONFIG, "CHEAT_INMORTAL");
-gui.add(CONFIG, "N_BOMBS", 1, 6, 1);
-gui.add(CONFIG, "N_MULTIPLIERS", 1, 2, 1);
-gui.add(CONFIG, "CLOCK_DURATION", 1, 100, 1);
-gui.add(CONFIG, "CLOCK_FREQUENCY", 1, 100, 1);
-gui.add(CONFIG, "MUSIC_DURING_TICKTOCK", 0, 1);
-gui.add(CONFIG, "SHADOW");
-gui.add(CONFIG, "SHADOW_DIST", 0, .5);
-gui.add(CONFIG, "START_ON_BORDER");
-gui.add(CONFIG, "EXPLOSION_CIRCLE");
+{
+  gui.add(CONFIG, "SWIPE_CONTROLS");
+  gui.add(CONFIG, "SWIPE_DIST", 0, 2);
+  gui.add(CONFIG, "SWIPE_MARGIN", 1, 3);
+  gui.add(CONFIG, "PAUSED");
+  gui.add(CONFIG, "TURN_DURATION", .05, 1);
+  gui.add(CONFIG, "ANIM_PERC", 0, 1);
+  gui.add(CONFIG, "BORDER_ARROWS");
+  gui.add(CONFIG, "CHEAT_INMORTAL");
+  gui.add(CONFIG, "FUSE_DURATION", 0, 10, 1);
+  gui.add(CONFIG, "N_BOMBS", 1, 6, 1);
+  gui.add(CONFIG, "N_MULTIPLIERS", 1, 2, 1);
+  gui.add(CONFIG, "CLOCK_DURATION", 1, 100, 1);
+  gui.add(CONFIG, "CLOCK_FREQUENCY", 1, 100, 1);
+  gui.add(CONFIG, "TICKTOCK_SPEED", 300, 600);
+  gui.add(CONFIG, "MUSIC_DURING_TICKTOCK", 0, 1);
+  gui.add(CONFIG, "LUCK", 1, 15, 1);
+  gui.add(CONFIG, "PLAYER_CAN_EXPLODE");
+  gui.add(CONFIG, "SLOWDOWN", 1, 10);
+  gui.add(CONFIG, "TOTAL_SLOWDOWN");
+  gui.add(CONFIG, "ALWAYS_SLOWDOWN");
+  gui.add(CONFIG, "DRAW_WRAP", 0, MARGIN);
+  gui.add(CONFIG, "WRAP_GRAY");
+  gui.add(CONFIG, "WRAP_ITEMS");
+  gui.add(CONFIG, "ROUNDED_SIZE", 0, 1);
+  gui.add(CONFIG, "CHECKERED_BACKGROUND", ["no", "2", "3", "3_v2"]);
+  gui.add(CONFIG, "SHADOW");
+  gui.add(CONFIG, "SHADOW_DIST", 0, .5);
+  gui.add(CONFIG, "SCARF", ["no", "half", "full"]);
+  gui.add(CONFIG, "SCARF_BORDER_WIDTH", 0, .5);
+  gui.add(CONFIG, "HEAD_COLOR");
+  gui.add(CONFIG, "START_ON_BORDER");
+  gui.add(CONFIG, "EXPLOSION_CIRCLE");
+}
 gui.hide();
 
-const SOUNDS = {
-  music: new Howl({
-    src: [soundUrl('music.ogg')],
-    autoplay: true,
-    loop: true,
-    volume: .5,
-  }),
-  hiss1: new Howl({
-    src: [soundUrl('hiss.wav')],
-    // autoplay: true,
-    volume: 1,
-  }),
-  bomb: new Howl({
-    src: [soundUrl('apple.wav')],
-    volume: 0.7,
-  }),
-  crash: new Howl({
-    src: [soundUrl('crash.wav')],
-    volume: 1.0,
-  }),
-  star: new Howl({
-    src: [soundUrl('star.wav')],
-    volume: 2.5,
-  }),
-  clock: new Howl({
-    src: [soundUrl('clock.wav')],
-    volume: 2.2,
-  }),
-  tick: new Howl({
-    src: [soundUrl('tick.mp3')],
-    volume: 2.5,
-  }),
-  tock: new Howl({
-    src: [soundUrl('tock.mp3')],
-    volume: 2.5,
-  }),
-};
 
-const INITIAL_VOLUME = objectMap(SOUNDS, x => x.volume());
+function loadSoundAsync(url: string, volume: number, loop: boolean = false) {
+  return new Promise<Howl>((resolve, reject) => {
+    const asdf: Howl = new Howl({
+      src: [url],
+      loop,
+      volume,
+      onload: () => resolve(asdf),
+    });
+  });
+}
+
+const SPEEDS = [0.2, 0.16, 0.12];
 
 // https://lospec.com/palette-list/sweetie-16
 // const COLORS = {
@@ -207,13 +398,39 @@ const INITIAL_VOLUME = objectMap(SOUNDS, x => x.volume());
 //   SNAKE: [] as string[],
 // };
 
+const GRAYSCALE = {
+  WEB_BG: "#83c253;",
+  BORDER: "#8ccbf2",
+  BACKGROUND: "#323232",
+  BACKGROUND_2: "#363636",
+  BACKGROUND_3: "#2F2F2F",
+  BOMB: "#555555",
+  TEXT: "#f4f4f4",
+  GRAY_TEXT: "#b4b4b4",
+  SNAKE_HEAD: '#848484',
+  SNAKE_WALL: '#666666',
+  //SNAKE_WALL2: '#686868',
+  EXPLOSION: "#D4D4D4",
+  MULTIPLIER: "#f4f4f4",
+  GRIDLINE: "#2f324b",
+  SHADOW: "#000000",
+  SCARF_OUT: "#545454",
+  SCARF_IN: "#545454",
+  HEAD: "#848484",
+  HIGHLIGHT_BAR: 'cyan',
+  TEXT_WIN_SCORE: 'black',
+  TEXT_WIN_SCORE_2: "gray",
+};
+
 const COLORS = {
+  WEB_BG: "#417e62",
   BORDER: "#8ccbf2",
   BACKGROUND: "#203c3c",
   BACKGROUND_2: "#253d3d",
   BACKGROUND_3: "#213636",
   BOMB: "#dd4646",
   TEXT: "#f4f4f4",
+  GRAY_TEXT: "#b4b4b4",
   SNAKE_HEAD: '#80c535',
   SNAKE_WALL: '#6aa32c',
   EXPLOSION: "#ffcd75",
@@ -223,55 +440,63 @@ const COLORS = {
   SCARF_OUT: "#2d3ba4",
   SCARF_IN: "#547e2a",
   HEAD: "#85ce36",
-  SNAKE: [] as string[],
+  HIGHLIGHT_BAR: "black",
+  TEXT_WIN_SCORE: "white",
+  TEXT_WIN_SCORE_2: "grey",
 };
 
-gui.addColor(COLORS, "BORDER");
-gui.addColor(COLORS, "BACKGROUND");
-gui.addColor(COLORS, "BACKGROUND_2");
-gui.addColor(COLORS, "BACKGROUND_3");
-gui.addColor(COLORS, "BOMB");
-gui.addColor(COLORS, "SNAKE_HEAD");
-gui.addColor(COLORS, "SNAKE_WALL");
-gui.addColor(COLORS, "EXPLOSION");
-gui.addColor(COLORS, "MULTIPLIER");
-gui.addColor(COLORS, "GRIDLINE");
-gui.addColor(COLORS, "SHADOW");
-gui.addColor(COLORS, "SCARF_OUT");
-gui.addColor(COLORS, "SCARF_IN");
-gui.addColor(COLORS, "HEAD");
-
-COLORS.SNAKE = generateGradient(COLORS.SNAKE_WALL, COLORS.SNAKE_HEAD, 4);
-gui.onChange(event => {
-  if (event.object === COLORS) {
-    COLORS.SNAKE = generateGradient(COLORS.SNAKE_WALL, COLORS.SNAKE_HEAD, 4);
-  }
-});
+{
+  gui.addColor(COLORS, "BORDER");
+  gui.addColor(COLORS, "BACKGROUND");
+  gui.addColor(COLORS, "BACKGROUND_2");
+  gui.addColor(COLORS, "BACKGROUND_3");
+  gui.addColor(COLORS, "BOMB");
+  gui.addColor(COLORS, "SNAKE_HEAD");
+  gui.addColor(COLORS, "SNAKE_WALL");
+  gui.addColor(COLORS, "EXPLOSION");
+  gui.addColor(COLORS, "MULTIPLIER");
+  gui.addColor(COLORS, "GRIDLINE");
+  gui.addColor(COLORS, "SHADOW");
+  gui.addColor(COLORS, "SCARF_OUT");
+  gui.addColor(COLORS, "SCARF_IN");
+  gui.addColor(COLORS, "HEAD");
+}
 
 let cam_noise = noise.makeNoise3D(0);
 let cur_screen_shake = { x: 0, y: 0, actualMag: 0 };
 let tick_tock_interval_id: number | null = null;
 
+let game_state: "loading_menu" | "pause_menu" | "playing" | "lost";
 let turn: number;
 let snake_blocks: { pos: Vec2, in_dir: Vec2, out_dir: Vec2, t: number }[];
+let started_at_timestamp: number;
 let score: number;
 let input_queue: Vec2[];
 let cur_collectables: Collectable[];
-let game_state: "waiting" | "main" | "lost";
 let turn_offset: number; // always between 0..1
 let exploding_cross_particles: { center: Vec2, turn: number }[];
 let collected_stuff_particles: { center: Vec2, text: string, turn: number }[];
 let multiplier: number;
 let tick_or_tock: boolean;
 let touch_input_base_point: Vec2 | null;
+let haptic: boolean;
+let game_speed: number;
+let music_track: number;
+let menu_focus: "speed" | "music" | "resume" | "haptic";
+let share_button_state: { folded: boolean, hovered: null | 'vanilla' | 'twitter' | 'bsky' };
+let last_lost_timestamp = 0;
+let settings_overlapped = false;
+// let music = SOUNDS.song1;
+// music.play();
 
-function restart() {
+function restartGame() {
   stopTickTockSound();
+  game_state = "playing";
   if (CONFIG.START_ON_BORDER) {
     turn = 1;
     snake_blocks = [
-      { pos: new Vec2(-CONFIG.DRAW_WRAP + 0, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(1, 0), t: 0 },
-      { pos: new Vec2(-CONFIG.DRAW_WRAP + 1, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(0, 0), t: 1 },
+      { pos: new Vec2(0, BOARD_SIZE.y - 2), in_dir: new Vec2(-1, 0), out_dir: new Vec2(1, 0), t: 0 },
+      { pos: new Vec2(1, BOARD_SIZE.y - 2), in_dir: new Vec2(-1, 0), out_dir: new Vec2(0, 0), t: 1 },
     ];
   } else {
     turn = 2;
@@ -281,34 +506,26 @@ function restart() {
       { pos: new Vec2(8, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(0, 0), t: 2 },
     ];
   }
+  started_at_timestamp = last_timestamp;
   score = 0
   input_queue = [];
   cur_collectables = [];
-  cur_collectables = [];
-  for (let k = 0; k < CONFIG.N_BOMBS; k++) {
+  for (let k = cur_collectables.length; k < CONFIG.N_BOMBS; k++) {
     cur_collectables.push(placeBomb());
   }
   for (let k = 0; k < CONFIG.N_MULTIPLIERS; k++) {
     cur_collectables.push(placeMultiplier());
   }
   cur_collectables.push(new Clock());
-  game_state = "waiting";
   turn_offset = 0.99; // always between 0..1
   exploding_cross_particles = [];
   collected_stuff_particles = [];
   multiplier = 1;
   tick_or_tock = false;
   touch_input_base_point = null;
+  menu_focus = "resume";
+  share_button_state = { hovered: null, folded: true };
 }
-
-const triangle_pattern: CanvasPattern = await new Promise(resolve => {
-  const img = new Image();
-  img.src = triangle_pattern_url;
-  img.onload = () => {
-    const pattern = ctx.createPattern(img, "repeat")!;
-    resolve(pattern);
-  };
-});
 
 class Bomb {
   public ticking: boolean;
@@ -341,7 +558,138 @@ class Clock {
 
 type Collectable = Bomb | Multiplier | Clock;
 
-restart();
+// Loading menu
+game_state = "loading_menu";
+if (CONFIG.START_ON_BORDER) {
+  turn = 1;
+  snake_blocks = [
+    { pos: new Vec2(0, BOARD_SIZE.y - 2), in_dir: new Vec2(-1, 0), out_dir: new Vec2(1, 0), t: 0 },
+    { pos: new Vec2(1, BOARD_SIZE.y - 2), in_dir: new Vec2(-1, 0), out_dir: new Vec2(0, 0), t: 1 },
+  ];
+} else {
+  turn = 2;
+  snake_blocks = [
+    { pos: new Vec2(6, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(1, 0), t: 0 },
+    { pos: new Vec2(7, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(1, 0), t: 1 },
+    { pos: new Vec2(8, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(0, 0), t: 2 },
+  ];
+}
+score = 0
+input_queue = [];
+cur_collectables = RECORDING_GIF ? [
+  new Multiplier(new Vec2(11, 6)),
+  new Bomb(new Vec2(11, 14)),
+  new Bomb(new Vec2(12, 8)),
+  new Bomb(new Vec2(5, 6))
+] : [new Bomb(BOARD_SIZE.sub(Vec2.both(2)))];
+turn_offset = 0.99; // always between 0..1
+exploding_cross_particles = [];
+collected_stuff_particles = [];
+multiplier = 1;
+tick_or_tock = false;
+touch_input_base_point = null;
+game_speed = is_phone ? 0 : 1;
+haptic = true;
+music_track = 1;
+menu_focus = "resume";
+share_button_state = { folded: true, hovered: null };
+
+let last_timestamp = 0;
+const bouncyTexts = new Map<string, number>();
+let hide_end_text = false;
+
+draw(false, true);
+
+const sounds_async = await Promise.all([
+  song1Promise,
+  // loadSoundAsync(oggUrl("Song2"), 0.35, true),
+  // loadSoundAsync(oggUrl("Song3"), 0.35, true),
+  // loadSoundAsync(oggUrl("Song4"), 0.35, true),
+  // loadSoundAsync(oggUrl("Song5"), 0.40, true),
+  // loadSoundAsync(oggUrl("Song6"), 0.40, true),
+  // loadSoundAsync(oggUrl("Song7"), 0.35, true),
+  loadSoundAsync(wavUrl("hiss1"), 0.25),
+  loadSoundAsync(wavUrl("apple"), 0.5),
+  loadSoundAsync(wavUrl("move1"), 0.25),
+  loadSoundAsync(wavUrl("move2"), 0.25),
+  loadSoundAsync(wavUrl("crash"), 0.5),
+  loadSoundAsync(wavUrl("star"), 1.5),
+  loadSoundAsync(wavUrl("clock"), 1.2),
+  loadSoundAsync(mp3Url("tick"), 1),
+  loadSoundAsync(mp3Url("tock"), 1),
+  loadSoundAsync(wavUrl("menu1"), .25),
+  loadSoundAsync(wavUrl("menu2"), .25),
+  loadSoundAsync(oggUrl("waffel"), 1.1),
+]);
+
+const async_songs = [
+  loadSoundAsync(oggUrl("Song2"), 0.35, true),
+  loadSoundAsync(oggUrl("Song3"), 0.35, true),
+  loadSoundAsync(oggUrl("Song4"), 0.35, true),
+  loadSoundAsync(oggUrl("Song5"), 0.40, true),
+  loadSoundAsync(oggUrl("Song6"), 0.40, true),
+  loadSoundAsync(oggUrl("Song7"), 0.35, true),
+];
+
+const INITIAL_VOLUME_SONGS = [
+  0, 1,
+  0.35,
+  0.35,
+  0.35,
+  0.40,
+  0.40,
+  0.35,
+];
+
+const SONGS = [null, sounds_async[0], ...async_songs.map(_ => null)];
+async_songs.forEach((x, k) => {
+  x.then(v => {
+    SONGS[k + 2] = v;
+  })
+});
+
+const SOUNDS = {
+  // song1: sounds_async[0],
+  // song2: sounds_async[1],
+  // song3: sounds_async[2],
+  // song4: sounds_async[3],
+  // song5: sounds_async[4],
+  // song6: sounds_async[5],
+  // song7: sounds_async[6],
+  hiss1: sounds_async[1],
+  bomb: sounds_async[2],
+  move1: sounds_async[3],
+  move2: sounds_async[4],
+  crash: sounds_async[5],
+  star: sounds_async[6],
+  clock: sounds_async[7],
+  tick: sounds_async[8],
+  tock: sounds_async[9],
+  menu1: sounds_async[10],
+  menu2: sounds_async[11],
+  waffel: sounds_async[12],
+};
+// const SONGS = [null, SOUNDS.song1, SOUNDS.song2, SOUNDS.song3, SOUNDS.song4, SOUNDS.song5, SOUNDS.song6, SOUNDS.song7];
+// SONGS.forEach((x, k) => {
+//   x.play();
+//   x.mute(k != 0);
+// })
+// SONGS[0].play();
+
+function updateSong() {
+  // SONGS.forEach((x, k) => x.mute(k !== music_track));
+  SONGS.forEach(x => x?.stop())
+  const song = SONGS[music_track];
+  if (song !== null) {
+    song.play();
+  }
+}
+
+Howler.volume(1);
+// Howler.volume(0);
+
+const INITIAL_VOLUME = objectMap(SOUNDS, x => x.volume());
+
 
 function findSpotWithoutWall(): Vec2 {
   let pos: Vec2;
@@ -396,9 +744,11 @@ function explodeBomb(k: number) {
     }
     return true;
   });
-  cur_collectables[k] = placeBomb();
   cur_screen_shake.actualMag = 5.0;
+  cur_collectables[k] = placeBomb();
   score += multiplier;
+  bounceText('score');
+  vibrateBomb();
   collected_stuff_particles.push({ center: cur_bomb.pos, text: '+' + multiplier.toString(), turn: turn });
   SOUNDS.bomb.play();
   exploding_cross_particles.push({ center: cur_bomb.pos, turn: turn });
@@ -412,7 +762,7 @@ function explodeBomb(k: number) {
 function startTickTockSound(): void {
   tick_or_tock = false;
   SOUNDS.tick.play();
-  SOUNDS.music.fade(SOUNDS.music.volume(), CONFIG.MUSIC_DURING_TICKTOCK * INITIAL_VOLUME.music, .3);
+  SONGS.forEach((music, k) => music?.fade(music.volume(), CONFIG.MUSIC_DURING_TICKTOCK * INITIAL_VOLUME_SONGS[k]!, .3));
   SOUNDS.bomb.fade(SOUNDS.bomb.volume(), CONFIG.MUSIC_DURING_TICKTOCK * INITIAL_VOLUME.bomb, .3);
   SOUNDS.star.fade(SOUNDS.star.volume(), CONFIG.MUSIC_DURING_TICKTOCK * INITIAL_VOLUME.star, .3);
   tick_tock_interval_id = setInterval(() => {
@@ -422,7 +772,7 @@ function startTickTockSound(): void {
 }
 function stopTickTockSound(): void {
   if (tick_tock_interval_id !== null) {
-    SOUNDS.music.fade(SOUNDS.music.volume(), INITIAL_VOLUME.music, .3);
+    SONGS.forEach((music, k) => music?.fade(music.volume(), INITIAL_VOLUME_SONGS[k]!, .3));
     SOUNDS.bomb.fade(SOUNDS.bomb.volume(), INITIAL_VOLUME.bomb, .3);
     SOUNDS.star.fade(SOUNDS.star.volume(), INITIAL_VOLUME.star, .3);
     clearInterval(tick_tock_interval_id);
@@ -430,7 +780,24 @@ function stopTickTockSound(): void {
   }
 }
 
-let last_timestamp = 0;
+document.querySelector<HTMLButtonElement>("#menu_button")?.addEventListener("click", _ => {
+  game_state = "pause_menu";
+  touch_input_base_point = null;
+});
+
+document.querySelector<HTMLButtonElement>("#restart_button")?.addEventListener("click", _ => {
+  restartGame();
+  touch_input_base_point = null;
+});
+
+document.querySelector<HTMLButtonElement>("#sliders_button")?.addEventListener("click", _ => {
+  gui.show(gui._hidden);
+  touch_input_base_point = null;
+});
+
+// objectMap(SOUNDS, x => x.mute(true));
+
+last_timestamp = 0;
 // main loop; game logic lives here
 function every_frame(cur_timestamp: number) {
   // in seconds
@@ -438,28 +805,41 @@ function every_frame(cur_timestamp: number) {
   last_timestamp = cur_timestamp;
   input.startFrame();
   ctx.resetTransform();
-  ctx.clearRect(0, 0, canvas_ctx.width, canvas_ctx.height);
-  ctx.fillStyle = 'gray';
+  // ctx.clearRect(0, 0, canvas_ctx.width, canvas_ctx.height);
+  ctx.fillStyle = COLORS.WEB_BG;
   ctx.fillRect(0, 0, canvas_ctx.width, canvas_ctx.height);
   // if (twgl.resizeCanvasToDisplaySize(canvas_ctx) && is_phone) {
-    // if (or(twgl.resizeCanvasToDisplaySize(canvas_ctx), twgl.resizeCanvasToDisplaySize(canvas_gl))) {
-    // resizing stuff
-    // gl.viewport(0, 0, canvas_gl.width, canvas_gl.height);
+  // if (or(twgl.resizeCanvasToDisplaySize(canvas_ctx), twgl.resizeCanvasToDisplaySize(canvas_gl))) {
+  // resizing stuff
+  // gl.viewport(0, 0, canvas_gl.width, canvas_gl.height);
   //   TILE_SIZE = Math.round(canvas_ctx.width / (BOARD_SIZE.x + MARGIN.x * 2));
   //   SWIPE_DIST = TILE_SIZE * 2;
   // }
 
-  if (input.keyboard.wasPressed(KeyCode.KeyQ)) {
+  if (input.keyboard.wasPressed(KeyCode.KeyT)) {
+    fetch(`http://dreamlo.com/lb/-HkIeRvNC0GMueaYC7mG2gSvfvURE4n0CJLwwfSGkTAQ/add/player${Math.floor(cur_timestamp / 1000)}/101`);
+    fetch(`http://dreamlo.com/lb/6659f0d0778d3c3fe0b504ff/json`).then(res => {
+      res.json().then(x => {
+        console.log(x);
+      });
+    });
+  }
+
+  /*if (input.keyboard.wasPressed(KeyCode.KeyQ)) {
     CONFIG.PAUSED = !CONFIG.PAUSED;
   }
-
+*/
+  // if (input.keyboard.wasPressed(KeyCode.KeyH)) {
+  //   gui.show(gui._hidden);
+  // }
   if (input.keyboard.wasPressed(KeyCode.KeyH)) {
-    gui.show(gui._hidden);
+    hide_end_text = true;
   }
 
-  if (input.keyboard.wasPressed(KeyCode.KeyM)) {
-    SOUNDS.music.mute(!SOUNDS.music.mute());
-  }
+  // if (input.keyboard.wasPressed(KeyCode.KeyM)) {
+  //   // SONGS[music_track].mute(!SONGS[music_track].mute());
+  //   objectMap(SOUNDS, x => x.mute(true));
+  // }
 
   if (CONFIG.PAUSED) {
     draw(false);
@@ -468,60 +848,152 @@ function every_frame(cur_timestamp: number) {
   }
 
   const rect = canvas_ctx.getBoundingClientRect();
-  const raw_mouse_pos = new Vec2(input.mouse.clientX - rect.left - MARGIN.x * TILE_SIZE, input.mouse.clientY - rect.top - MARGIN.y * TILE_SIZE);
+  const raw_mouse_pos = new Vec2(input.mouse.clientX - rect.left, input.mouse.clientY - rect.top);
+  const canvas_mouse_pos = raw_mouse_pos.sub(Vec2.both(MARGIN * TILE_SIZE).addY(TOP_OFFSET * TILE_SIZE));
 
-  if (input.keyboard.wasPressed(KeyCode.KeyR)) {
-    restart();
-  }
+  let bullet_time = false;
 
-  if (input.mouse.isDown(MouseButton.Left)) {
-    if (touch_input_base_point === null) {
-      touch_input_base_point = raw_mouse_pos;
+  settings_overlapped = canvas_mouse_pos.sub(
+    new Vec2(-TILE_SIZE * 1.1, -TILE_SIZE * 2.5)).mag() < TILE_SIZE * .7;
+
+  if (game_state === "loading_menu") {
+    // turn_offset += delta_time / CONFIG.TURN_DURATION;
+
+    if (input.mouse.wasPressed(MouseButton.Left)) {
+      for (let k = cur_collectables.filter(x => x instanceof Bomb).length; k < CONFIG.N_BOMBS; k++) {
+        cur_collectables.push(placeBomb());
+      }
+      for (let k = cur_collectables.filter(x => x instanceof Multiplier).length; k < CONFIG.N_MULTIPLIERS; k++) {
+        cur_collectables.push(placeMultiplier());
+      }
+      cur_collectables.push(new Clock());
+      // setTimeout(() => {
+      //   SOUNDS.waffel.play();
+      // }, 400);
+      SOUNDS.waffel.play();
+      const initial_song = SONGS[music_track]!;
+      // SONGS[music_track].play()
+      // setTimeout(() => {
+      const original_volume = initial_song.volume()
+      initial_song.play()
+      initial_song.fade(0, original_volume, 1200);
+      // }, 200);
+      // setTimeout(() => SONGS[music_track].play(), 1500);
+      // SONGS[music_track].play();
+      // SONGS[music_track].fade(0, 1, 2000);
+      game_state = "playing";
+    }
+  } else if (game_state === "pause_menu") {
+    // turn_offset += delta_time / CONFIG.TURN_DURATION;
+
+    doMenu(canvas_mouse_pos, raw_mouse_pos, false);
+
+    if (input.keyboard.wasPressed(KeyCode.Escape)) {
+      game_state = 'playing';
+    }
+  } else if (game_state === "lost") {
+    if (input.keyboard.wasPressed(KeyCode.KeyR)) {
+      restartGame();
+    }
+    else if (input.keyboard.wasPressed(KeyCode.Escape) || (input.mouse.wasPressed(MouseButton.Left) && settings_overlapped)) {
+      restartGame();
+      game_state = "pause_menu";
+    }
+
+    let pressed_some_menu_button = false;
+    if (share_button_state.folded) {
+      const share_vanilla = new Vec2(percX(.5), menuYCoordOf('share'));
+      share_button_state.hovered = (share_vanilla.sub(raw_mouse_pos).mag() < TILE_SIZE * CONFIG.SHARE_BUTTON_SCALE) ? "vanilla" : null;
+      if (input.mouse.wasPressed(MouseButton.Left) && share_button_state.hovered === 'vanilla') {
+        share_button_state.folded = false;
+        share_button_state.hovered = null;
+        pressed_some_menu_button = true;
+        SOUNDS.waffel.play();
+      }
     } else {
-      const delta = raw_mouse_pos.sub(touch_input_base_point);
-      if (delta.mag() > SWIPE_DIST) {
-        input_queue.push(roundToCardinalDirection(delta));
-        touch_input_base_point = raw_mouse_pos;
+      const share_vanilla = new Vec2(percX(.5), menuYCoordOf('share'));
+      const pos_twitter = share_vanilla.addX(-TILE_SIZE * 2);
+      const pos_bsky = share_vanilla.addX(TILE_SIZE * 2);
+      share_button_state.hovered = (pos_twitter.sub(raw_mouse_pos).mag() < TILE_SIZE * CONFIG.SHARE_BUTTON_SCALE)
+        ? "twitter"
+        : (pos_bsky.sub(raw_mouse_pos).mag() < TILE_SIZE * CONFIG.SHARE_BUTTON_SCALE)
+          ? 'bsky'
+          : null;
+      if (input.mouse.wasPressed(MouseButton.Left) && share_button_state.hovered !== null) {
+        const message = generateShareMessage()
+        if (share_button_state.hovered === 'twitter') {
+          const tweet = encodeURIComponent(message);
+          const twitterUrl = `https://twitter.com/intent/tweet?text=${tweet}`;
+          window.open(twitterUrl, '_blank');
+        } else if (share_button_state.hovered === 'bsky') {
+          const post = encodeURIComponent(message);
+          const blueskyUrl = `https://bsky.app/intent/compose?text=${post}`;
+          window.open(blueskyUrl, '_blank');
+        }
+        pressed_some_menu_button = true;
+        share_button_state.hovered = null;
       }
     }
-    if (game_state === "waiting") game_state = "main"
-  } else {
-    touch_input_base_point = null;
-  }
 
-  if ([
-    KeyCode.KeyW, KeyCode.ArrowUp,
-    KeyCode.KeyA, KeyCode.ArrowLeft,
-    KeyCode.KeyS, KeyCode.ArrowDown,
-    KeyCode.KeyD, KeyCode.ArrowRight,
-  ].some(k => CONFIG.ALWAYS_SLOWDOWN ? input.keyboard.wasReleased(k) : input.keyboard.wasPressed(k))) {
-    // if (game_state === "lost") {
-    //   restart();
-    // }
-    function btnp(ks: KeyCode[]) {
-      return ks.some(k => CONFIG.ALWAYS_SLOWDOWN ? input.keyboard.wasReleased(k) : input.keyboard.wasPressed(k));
+    if (!pressed_some_menu_button && input.mouse.wasPressed(MouseButton.Left) && canvas_mouse_pos.y < BOARD_SIZE.y * TILE_SIZE) {
+      restartGame();
     }
-    input_queue.push(new Vec2(
-      (btnp([KeyCode.KeyD, KeyCode.ArrowRight]) ? 1 : 0)
-      - (btnp([KeyCode.KeyA, KeyCode.ArrowLeft]) ? 1 : 0),
-      (btnp([KeyCode.KeyS, KeyCode.ArrowDown]) ? 1 : 0)
-      - (btnp([KeyCode.KeyW, KeyCode.ArrowUp]) ? 1 : 0),
-    ));
+  } else if (game_state === "playing") {
+    if (CONFIG.SWIPE_CONTROLS) {
+      if (input.mouse.wasPressed(MouseButton.Left) && canvas_mouse_pos.y < BOARD_SIZE.y * TILE_SIZE) {
+        // game_state = "pause_menu";
+      } else if (input.mouse.isDown(MouseButton.Left)) {
+        if (touch_input_base_point === null) {
+          touch_input_base_point = canvas_mouse_pos;
+        } else {
+          const delta = canvas_mouse_pos.sub(touch_input_base_point);
+          const dir = getDirFromDelta(delta);
+          if (dir !== null) {
+            input_queue.push(dir);
+            touch_input_base_point = canvas_mouse_pos;
+          }
+        }
+      } else {
+        touch_input_base_point = null;
+      }
+    } else {
+      if (input.mouse.wasPressed(MouseButton.Left)) {
+        if (canvas_mouse_pos.y < BOARD_SIZE.y * TILE_SIZE) {
+          // game_state = "pause_menu";
+        }
+      }
+    }
 
-
-    if (game_state === "waiting") game_state = "main"
-  }
-
-  let bullet_time = input.keyboard.isDown(KeyCode.Space);
-  if (CONFIG.ALWAYS_SLOWDOWN) {
-    bullet_time = bullet_time || [
+    if ([
       KeyCode.KeyW, KeyCode.ArrowUp,
       KeyCode.KeyA, KeyCode.ArrowLeft,
       KeyCode.KeyS, KeyCode.ArrowDown,
       KeyCode.KeyD, KeyCode.ArrowRight,
-    ].some(k => input.keyboard.isDown(k));
-  }
-  if (game_state === "main") {
+    ].some(k => CONFIG.ALWAYS_SLOWDOWN ? input.keyboard.wasReleased(k) : input.keyboard.wasPressed(k))) {
+      // if (game_state === "lost") {
+      //   restart();
+      // }
+      function btnp(ks: KeyCode[]) {
+        return ks.some(k => CONFIG.ALWAYS_SLOWDOWN ? input.keyboard.wasReleased(k) : input.keyboard.wasPressed(k));
+      }
+      input_queue.push(new Vec2(
+        (btnp([KeyCode.KeyD, KeyCode.ArrowRight]) ? 1 : 0)
+        - (btnp([KeyCode.KeyA, KeyCode.ArrowLeft]) ? 1 : 0),
+        (btnp([KeyCode.KeyS, KeyCode.ArrowDown]) ? 1 : 0)
+        - (btnp([KeyCode.KeyW, KeyCode.ArrowUp]) ? 1 : 0),
+      ));
+    }
+
+    bullet_time = false;
+    // bullet_time = input.keyboard.isDown(KeyCode.Space);
+    if (CONFIG.ALWAYS_SLOWDOWN) {
+      bullet_time = bullet_time || [
+        KeyCode.KeyW, KeyCode.ArrowUp,
+        KeyCode.KeyA, KeyCode.ArrowLeft,
+        KeyCode.KeyS, KeyCode.ArrowDown,
+        KeyCode.KeyD, KeyCode.ArrowRight,
+      ].some(k => input.keyboard.isDown(k));
+    }
     let cur_turn_duration = CONFIG.TURN_DURATION;
     if (bullet_time) {
       cur_turn_duration *= CONFIG.SLOWDOWN;
@@ -531,6 +1003,12 @@ function every_frame(cur_timestamp: number) {
     } else {
       turn_offset += delta_time / cur_turn_duration;
     }
+
+    if (input.keyboard.wasPressed(KeyCode.Escape) || (input.mouse.wasPressed(MouseButton.Left) && settings_overlapped)) {
+      game_state = "pause_menu";
+    }
+  } else {
+    throw new Error(`unhandled game state: ${game_state}`);
   }
 
   while (Math.abs(turn_offset) >= 1) {
@@ -543,9 +1021,10 @@ function every_frame(cur_timestamp: number) {
     let next_input: Vec2 | null = null;
     while (input_queue.length > 0) {
       let maybe_next_input = input_queue.shift()!;
-      if (Math.abs(maybe_next_input.x) + Math.abs(maybe_next_input.y) !== 1 ||
-        maybe_next_input.equal(last_block.in_dir)) {
-        // unvalid input
+      if (Math.abs(maybe_next_input.x) + Math.abs(maybe_next_input.y) !== 1
+        || maybe_next_input.equal(last_block.in_dir)
+        || maybe_next_input.equal(last_block.in_dir.scale(-1))) {
+        // ignore input
       } else {
         next_input = maybe_next_input;
         break;
@@ -555,6 +1034,7 @@ function every_frame(cur_timestamp: number) {
 
     if (next_input !== null) {
       delta = next_input;
+      // randomChoice([SOUNDS.move1, SOUNDS.move2]).play();
     } else {
       delta = last_block.in_dir.scale(-1);
     }
@@ -600,16 +1080,18 @@ function every_frame(cur_timestamp: number) {
         }
       } else if (cur_collectable instanceof Multiplier) {
         multiplier += 1;
+        bounceText('multiplier');
         collected_stuff_particles.push({ center: cur_collectable.pos, text: 'x' + multiplier.toString(), turn: turn });
         cur_collectables[k] = placeMultiplier();
         SOUNDS.star.play();
       } else if (cur_collectable instanceof Clock) {
         const clock = cur_collectable;
         if (clock.active) {
-          let clock_score = 3 * multiplier;
+          let clock_score = CONFIG.CLOCK_VALUE * multiplier;
           collected_stuff_particles.push({ center: cur_collectable.pos, text: '+' + clock_score.toString(), turn: turn });
           clock.remaining_turns = 0;
           score += clock_score;
+          bounceText('score');
           SOUNDS.clock.play();
           stopTickTockSound();
         }
@@ -658,12 +1140,208 @@ function every_frame(cur_timestamp: number) {
   cur_screen_shake.y = Math.sin(cur_shake_phase) * cur_shake_mag;
   cur_screen_shake.actualMag = approach(cur_screen_shake.actualMag, 0, delta_time * 1000)
 
+  chores(delta_time);
+
   draw(bullet_time);
 
   animation_id = requestAnimationFrame(every_frame);
 }
 
-function draw(bullet_time: boolean) {
+function generateShareMessage() {
+  // The fabled snake Ourobombos has been biting her own tail for ages, and she can't stand it anymore! Now she has a crazy plan to avoid it: blasting off her tail with bombs. Still painful, but at least she'll get rid of that boring old taste.
+  // please scroll down to learn to play
+  // we suck at PR, please help us bring the game to more people.
+  // all shared phrases start with “playing #bombsnack: score xxx, speed y.
+  // If playing on mobile, add it at the end of the first sentence. Then follow with…
+  const intros = [
+    `playing #bombsnack${is_phone ? ' on mobile' : ''}: score ${score}, speed ${game_speed}💣🐍 `
+  ]
+
+  let messages = [
+    `Ate a bomb, had a blast💥🥁`,
+    `No clue what clocks do 🕒 don't wanna read instructions.`,
+    `Gaem is fun but wheres the story, what are the snakes motivations?🤓`,
+    `cheat code: ⬆️⬆️⬇️⬇️⬅️➡️⬅➡️ activates the debug mode😜`,
+    `big secret: if you play for 30s without collecting anything you unlock a hidden level😜`,
+    `can you believe the Devs chose this BS over a proper leaderboard?😜`,
+    `Ofc I didn't die in the first 10 seconds, speed options are for softies #git gud😎`,
+    `funny how the snake seems to change mood depending on her direction😆`,
+    `this way of tracking scores allows cheating, and I totally didn't rewrite mine to raise it😎`,
+    `insider info: one of the Devs is such a city-boy he has never seen a snake irl🤫`,
+    `Insider info: one of the Devs is on the spectrum! Omg too many labels these days amirite?😆`,
+    `insider info: the alpha snake used to wear a scarf but snakes don't use clothes (they do eat bombs ofc)🐍`,
+    `don't eat bombs at home⚠️`,
+    `insider info: this game also cheats in your favour. Sometimes it tries to spawn bombs on the most crowded lines, otherwise those could get stale🤫`,
+    `insider info: the game took 40 times longer than planned to be finished😅`,
+    `insider info: this tiny game was tested by over 30 students! ❤️ you all, and u too Sai`,
+    `Supongo que toca escribir al menos 1 de estos en español. Lo sentimos pero traducir todo y detectar tu idioma sería demasiado incordio😅`,
+    `I'm tired of the Devs forcing their bad punchlines on me (but I do like the game)😜`,
+    `Props to the composers for making such bangers!❤️Devs wanted to thank you with direct @mentions, but some of u weren't active here`,
+    `Devs: you can write your own stuff too you know😜`,
+    `I'm still trying to find out all the predefined phrases, send help😅`,
+
+  ]
+  //if (multiplier === 0) messages.push(`That many points without a single clock, take that Pinch.`);
+  if (multiplier * 3 > score) messages.push(`got a ${multiplier} multiplier but very few bombs 😅😅😅 too greedy`);
+  if (score > 961 && game_speed == 1) messages.push(`According to this I've beaten the pre-release record (score 961, speed 2)😎`);
+  /*if (game_speed == 2) {
+    messages.push(`max speed is insane, wtf Devs?`);
+    messages.push(`max speed is still easy, wtf Devs?`);
+  }
+  messages.push(`My fav song is ${songName(music_track)}, props to ${songAuthor(music_track)}`);
+*/
+  if ((last_lost_timestamp - started_at_timestamp) / 1000 < 4) {
+    return "Are you dying on purpose to see all messages?😜"
+  }
+
+  return randomChoice(intros) + randomChoice(messages) + ' Play at https://pinchazumos.itch.io/bombsnack';
+}
+
+function songName(track: number) {
+  const names = [
+    'name',
+    'name',
+    'name',
+    'name',
+    'name',
+    'name',
+    'name',
+    'name',
+  ];
+  return names[track];
+}
+
+function songAuthor(track: number) {
+  const names = [
+    'name',
+    'name',
+    'name',
+    'name',
+    'name',
+    'name',
+    'name',
+    'name',
+  ];
+  return names[track];
+}
+
+function doMenu(canvas_mouse_pos: Vec2, raw_mouse_pos: Vec2, is_final_screen: boolean): boolean {
+  if (Math.abs(last_lost_timestamp - last_timestamp) < (1000 * CONFIG.SECONDS_OF_DISABLED_INPUT)) return false;
+  let user_clicked_something = false;
+  const menu_order = is_phone
+    ? ["haptic", "speed", "music", "resume"] as const
+    : ["speed", "music", "resume"] as const;
+  if (menu_fake_key !== null || [
+    KeyCode.KeyW, KeyCode.ArrowUp,
+    KeyCode.KeyA, KeyCode.ArrowLeft,
+    KeyCode.KeyS, KeyCode.ArrowDown,
+    KeyCode.KeyD, KeyCode.ArrowRight,
+    KeyCode.Space
+  ].some(k => input.keyboard.wasPressed(k))) {
+    if (menu_fake_key !== null) console.log('had a fake key');
+    function btnp(ks: KeyCode[]) {
+      if (menu_fake_key !== null && ks.includes(menu_fake_key)) {
+        console.log('used a fake key');
+        return true;
+      }
+      return ks.some(k => CONFIG.ALWAYS_SLOWDOWN ? input.keyboard.wasReleased(k) : input.keyboard.wasPressed(k));
+    }
+    let delta = new Vec2(
+      (btnp([KeyCode.KeyD, KeyCode.ArrowRight, KeyCode.Space]) ? 1 : 0)
+      - (btnp([KeyCode.KeyA, KeyCode.ArrowLeft]) ? 1 : 0),
+      (btnp([KeyCode.KeyS, KeyCode.ArrowDown]) ? 1 : 0)
+      - (btnp([KeyCode.KeyW, KeyCode.ArrowUp]) ? 1 : 0)
+    );
+    if (menu_fake_key !== null) console.log('delta was: ', delta.toString());
+    if (delta.y != 0) {
+      // @ts-expect-error
+      let cur_index = menu_order.indexOf(menu_focus);
+      if (cur_index === -1) {
+        cur_index = 0;
+      }
+      menu_focus = menu_order[mod(cur_index + delta.y, menu_order.length)];
+      if (is_final_screen && menu_focus === 'resume') {
+        menu_focus = delta.y > 0 ? menu_order[0] : menu_order[menu_order.length - 2];
+      }
+    }
+    if (delta.x !== 0) {
+      switch (menu_focus) {
+        case 'haptic':
+          if (!is_phone) break;
+          haptic = !haptic;
+          SOUNDS.menu1.play();
+          break;
+        case 'speed':
+          game_speed += delta.x;
+          game_speed = mod(game_speed, SPEEDS.length);
+          CONFIG.TURN_DURATION = SPEEDS[game_speed];
+          SOUNDS.menu1.play();
+          break;
+        case 'music':
+          music_track += delta.x;
+          music_track = mod(music_track, SONGS.length);
+          updateSong();
+          break;
+        case 'resume':
+          if (is_final_screen) break;
+          game_state = 'playing';
+          SOUNDS.menu2.play();
+          break;
+        default:
+          break;
+      }
+    }
+    menu_fake_key = null;
+  }
+
+  // mouse moved
+  if ((input.mouse.clientX !== input.mouse.prev_clientX || input.mouse.clientY !== input.mouse.prev_clientY)
+    && canvas_mouse_pos.y < BOARD_SIZE.y * TILE_SIZE) {
+    menu_focus = menu_order[argmin(menu_order.map(n => Math.abs(raw_mouse_pos.y - menuYCoordOf(n))))];
+  }
+
+  if (settings_overlapped) {
+    menu_focus = 'resume';
+  }
+  // (input.mouse.wasPressed(MouseButton.Left) && settings_overlapped)
+
+  if (input.mouse.wasPressed(MouseButton.Left) && canvas_mouse_pos.y < BOARD_SIZE.y * TILE_SIZE) {
+    const dx = canvas_mouse_pos.x / (BOARD_SIZE.x * TILE_SIZE) < 1 / 2 ? -1 : 1;
+    switch (menu_focus) {
+      case 'haptic':
+        if (!is_phone) break;
+        haptic = !haptic;
+        SOUNDS.menu1.play();
+        user_clicked_something = true;
+        break;
+      case 'speed':
+        game_speed += dx;
+        game_speed = mod(game_speed, SPEEDS.length);
+        CONFIG.TURN_DURATION = SPEEDS[game_speed];
+        SOUNDS.menu1.play();
+        user_clicked_something = true;
+        break;
+      case 'music':
+        music_track += dx;
+        music_track = mod(music_track, SONGS.length);
+        updateSong();
+        user_clicked_something = true;
+        break;
+      case 'resume':
+        if (is_final_screen) break;
+        game_state = 'playing';
+        SOUNDS.menu2.play();
+        user_clicked_something = true;
+        break;
+      default:
+        break;
+    }
+  }
+
+  return user_clicked_something;
+}
+
+function draw(bullet_time: boolean, is_loading: boolean = false) {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.translate(cur_screen_shake.x, cur_screen_shake.y);
   // cur_screen_shake.actualMag = lerp(cur_screen_shake.actualMag, cur_screen_shake.targetMag, .1);
@@ -674,100 +1352,78 @@ function draw(bullet_time: boolean) {
   }
   // ctx.fillRect(0, 0, BOARD_SIZE.x * TILE_SIZE, BOARD_SIZE.y * TILE_SIZE);
 
-  ctx.translate(MARGIN.x * TILE_SIZE, MARGIN.y * TILE_SIZE);
+  ctx.translate(MARGIN * TILE_SIZE, (MARGIN + TOP_OFFSET) * TILE_SIZE);
 
   if (CONFIG.CHECKERED_BACKGROUND !== "no") {
+    let fill: keyof typeof COLORS;
     for (let i = 0; i < BOARD_SIZE.x; i++) {
       for (let j = 0; j < BOARD_SIZE.y; j++) {
         if (CONFIG.CHECKERED_BACKGROUND === "2") {
-          ctx.fillStyle = mod(i + j, 2) === 0 ? COLORS.BACKGROUND : COLORS.BACKGROUND_2;
+          fill = mod(i + j, 2) === 0 ? "BACKGROUND" : "BACKGROUND_2";
         } else if (CONFIG.CHECKERED_BACKGROUND === "3") {
-          ctx.fillStyle = mod(i + j, 2) === 0 ? COLORS.BACKGROUND_3
-            : mod(i, 2) === 0 ? COLORS.BACKGROUND : COLORS.BACKGROUND_2;
+          fill = mod(i + j, 2) === 0 ? "BACKGROUND_3"
+            : mod(i, 2) === 0 ? "BACKGROUND" : "BACKGROUND_2";
         } else if (CONFIG.CHECKERED_BACKGROUND === "3_v2") {
-          ctx.fillStyle = mod(i + j, 2) === 0 ? COLORS.BACKGROUND_3
-            : mod(i + j + 1, 4) === 0 ? COLORS.BACKGROUND : COLORS.BACKGROUND_2;
+          fill = mod(i + j, 2) === 0 ? "BACKGROUND_3"
+            : mod(i + j + 1, 4) === 0 ? "BACKGROUND" : "BACKGROUND_2";
+        } else {
+          throw new Error("unreachable");
         }
-        fillTile(new Vec2(i, j));
+        fillTile(new Vec2(i, j), fill);
       }
     }
   }
-
-  // draw gridlines
-  if (CONFIG.GRIDLINE && !CONFIG.GRIDLINE_OVER) {
-    ctx.fillStyle = COLORS.GRIDLINE;
-    for (let i = 0; i < BOARD_SIZE.x; i++) {
-      for (let j = 0; j < BOARD_SIZE.y; j++) {
-        fillTileCenterSize(new Vec2(i, j), new Vec2(CONFIG.GRIDLINE_WIDTH, 1))
-        fillTileCenterSize(new Vec2(i, j), new Vec2(1, CONFIG.GRIDLINE_WIDTH))
-      }
-    }
-  }
-
-  // ctx.fillStyle = "#111133";
-  // ctx.fillRect(0, canvas.height-S, canvas.width, S);
-  // ctx.fillStyle = "#333399";
-  // ctx.fillRect(0, canvas.height-S, ((turn + turn_offset) / MAX_TURNS + .5) * canvas.width, S);
 
   if (CONFIG.SHADOW) {
     snake_blocks.forEach((cur_block, k) => {
-      if (CONFIG.DRAW_ROUNDED) {
-        ctx.fillStyle = COLORS.SHADOW;
-        const is_scarf = CONFIG.SCARF === "full" && turn - cur_block.t === 1;
-        if (cur_block.in_dir.equal(cur_block.out_dir.scale(-1))) {
-          if (is_scarf && turn_offset < CONFIG.ANIM_PERC) {
-            const center = cur_block.pos.add(Vec2.both(CONFIG.SHADOW_DIST)).addXY(.5, .5).add(cur_block.in_dir.scale((1 - turn_offset / CONFIG.ANIM_PERC) / 2));
-            fillTileCenterSize(center, Vec2.both(1));
-          } else {
-            fillTile(cur_block.pos.add(Vec2.both(CONFIG.SHADOW_DIST)));
-          }
-        } else if (cur_block.out_dir.equal(Vec2.zero)) {
-          let rounded_size = Math.min(.5, CONFIG.ROUNDED_SIZE);
-          // let rounded_size = .5;
-          let center = cur_block.pos.addXY(.5, .5).add(Vec2.both(CONFIG.SHADOW_DIST));
-          if (turn_offset < CONFIG.ANIM_PERC) {
-            center = center.add(cur_block.in_dir.scale(1 - turn_offset / CONFIG.ANIM_PERC));
-          }
-          fillTileCenterSize(center.add(cur_block.in_dir.scale(rounded_size / 2)),
-            new Vec2(
-              cur_block.in_dir.x == 0 ? 1 : 1 - rounded_size,
-              cur_block.in_dir.y == 0 ? 1 : 1 - rounded_size,
-            )
-          )
-          fillTileCenterSize(center,
-            new Vec2(
-              cur_block.in_dir.y == 0 ? 1 : 1 - rounded_size * 2,
-              cur_block.in_dir.x == 0 ? 1 : 1 - rounded_size * 2,
-            )
-          )
-          ctx.beginPath();
-          drawCircle(center.add(cur_block.in_dir.add(rotQuarterA(cur_block.in_dir)).scale(rounded_size - .5)), rounded_size);
-          drawCircle(center.add(cur_block.in_dir.add(rotQuarterB(cur_block.in_dir)).scale(rounded_size - .5)), rounded_size);
-          ctx.fill();
+      const is_scarf = CONFIG.SCARF === "full" && turn - cur_block.t === 1;
+      if (cur_block.in_dir.equal(cur_block.out_dir.scale(-1))) {
+        if (is_scarf && turn_offset < CONFIG.ANIM_PERC) {
+          const center = cur_block.pos.add(Vec2.both(CONFIG.SHADOW_DIST)).addXY(.5, .5).add(cur_block.in_dir.scale((1 - turn_offset / CONFIG.ANIM_PERC) / 2));
+          fillTileCenterSize(center, Vec2.both(1), "SHADOW");
         } else {
-          const center = cur_block.pos.addXY(.5, .5).add(Vec2.both(CONFIG.SHADOW_DIST));
-          fillTileCenterSize(center.add(cur_block.in_dir.scale(CONFIG.ROUNDED_SIZE / 2)),
-            new Vec2(
-              cur_block.in_dir.x == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
-              cur_block.in_dir.y == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
-            )
-          )
-          fillTileCenterSize(center.add(cur_block.out_dir.scale(CONFIG.ROUNDED_SIZE / 2)),
-            new Vec2(
-              cur_block.out_dir.x == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
-              cur_block.out_dir.y == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
-            )
-          )
-          ctx.save();
-          ctx.beginPath();
-          ctx.clip(tileRegion(cur_block.pos.add(Vec2.both(CONFIG.SHADOW_DIST))));
-          drawCircle(center.add(cur_block.in_dir.add(cur_block.out_dir).scale(CONFIG.ROUNDED_SIZE - .5)), CONFIG.ROUNDED_SIZE);
-          ctx.fill();
-          ctx.restore();
+          fillTile(cur_block.pos.add(Vec2.both(CONFIG.SHADOW_DIST)), "SHADOW");
         }
+      } else if (cur_block.out_dir.equal(Vec2.zero)) {
+        let rounded_size = Math.min(.5, CONFIG.ROUNDED_SIZE);
+        // let rounded_size = .5;
+        let center = cur_block.pos.addXY(.5, .5).add(Vec2.both(CONFIG.SHADOW_DIST));
+        if (turn_offset < CONFIG.ANIM_PERC) {
+          center = center.add(cur_block.in_dir.scale(1 - turn_offset / CONFIG.ANIM_PERC));
+        }
+        fillTileCenterSize(center.add(cur_block.in_dir.scale(rounded_size / 2)),
+          new Vec2(
+            cur_block.in_dir.x == 0 ? 1 : 1 - rounded_size,
+            cur_block.in_dir.y == 0 ? 1 : 1 - rounded_size,
+          ), "SHADOW"
+        )
+        fillTileCenterSize(center,
+          new Vec2(
+            cur_block.in_dir.y == 0 ? 1 : 1 - rounded_size * 2,
+            cur_block.in_dir.x == 0 ? 1 : 1 - rounded_size * 2,
+          ), "SHADOW"
+        )
+        fillCircle(center.add(cur_block.in_dir.add(rotQuarterA(cur_block.in_dir)).scale(rounded_size - .5)), rounded_size, "SHADOW");
+        fillCircle(center.add(cur_block.in_dir.add(rotQuarterB(cur_block.in_dir)).scale(rounded_size - .5)), rounded_size, "SHADOW");
       } else {
-        ctx.fillStyle = COLORS.SHADOW;
-        fillTile(cur_block.pos.add(Vec2.both(CONFIG.SHADOW_DIST)));
+        const center = cur_block.pos.addXY(.5, .5).add(Vec2.both(CONFIG.SHADOW_DIST));
+        fillTileCenterSize(center.add(cur_block.in_dir.scale(CONFIG.ROUNDED_SIZE / 2)),
+          new Vec2(
+            cur_block.in_dir.x == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
+            cur_block.in_dir.y == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
+          ), "SHADOW"
+        )
+        fillTileCenterSize(center.add(cur_block.out_dir.scale(CONFIG.ROUNDED_SIZE / 2)),
+          new Vec2(
+            cur_block.out_dir.x == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
+            cur_block.out_dir.y == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
+          ), "SHADOW"
+        )
+        ctx.save();
+        // ctx.beginPath();
+        ctx.clip(tileRegion(cur_block.pos.add(Vec2.both(CONFIG.SHADOW_DIST))));
+        fillCircle(center.add(cur_block.in_dir.add(cur_block.out_dir).scale(CONFIG.ROUNDED_SIZE - .5)), CONFIG.ROUNDED_SIZE, "SHADOW");
+        ctx.restore();
       }
     });
 
@@ -776,7 +1432,7 @@ function draw(bullet_time: boolean) {
       const cur_collectable = cur_collectables[k];
       if (cur_collectable instanceof Bomb) {
         const cur_bomb = cur_collectable;
-        drawTexture(cur_bomb.pos.add(Vec2.both(CONFIG.SHADOW_DIST)), TEXTURES.shadow.bomb);
+        drawItem(cur_bomb.pos.add(Vec2.both(CONFIG.SHADOW_DIST)), 'bomb', true);
         // ctx.fillStyle = COLORS.SHADOW;
         // fillTile(cur_bomb.pos.add(Vec2.both(CONFIG.SHADOW_DIST)));
         if (cur_bomb.ticking || CONFIG.FUSE_DURATION > 0) {
@@ -786,11 +1442,11 @@ function draw(bullet_time: boolean) {
       } else if (cur_collectable instanceof Multiplier) {
         // ctx.fillStyle = COLORS.SHADOW;
         // fillTile(cur_collectable.pos.add(Vec2.both(CONFIG.SHADOW_DIST));
-        drawTexture(cur_collectable.pos.add(Vec2.both(CONFIG.SHADOW_DIST)), TEXTURES.shadow.multiplier);
+        drawItem(cur_collectable.pos.add(Vec2.both(CONFIG.SHADOW_DIST)), 'multiplier', true);
       } else if (cur_collectable instanceof Clock) {
         const clock = cur_collectable;
         if (clock.active) {
-          drawTexture(clock.pos, TEXTURES.shadow.clock);
+          drawItem(clock.pos.add(Vec2.both(CONFIG.SHADOW_DIST)), 'clock', true);
         }
       } else {
         throw new Error();
@@ -827,131 +1483,115 @@ function draw(bullet_time: boolean) {
     }
 
     for (let y = 0; y < BOARD_SIZE.y; y++) {
-      fillTile(new Vec2(particle.center.x, y));
+      fillTile(new Vec2(particle.center.x, y), "EXPLOSION");
     }
     for (let x = 0; x < BOARD_SIZE.y; x++) {
-      fillTile(new Vec2(x, particle.center.y));
+      fillTile(new Vec2(x, particle.center.y), "EXPLOSION");
     }
     return true;
   });
 
   // snake body
   snake_blocks.forEach((cur_block, k) => {
-    if (CONFIG.DRAW_ROUNDED) {
-      ctx.fillStyle = CONFIG.CHECKERED_SNAKE ? (mod(cur_block.t, 2) == 1 ? COLORS.SNAKE_HEAD : COLORS.SNAKE_WALL) : CONFIG.DRAW_PATTERN ? triangle_pattern : COLORS.SNAKE[Math.max(0, Math.min(COLORS.SNAKE.length - 1, turn - cur_block.t))];
-      const is_scarf = CONFIG.SCARF === "full" && turn - cur_block.t === 1;
-      if (is_scarf) ctx.fillStyle = COLORS.SCARF_IN;
-      if (cur_block.in_dir.equal(cur_block.out_dir.scale(-1))) {
-        if (is_scarf && turn_offset < CONFIG.ANIM_PERC) {
-          const center = cur_block.pos.addXY(.5, .5).add(cur_block.in_dir.scale(1 - turn_offset / CONFIG.ANIM_PERC));
-          fillTileCenterSize(center, Vec2.both(1));
-        } else {
-          fillTile(cur_block.pos);
-        }
-      } else if (cur_block.out_dir.equal(Vec2.zero)) {
-        if (CONFIG.HEAD_COLOR) {
-          ctx.fillStyle = COLORS.HEAD;
-        }
-        let rounded_size = Math.min(.5, CONFIG.ROUNDED_SIZE);
-        // let rounded_size = .5;
-        let center = cur_block.pos.addXY(.5, .5);
-        if (turn_offset < CONFIG.ANIM_PERC) {
-          center = center.add(cur_block.in_dir.scale(1 - turn_offset / CONFIG.ANIM_PERC));
-        }
-        fillTileCenterSize(center.add(cur_block.in_dir.scale(rounded_size / 2)),
-          new Vec2(
-            cur_block.in_dir.x == 0 ? 1 : 1 - rounded_size,
-            cur_block.in_dir.y == 0 ? 1 : 1 - rounded_size,
-          )
-        )
-        fillTileCenterSize(center,
-          new Vec2(
-            cur_block.in_dir.y == 0 ? 1 : 1 - rounded_size * 2,
-            cur_block.in_dir.x == 0 ? 1 : 1 - rounded_size * 2,
-          )
-        )
-        ctx.beginPath();
-        drawCircle(center.add(cur_block.in_dir.add(rotQuarterA(cur_block.in_dir)).scale(rounded_size - .5)), rounded_size);
-        drawCircle(center.add(cur_block.in_dir.add(rotQuarterB(cur_block.in_dir)).scale(rounded_size - .5)), rounded_size);
-        ctx.fill();
+    let fill: keyof typeof COLORS = mod(cur_block.t, 2) == 1 ? "SNAKE_HEAD" : "SNAKE_WALL";
+    const is_scarf = CONFIG.SCARF === "full" && turn - cur_block.t === 1;
+    if (is_scarf) {
+      fill = "SCARF_IN";
+    }
+    ctx.fillStyle = COLORS[fill];
+    if (cur_block.in_dir.equal(cur_block.out_dir.scale(-1))) {
+      if (is_scarf && turn_offset < CONFIG.ANIM_PERC) {
+        const center = cur_block.pos.addXY(.5, .5).add(cur_block.in_dir.scale(1 - turn_offset / CONFIG.ANIM_PERC));
+        fillTileCenterSize(center, Vec2.both(1), fill);
+      } else {
+        fillTile(cur_block.pos, fill);
+      }
+    } else if (cur_block.out_dir.equal(Vec2.zero)) {
+      const bounce = Math.max((bouncyTexts.get('multiplier') ?? 0), (bouncyTexts.get('score') ?? 0))
+      if (CONFIG.HEAD_COLOR) {
+        fill = "HEAD";
+        ctx.fillStyle = COLORS.HEAD;
+      }
+      let rounded_size = Math.min(.5, CONFIG.ROUNDED_SIZE);
+      // let rounded_size = .5;
+      let center = cur_block.pos.addXY(.5, .5);
+      if (turn_offset < CONFIG.ANIM_PERC) {
+        center = center.add(cur_block.in_dir.scale(1 - turn_offset / CONFIG.ANIM_PERC));
+      }
 
-        // eye
-        let eye_texture = game_state === "lost"
-          ? TEXTURES.eye.KO
-          : false
-            ? TEXTURES.eye.closed
-            : TEXTURES.eye.open;
-        if (cur_block.in_dir.equal(new Vec2(1, 0))) {
-          drawFlippedTexture(center, eye_texture);
-        } else {
-          drawRotatedTexture(center, eye_texture,
-            Math.atan2(-cur_block.in_dir.y, -cur_block.in_dir.x));
-        }
-        // drawTexture(cur_block.pos, game_state === "lost" ? textures.eye.KO : textures.eye.open);
-        // ctx.beginPath();
-        // ctx.fillStyle = "white";
-        // drawCircle(center.add(cur_block.in_dir.scale(-.1)), .3);
-        // ctx.fill();
-        // ctx.beginPath();
-        // ctx.fillStyle = "black";
-        // drawCircle(center.add(cur_block.in_dir.scale(-.2)), .1);
-        // ctx.fill();
+      const real_center = center.scale(TILE_SIZE);
+      ctx.translate(real_center.x, real_center.y);
+      const bounce_scale = 1 + CONFIG.HEAD_BOUNCE * bounce;
+      ctx.scale(bounce_scale, bounce_scale);
+      center = Vec2.zero;
+
+      fillTileCenterSize(center.add(cur_block.in_dir.scale(rounded_size / 2)),
+        new Vec2(
+          cur_block.in_dir.x == 0 ? 1 : 1 - rounded_size,
+          cur_block.in_dir.y == 0 ? 1 : 1 - rounded_size,
+        ), fill
+      )
+      fillTileCenterSize(center,
+        new Vec2(
+          cur_block.in_dir.y == 0 ? 1 : 1 - rounded_size * 2,
+          cur_block.in_dir.x == 0 ? 1 : 1 - rounded_size * 2,
+        ), fill
+      )
+      fillCircle(center.add(cur_block.in_dir.add(rotQuarterA(cur_block.in_dir)).scale(rounded_size - .5)), rounded_size, fill);
+      fillCircle(center.add(cur_block.in_dir.add(rotQuarterB(cur_block.in_dir)).scale(rounded_size - .5)), rounded_size, fill);
+
+      // eye
+      let eye_texture = game_state === "lost"
+        ? TEXTURES.eye.KO
+        : false
+          ? TEXTURES.eye.closed
+          : TEXTURES.eye.open;
+      if (cur_block.in_dir.equal(new Vec2(1, 0))) {
+        drawFlippedTexture(center, eye_texture, 1 + CONFIG.EYE_BOUNCE * bounce);
       } else {
-        const center = cur_block.pos.addXY(.5, .5)
-        if (is_scarf && turn_offset < CONFIG.ANIM_PERC) {
-          let anim_t = turn_offset / CONFIG.ANIM_PERC;
-          // center = center.add(cur_block.in_dir.scale(1 - ));
-          fillTileCenterSize(center.add(cur_block.in_dir.scale(.5 + (1 - anim_t) / 2)), new Vec2(
-            cur_block.in_dir.x == 0 ? 1 : 1 - anim_t,
-            cur_block.in_dir.y == 0 ? 1 : 1 - anim_t,
-          ));
-        }
-        fillTileCenterSize(center.add(cur_block.in_dir.scale(CONFIG.ROUNDED_SIZE / 2)),
-          new Vec2(
-            cur_block.in_dir.x == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
-            cur_block.in_dir.y == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
-          )
-        )
-        fillTileCenterSize(center.add(cur_block.out_dir.scale(CONFIG.ROUNDED_SIZE / 2)),
-          new Vec2(
-            cur_block.out_dir.x == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
-            cur_block.out_dir.y == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
-          )
-        )
-        ctx.save();
-        ctx.beginPath();
-        ctx.clip(tileRegion(cur_block.pos));
-        drawCircle(center.add(cur_block.in_dir.add(cur_block.out_dir).scale(CONFIG.ROUNDED_SIZE - .5)), CONFIG.ROUNDED_SIZE);
-        ctx.fill();
-        ctx.restore();
+        drawRotatedTexture(center, eye_texture,
+          Math.atan2(-cur_block.in_dir.y, -cur_block.in_dir.x), 1 + CONFIG.EYE_BOUNCE * bounce);
       }
+      // drawTexture(cur_block.pos, game_state === "lost" ? textures.eye.KO : textures.eye.open);
+      // ctx.beginPath();
+      // ctx.fillStyle = "white";
+      // drawCircle(center.add(cur_block.in_dir.scale(-.1)), .3);
+      // ctx.fill();
+      // ctx.beginPath();
+      // ctx.fillStyle = "black";
+      // drawCircle(center.add(cur_block.in_dir.scale(-.2)), .1);
+      // ctx.fill();
+
+      ctx.scale(1 / bounce_scale, 1 / bounce_scale);
+      ctx.translate(-real_center.x, -real_center.y);
+
     } else {
-      if (CONFIG.DRAW_SNAKE_BORDER) {
-        ctx.fillStyle = COLORS.BORDER;
-        fillTile(cur_block.pos);
-        ctx.fillStyle = CONFIG.CHECKERED_SNAKE ? (mod(cur_block.t, 2) == 1 ? COLORS.SNAKE_HEAD : COLORS.SNAKE_WALL) : CONFIG.DRAW_PATTERN ? triangle_pattern : COLORS.SNAKE[Math.max(0, Math.min(COLORS.SNAKE.length - 1, turn - cur_block.t))];
-        if (CONFIG.SCARF === "full" && turn - cur_block.t === 1) ctx.fillStyle = COLORS.SCARF_IN;
-        const center = cur_block.pos.addXY(.5, .5)
-        fillTileCenterSize(center, Vec2.both(1 - CONFIG.BORDER_SIZE));
-        fillTileCenterSize(
-          center.add(cur_block.in_dir.scale(.5 - CONFIG.BORDER_SIZE / 2)),
-          new Vec2(
-            cur_block.in_dir.x == 0 ? 1 - CONFIG.BORDER_SIZE : CONFIG.BORDER_SIZE,
-            cur_block.in_dir.y == 0 ? 1 - CONFIG.BORDER_SIZE : CONFIG.BORDER_SIZE
-          )
-        );
-        fillTileCenterSize(
-          center.add(cur_block.out_dir.scale(.5 - CONFIG.BORDER_SIZE / 2)),
-          new Vec2(
-            cur_block.out_dir.x == 0 ? 1 - CONFIG.BORDER_SIZE : CONFIG.BORDER_SIZE,
-            cur_block.out_dir.y == 0 ? 1 - CONFIG.BORDER_SIZE : CONFIG.BORDER_SIZE
-          )
-        );
-      } else {
-        ctx.fillStyle = CONFIG.CHECKERED_SNAKE ? (mod(cur_block.t, 2) == 1 ? COLORS.SNAKE_HEAD : COLORS.SNAKE_WALL) : CONFIG.DRAW_PATTERN ? triangle_pattern : COLORS.SNAKE[Math.max(0, Math.min(COLORS.SNAKE.length - 1, turn - cur_block.t))];
-        if (CONFIG.SCARF === "full" && turn - cur_block.t === 1) ctx.fillStyle = COLORS.SCARF_IN;
-        fillTile(cur_block.pos);
+      const center = cur_block.pos.addXY(.5, .5)
+      if (is_scarf && turn_offset < CONFIG.ANIM_PERC) {
+        let anim_t = turn_offset / CONFIG.ANIM_PERC;
+        // center = center.add(cur_block.in_dir.scale(1 - ));
+        fillTileCenterSize(center.add(cur_block.in_dir.scale(.5 + (1 - anim_t) / 2)), new Vec2(
+          cur_block.in_dir.x == 0 ? 1 : 1 - anim_t,
+          cur_block.in_dir.y == 0 ? 1 : 1 - anim_t,
+        ), fill);
       }
+      fillTileCenterSize(center.add(cur_block.in_dir.scale(CONFIG.ROUNDED_SIZE / 2)),
+        new Vec2(
+          cur_block.in_dir.x == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
+          cur_block.in_dir.y == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
+        ), fill
+      )
+      fillTileCenterSize(center.add(cur_block.out_dir.scale(CONFIG.ROUNDED_SIZE / 2)),
+        new Vec2(
+          cur_block.out_dir.x == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
+          cur_block.out_dir.y == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
+        ), fill
+      )
+      ctx.save();
+      ctx.beginPath();
+      ctx.clip(tileRegion(cur_block.pos));
+      fillCircle(center.add(cur_block.in_dir.add(cur_block.out_dir).scale(CONFIG.ROUNDED_SIZE - .5)), CONFIG.ROUNDED_SIZE, fill);
+      ctx.restore();
     }
   });
 
@@ -967,7 +1607,7 @@ function draw(bullet_time: boolean) {
           new Vec2(
             cur_block.in_dir.x == 0 ? 1 : CONFIG.SCARF_BORDER_WIDTH,
             cur_block.in_dir.y == 0 ? 1 : CONFIG.SCARF_BORDER_WIDTH
-          )
+          ), "SCARF_OUT"
         );
       }
       fillTileCenterSize(
@@ -975,7 +1615,7 @@ function draw(bullet_time: boolean) {
         new Vec2(
           cur_block.out_dir.x == 0 ? 1 : CONFIG.SCARF_BORDER_WIDTH,
           cur_block.out_dir.y == 0 ? 1 : CONFIG.SCARF_BORDER_WIDTH
-        )
+        ), "SCARF_OUT"
       );
     });
   }
@@ -985,7 +1625,7 @@ function draw(bullet_time: boolean) {
     const cur_collectable = cur_collectables[k];
     if (cur_collectable instanceof Bomb) {
       const cur_bomb = cur_collectable;
-      drawTexture(cur_bomb.pos, TEXTURES.bomb);
+      drawItem(cur_bomb.pos, 'bomb');
       // ctx.fillStyle = COLORS.BOMB;
       // fillTile(cur_bomb.pos);
       if (cur_bomb.ticking || CONFIG.FUSE_DURATION > 0) {
@@ -995,25 +1635,30 @@ function draw(bullet_time: boolean) {
     } else if (cur_collectable instanceof Multiplier) {
       // ctx.fillStyle = COLORS.MULTIPLIER;
       // fillTile(cur_collectable.pos);
-      drawTexture(cur_collectable.pos, TEXTURES.multiplier);
+      drawItem(cur_collectable.pos, 'multiplier');
     } else if (cur_collectable instanceof Clock) {
       const clock = cur_collectable;
       if (clock.active) {
-        drawTexture(clock.pos, TEXTURES.clock);
-        ctx.strokeStyle = "black";
-        ctx.beginPath();
-        const center = clock.pos.add(Vec2.both(.5));
-        const hand_delta = Vec2.fromTurns(
-          remap(clock.remaining_turns - turn_offset, 0, CONFIG.CLOCK_DURATION, -1 / 4, -5 / 4)
-        ).scale(.3);
-        moveTo(center.scale(TILE_SIZE));
-        lineTo(center.add(hand_delta).scale(TILE_SIZE));
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.fillStyle = "black";
-        drawCircleNoWrap(center, .05);
-        drawCircleNoWrap(center.add(hand_delta), .05);
-        ctx.fill();
+        drawItem(clock.pos, 'clock');
+        for (let i = -1; i <= 1; i++) {
+          for (let j = -1; j <= 1; j++) {
+            if (!CONFIG.WRAP_ITEMS && (i !== 0 || j !== 0)) continue;
+            ctx.strokeStyle = "black";
+            ctx.beginPath();
+            const center = clock.pos.add(Vec2.both(.5)).add(new Vec2(i * BOARD_SIZE.x, j * BOARD_SIZE.y));
+            const hand_delta = Vec2.fromTurns(
+              remap(clock.remaining_turns - turn_offset, 0, CONFIG.CLOCK_DURATION, -1 / 4, -5 / 4)
+            ).scale(.3);
+            moveTo(center.scale(TILE_SIZE));
+            lineTo(center.add(hand_delta).scale(TILE_SIZE));
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.fillStyle = "black";
+            drawCircleNoWrap(center, .05);
+            drawCircleNoWrap(center.add(hand_delta), .05);
+            ctx.fill();
+          }
+        }
       }
     } else {
       throw new Error();
@@ -1025,7 +1670,7 @@ function draw(bullet_time: boolean) {
     let t = remap(turn + turn_offset, particle.turn, particle.turn + 3, 0, 1);
     if (t > 1) return false;
     let dx = particle.center.x > BOARD_SIZE.x - 2 ? -1 : 1;
-    ctx.font = `bold ${Math.floor(25 * TILE_SIZE / 32)}px sans-serif`;
+    ctx.font = `bold ${Math.floor((is_phone ? 35 : 25) * TILE_SIZE / 25)}px sans-serif`;
     // text outline:
     // ctx.strokeStyle = "black";
     // ctx.strokeText(particle.text, (particle.center.x + dx) * TILE_SIZE, (particle.center.y + 1 - t * 1.5) * TILE_SIZE);
@@ -1039,56 +1684,223 @@ function draw(bullet_time: boolean) {
     return true;
   });
 
-  // draw gridlines
-  if (CONFIG.GRIDLINE && CONFIG.GRIDLINE_OVER) {
-    ctx.fillStyle = COLORS.GRIDLINE;
-    for (let i = 0; i < BOARD_SIZE.x; i++) {
-      for (let j = 0; j < BOARD_SIZE.y; j++) {
-        fillTileCenterSize(new Vec2(i, j), new Vec2(CONFIG.GRIDLINE_WIDTH, 1))
-        fillTileCenterSize(new Vec2(i, j), new Vec2(1, CONFIG.GRIDLINE_WIDTH))
-      }
-    }
-  }
-
   ctx.resetTransform();
 
   // draw borders to hide stuff
-  ctx.fillStyle = "#555";
-  ctx.fillRect(0, 0, canvas_ctx.width, (MARGIN.y - CONFIG.DRAW_WRAP) * TILE_SIZE);
-  ctx.fillRect(0, 0, (MARGIN.x - CONFIG.DRAW_WRAP) * TILE_SIZE, canvas_ctx.height);
-  ctx.fillRect(0, (MARGIN.y + BOARD_SIZE.y + CONFIG.DRAW_WRAP) * TILE_SIZE, canvas_ctx.width, (MARGIN.y - CONFIG.DRAW_WRAP + 1) * TILE_SIZE);
-  ctx.fillRect((MARGIN.x + BOARD_SIZE.x + CONFIG.DRAW_WRAP) * TILE_SIZE, 0, (MARGIN.x - CONFIG.DRAW_WRAP + 1) * TILE_SIZE, canvas_ctx.height);
+  ctx.fillStyle = COLORS.WEB_BG;
+  ctx.fillRect(0, 0, canvas_ctx.width, (TOP_OFFSET + MARGIN - CONFIG.DRAW_WRAP) * TILE_SIZE);
+  ctx.fillRect(0, 0, (MARGIN - CONFIG.DRAW_WRAP) * TILE_SIZE, canvas_ctx.height);
+  ctx.fillRect(0, (TOP_OFFSET + MARGIN + BOARD_SIZE.y + CONFIG.DRAW_WRAP) * TILE_SIZE, canvas_ctx.width, (TOP_OFFSET + MARGIN - CONFIG.DRAW_WRAP + 1) * TILE_SIZE);
+  ctx.fillRect((MARGIN + BOARD_SIZE.x + CONFIG.DRAW_WRAP) * TILE_SIZE, 0, (MARGIN - CONFIG.DRAW_WRAP + 1) * TILE_SIZE, canvas_ctx.height);
 
-  ctx.font = `${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
   ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
   ctx.fillStyle = COLORS.TEXT;
-  if (game_state === "waiting") {
-    ctx.fillText("WASD or Arrow Keys to move", canvas_ctx.width / 2, (MARGIN.y + BOARD_SIZE.y / 4) * TILE_SIZE);
+
+
+  if (game_state === "loading_menu") {
+    drawImageCentered((mod(last_timestamp / 600, 1) > 0.5) ? TEXTURES.logo.frame1 : TEXTURES.logo.frame2,
+      new Vec2(canvas_ctx.width / 2, menuYCoordOf("logo")));
+
+
+    if (is_loading) {
+      drawCenteredShadowedTextWithColor(
+        (mod(last_timestamp / 1200, 1) < 0.5) ? COLORS.TEXT : COLORS.GRAY_TEXT,
+        'Loading...',
+        menuYCoordOf("start") - 1 * TILE_SIZE
+      );
+    }
+    else {
+      drawCenteredShadowedTextWithColor(
+        (mod(last_timestamp / 1200, 1) < 0.5) ? COLORS.TEXT : COLORS.GRAY_TEXT,
+        `${is_phone ? 'Tap' : 'Click'} anywhere to`,
+        menuYCoordOf("start") - 1 * TILE_SIZE
+      );
+      drawCenteredShadowedTextWithColor(
+        (mod(last_timestamp / 1200, 1) < 0.5) ? COLORS.TEXT : COLORS.GRAY_TEXT,
+        `start`,
+        menuYCoordOf("start")
+      );
+    }
+
+    if (!is_phone) {
+      drawCenteredShadowedText('Please scroll down', (MARGIN + TOP_OFFSET + BOARD_SIZE.y * 0.48) * TILE_SIZE);
+      drawCenteredShadowedText('to learn to play', (MARGIN + TOP_OFFSET + BOARD_SIZE.y * 0.56) * TILE_SIZE);
+    }
+
+    drawCenteredShadowedText('By knexator & Pinchazumos', (MARGIN + TOP_OFFSET + BOARD_SIZE.y * 1.05) * TILE_SIZE);
+  } else if (game_state === "pause_menu") {
+
+    drawImageCentered(TEXTURES.pause_text, new Vec2(canvas_ctx.width / 2, menuYCoordOf("logo") * 0.85));
+
+    if (is_phone) {
+      drawCenteredShadowedTextWithColor(
+        (menu_focus === "haptic") ? COLORS.TEXT : COLORS.GRAY_TEXT,
+        `Haptic: ${haptic ? 'on' : 'off'}`, menuYCoordOf("haptic"));
+    }
+    drawCenteredShadowedText(`Speed: ${game_speed + 1}`, menuYCoordOf("speed"));
+    drawCenteredShadowedText(`Song: ${music_track === 0 ? 'None' : (SONGS[music_track] === null ? 'loading' : music_track)}`, menuYCoordOf("music"));
+
+    if (menu_focus !== "resume") {
+      drawMenuArrow(menu_focus, false);
+      drawMenuArrow(menu_focus, true);
+    }
+
+    drawCenteredShadowedTextWithColor(
+      (menu_focus === "resume") ? COLORS.TEXT : COLORS.GRAY_TEXT,
+      `Resume`,
+      menuYCoordOf("resume")
+    );
   } else if (game_state === "lost") {
-    ctx.fillText(`Score: ${score}`, canvas_ctx.width / 2, (MARGIN.y + BOARD_SIZE.y / 4) * TILE_SIZE);
+
+    // drawCenteredShadowedText(`Score: ${score}`, (TOP_OFFSET + MARGIN + BOARD_SIZE.y / 4) * TILE_SIZE);
+    drawCenteredShadowedText(is_phone ? 'Tap here to Restart' : `R to Restart`, (TOP_OFFSET + MARGIN + BOARD_SIZE.y * 3 / 4) * TILE_SIZE);
+
+    if (!hide_end_text) {
+      drawCenteredShadowedTextMultiline(['We suck at PR, please help us', 'bring the game to more people.'], menuYCoordOf("share") - TILE_SIZE * 4.5, 1);
+    }
+    const share_button_scale = CONFIG.SHARE_BUTTON_SCALE;
+    if (share_button_state.folded) {
+      const pos = new Vec2(canvas_ctx.width / 2, menuYCoordOf("share"));
+      drawImageCentered(TEXTURES.share.vanilla_shadow, pos.add(Vec2.both(CONFIG.SHADOW_TEXT)), share_button_scale);
+      if (share_button_state.hovered === 'vanilla') {
+        drawImageCentered(TEXTURES.share.vanilla, pos.sub(Vec2.both(CONFIG.SHADOW_TEXT / 2)), share_button_scale);
+      }
+      else {
+        drawImageCentered(TEXTURES.share.vanilla, pos, share_button_scale);
+      }
+    } else {
+      const center = new Vec2(canvas_ctx.width / 2, menuYCoordOf("share"));
+      drawImageCentered(TEXTURES.share.twitter, center.addX(-TILE_SIZE * 2)
+        .sub(share_button_state.hovered === 'twitter' ? Vec2.both(CONFIG.SHADOW_TEXT / 2) : Vec2.zero), share_button_scale);
+      drawImageCentered(TEXTURES.share.bsky, center.addX(TILE_SIZE * 2)
+        .sub(share_button_state.hovered === 'bsky' ? Vec2.both(CONFIG.SHADOW_TEXT / 2) : Vec2.zero), share_button_scale);
+    }
+
     // ctx.fillText("", canvas.width / 2, canvas.height / 2);
-  } else if (game_state === "main") {
+  } else if (game_state === "playing") {
     // nothing
+  } else {
+    throw new Error(`unhandled game state: ${game_state}`);
   }
 
 
   // draw UI bar
-  ctx.translate((MARGIN.x - CONFIG.DRAW_WRAP) * TILE_SIZE, (MARGIN.y - CONFIG.DRAW_WRAP - 1 - .2) * TILE_SIZE);
-  ctx.fillStyle = "black";
-  ctx.fillRect(0, 0, BOARD_SIZE.x * TILE_SIZE, TILE_SIZE);
+  ctx.font = `bold ${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
+  ctx.translate(MARGIN * TILE_SIZE, (TOP_OFFSET + MARGIN - CONFIG.DRAW_WRAP - 1 - .4) * TILE_SIZE);
+  ctx.fillStyle = game_state === 'lost' ? COLORS.HIGHLIGHT_BAR : "black";
+  ctx.fillRect(-CONFIG.DRAW_WRAP * TILE_SIZE, 0, (BOARD_SIZE.x + CONFIG.DRAW_WRAP * 2) * TILE_SIZE, TILE_SIZE * 1.2);
   ctx.fillStyle = "white";
   ctx.textAlign = "left";
   ctx.textBaseline = "bottom";
-  ctx.fillStyle = COLORS.TEXT;
-  ctx.fillText(`Score: ${score}`, .2 * TILE_SIZE, TILE_SIZE);
-  ctx.drawImage(TEXTURES.multiplier, 12.5 * TILE_SIZE, 0, TILE_SIZE, TILE_SIZE);
-  ctx.fillText(`x${multiplier}`, 13.6 * TILE_SIZE, TILE_SIZE);
+  fillJumpyText('multiplier', `x${multiplier}`, (16.5 - .5 * Math.floor(Math.log10(multiplier))) * TILE_SIZE, 1.15 * TILE_SIZE);
 
+  ctx.fillStyle = game_state === 'lost'
+    ? blinking(1000, last_timestamp, COLORS.TEXT_WIN_SCORE, COLORS.TEXT_WIN_SCORE_2)
+    : COLORS.TEXT;
+  fillJumpyText('score', `Score: ${score}`, (5.9 - .25 * Math.floor(Math.log10(Math.max(1, score)))) * TILE_SIZE, 1.15 * TILE_SIZE);
+  // ctx.drawImage(TEXTURES.multiplier, 12.5 * TILE_SIZE, 0, TILE_SIZE, TILE_SIZE);
+
+  if (game_state !== 'loading_menu') {
+    drawImageCentered(TEXTURES.settings, new Vec2(-TILE_SIZE * 1.2, TILE_SIZE * .6), settings_overlapped ? .8 : .7);
+    drawImageCentered(TEXTURES.speed, new Vec2(TILE_SIZE * .4, TILE_SIZE * .6));
+    ctx.fillText((game_speed + 1).toString(), TILE_SIZE * .9, TILE_SIZE * 1.175);
+    drawImageCentered(TEXTURES.note, new Vec2(TILE_SIZE * 2.3, TILE_SIZE * .6), .9);
+    ctx.fillText(music_track.toString(), TILE_SIZE * 2.6, TILE_SIZE * 1.175);
+  }
+
+  // extra arrows
+  if (CONFIG.BORDER_ARROWS) {
+    ctx.resetTransform();
+    ctx.translate(MARGIN * TILE_SIZE, (TOP_OFFSET + MARGIN) * TILE_SIZE);
+    ctx.fillStyle = 'red';
+    const head_position = snake_blocks[snake_blocks.length - 1].pos;
+    drawRotatedTextureNoWrap(new Vec2(-1, head_position.y).add(Vec2.both(.5)),
+      anyBlockAt(new Vec2(BOARD_SIZE.x - 1, head_position.y)) ? TEXTURES.border_arrow.red : TEXTURES.border_arrow.white, Math.PI, new Vec2(.5, 1));
+    drawRotatedTextureNoWrap(new Vec2(BOARD_SIZE.x, head_position.y).add(Vec2.both(.5)),
+      anyBlockAt(new Vec2(0, head_position.y)) ? TEXTURES.border_arrow.red : TEXTURES.border_arrow.white, 0, new Vec2(.5, 1));
+    drawRotatedTextureNoWrap(new Vec2(head_position.x, -1).add(Vec2.both(.5)),
+      anyBlockAt(new Vec2(head_position.x, BOARD_SIZE.y - 1)) ? TEXTURES.border_arrow.red : TEXTURES.border_arrow.white, -Math.PI / 2, new Vec2(.5, 1));
+    drawRotatedTextureNoWrap(new Vec2(head_position.x, BOARD_SIZE.y).add(Vec2.both(.5)),
+      anyBlockAt(new Vec2(head_position.x, 1)) ? TEXTURES.border_arrow.red : TEXTURES.border_arrow.white, Math.PI / 2, new Vec2(.5, 1));
+  }
+}
+
+function menuYCoordOf(setting: "resume" | "haptic" | "speed" | "music" | "start" | "logo" | "share"): number {
+  let s = 0;
+  switch (setting) {
+    case "logo":
+      s = .18;
+      // s = .10 + Math.sin(last_timestamp * 1 / 1000) * .01;
+      break;
+    case "haptic":
+      s = .36 - (.45 - .36);
+      break;
+    case "speed":
+      s = .36;
+      break;
+    case "music":
+      s = .45;
+      break;
+    case "start":
+      s = .85;
+      break;
+    case "resume":
+      s = .6;
+      break;
+    case "share":
+      s = .5;
+      break;
+    default:
+      throw new Error("unhandled");
+  }
+  return (TOP_OFFSET + MARGIN + BOARD_SIZE.y * s) * TILE_SIZE;
+}
+
+function posFromPerc(p: Vec2): Vec2 {
+  return new Vec2(
+    (MARGIN + BOARD_SIZE.x * p.x) * TILE_SIZE,
+    (TOP_OFFSET + MARGIN + BOARD_SIZE.y * p.y) * TILE_SIZE,
+  );
+}
+
+function percX(x: number): number {
+  return (MARGIN + BOARD_SIZE.x * x) * TILE_SIZE;
 }
 
 function lose() {
   stopTickTockSound();
   game_state = "lost";
+  menu_focus = 'music';
+  last_lost_timestamp = last_timestamp;
+
+  // draw(false);
+  // canvas_ctx.toBlob(async (blob) => {
+  //   try {
+  //     await navigator.clipboard.write([(new ClipboardItem({ 'image/png': blob! }))]);
+  //     console.log('Canvas copied to clipboard successfully!');
+  //   } catch (error) {
+  //     console.error('Failed to copy canvas to clipboard:', error);
+  //   }
+  // });
+
+}
+
+function drawMenuArrow(setting: "speed" | "music" | "haptic", left: boolean): void {
+  ctx.fillStyle = COLORS.TEXT;
+  const pos = menuArrowPos(setting, left);
+  drawImageCentered(left ? TEXTURES.menu_arrow.left : TEXTURES.menu_arrow.right, pos);
+}
+
+function menuArrowSize(): Vec2 {
+  // TODO
+  return new Vec2(1, 1).scale(TILE_SIZE);
+}
+
+function menuArrowPos(setting: "speed" | "music" | "haptic", left: boolean): Vec2 {
+  return new Vec2(
+    canvas_ctx.width / 2 + (left ? -1 : 1) * 3.25 * TILE_SIZE,
+    menuYCoordOf(setting));
 }
 
 ////// library stuff
@@ -1143,13 +1955,27 @@ if (import.meta.hot) {
 let animation_id: number;
 const loading_screen_element = document.querySelector<HTMLDivElement>("#loading_screen")!;
 if (loading_screen_element) {
-  loading_screen_element.innerText = "Press to start!";
+  loading_screen_element.innerText = "Press to start";
   document.addEventListener("pointerdown", _event => {
     loading_screen_element.style.opacity = "0";
     animation_id = requestAnimationFrame(every_frame);
   }, { once: true });
 } else {
   animation_id = requestAnimationFrame(every_frame);
+}
+
+function getDirFromDelta(delta: Vec2): Vec2 | null {
+  if (delta.mag() < CONFIG.SWIPE_DIST * TILE_SIZE) return null;
+
+  if (Math.abs(delta.x) * CONFIG.SWIPE_MARGIN > Math.abs(delta.y)) {
+    return new Vec2(Math.sign(delta.x), 0);
+  }
+
+  if (Math.abs(delta.y) * CONFIG.SWIPE_MARGIN > Math.abs(delta.x)) {
+    return new Vec2(0, Math.sign(delta.y));
+  }
+
+  return null;
 }
 
 function roundToCardinalDirection(v: Vec2): Vec2 {
@@ -1172,53 +1998,81 @@ function rotQuarterB(value: Vec2): Vec2 {
   return new Vec2(-value.y, value.x);
 }
 
-function drawTexture(top_left: Vec2, texture: HTMLImageElement) {
-  for (let i = -1; i <= 1; i++) {
-    for (let j = -1; j <= 1; j++) {
-      ctx.drawImage(texture, (top_left.x + i * BOARD_SIZE.x) * TILE_SIZE, (top_left.y + j * BOARD_SIZE.y) * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+function drawItem(top_left: Vec2, item: "bomb" | "multiplier" | "clock", is_shadow: boolean = false) {
+  if (!CONFIG.WRAP_ITEMS) {
+    ctx.drawImage(is_shadow ? TEXTURES.shadow[item] : TEXTURES[item], top_left.x * TILE_SIZE, top_left.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+  } else {
+    for (let i = -1; i <= 1; i++) {
+      for (let j = -1; j <= 1; j++) {
+        ctx.drawImage(is_shadow
+          ? TEXTURES.shadow[item]
+          : (CONFIG.WRAP_GRAY && (i !== 0 || j !== 0))
+            ? TEXTURES.gray[item]
+            : TEXTURES[item],
+          (top_left.x + i * BOARD_SIZE.x) * TILE_SIZE, (top_left.y + j * BOARD_SIZE.y) * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+      }
     }
   }
 }
 
-function drawRotatedTexture(center: Vec2, texture: HTMLImageElement, angle_in_radians: number) {
+function drawRotatedTextureNoWrap(center: Vec2, texture: HTMLImageElement, angle_in_radians: number, size: Vec2 = Vec2.one, scale: number = 1) {
+  const px_center = center.scale(TILE_SIZE);
+
+  ctx.translate(px_center.x, px_center.y);
+  ctx.rotate(angle_in_radians);
+  ctx.scale(scale, scale);
+  ctx.drawImage(texture, -TILE_SIZE / 2, -TILE_SIZE / 2, TILE_SIZE * size.x, TILE_SIZE * size.y);
+  ctx.scale(1 / scale, 1 / scale);
+  ctx.rotate(-angle_in_radians);
+  ctx.translate(-px_center.x, -px_center.y);
+}
+
+function drawRotatedTexture(center: Vec2, texture: HTMLImageElement, angle_in_radians: number, scale: number) {
+  for (let i = -1; i <= 1; i++) {
+    for (let j = -1; j <= 1; j++) {
+      drawRotatedTextureNoWrap(center.add(BOARD_SIZE.mul(new Vec2(i, j))), texture, angle_in_radians, Vec2.one, scale);
+    }
+  }
+}
+
+function drawFlippedTexture(center: Vec2, texture: HTMLImageElement, scale: number) {
   for (let i = -1; i <= 1; i++) {
     for (let j = -1; j <= 1; j++) {
       const px_center = center.add(BOARD_SIZE.mul(new Vec2(i, j))).scale(TILE_SIZE);
 
       ctx.translate(px_center.x, px_center.y);
-      ctx.rotate(angle_in_radians);
+      ctx.scale(-scale, scale);
       ctx.drawImage(texture, -TILE_SIZE / 2, -TILE_SIZE / 2, TILE_SIZE, TILE_SIZE);
-      ctx.rotate(-angle_in_radians);
+      ctx.scale(-1 / scale, 1 / scale);
       ctx.translate(-px_center.x, -px_center.y);
     }
   }
 }
 
-function drawFlippedTexture(center: Vec2, texture: HTMLImageElement) {
-  for (let i = -1; i <= 1; i++) {
-    for (let j = -1; j <= 1; j++) {
-      const px_center = center.add(BOARD_SIZE.mul(new Vec2(i, j))).scale(TILE_SIZE);
-
-      ctx.translate(px_center.x, px_center.y);
-      ctx.scale(-1, 1);
-      ctx.drawImage(texture, -TILE_SIZE / 2, -TILE_SIZE / 2, TILE_SIZE, TILE_SIZE);
-      ctx.scale(-1, 1);
-      ctx.translate(-px_center.x, -px_center.y);
-    }
+function setFill(normal: boolean, type: keyof typeof COLORS): void {
+  if (!CONFIG.WRAP_GRAY) {
+    normal = true;
+  }
+  if (game_state !== 'lost' && normal) {
+    ctx.fillStyle = COLORS[type];
+  } else {
+    ctx.fillStyle = GRAYSCALE[type];
   }
 }
 
-function fillTile(pos: Vec2) {
+function fillTile(pos: Vec2, type: keyof typeof COLORS) {
   for (let i = -1; i <= 1; i++) {
     for (let j = -1; j <= 1; j++) {
+      setFill(i === 0 && j === 0, type);
       ctx.fillRect((pos.x + i * BOARD_SIZE.x) * TILE_SIZE, (pos.y + j * BOARD_SIZE.y) * TILE_SIZE, TILE_SIZE, TILE_SIZE);
     }
   }
 }
 
-function fillTileCenterSize(center: Vec2, size: Vec2) {
+function fillTileCenterSize(center: Vec2, size: Vec2, type: keyof typeof COLORS) {
   for (let i = -1; i <= 1; i++) {
     for (let j = -1; j <= 1; j++) {
+      setFill(i === 0 && j === 0, type);
       ctx.fillRect(
         (center.x - size.x / 2 + i * BOARD_SIZE.x) * TILE_SIZE,
         (center.y - size.y / 2 + j * BOARD_SIZE.y) * TILE_SIZE,
@@ -1237,10 +2091,13 @@ function tileRegion(pos: Vec2): Path2D {
   return region;
 }
 
-function drawCircle(center: Vec2, radius: number) {
+function fillCircle(center: Vec2, radius: number, type: keyof typeof COLORS) {
   for (let i = -1; i <= 1; i++) {
     for (let j = -1; j <= 1; j++) {
+      setFill(i === 0 && j === 0, type);
+      ctx.beginPath();
       drawCircleNoWrap(center.addXY(i * BOARD_SIZE.x, j * BOARD_SIZE.y), radius);
+      ctx.fill();
     }
   }
 }
@@ -1264,3 +2121,67 @@ function textTile(text: string, pos: Vec2) {
   }
 }
 
+function anyBlockAt(pos: Vec2): boolean {
+  return snake_blocks.some(b => pos.equal(b.pos));
+}
+
+function drawCenteredShadowedText(text: string, yCoord: number, scale: number = 1) {
+  drawCenteredShadowedTextWithColor(COLORS.TEXT, text, yCoord, scale);
+}
+
+function drawCenteredShadowedTextMultiline(lines: string[], yCoord: number, scale: number = 1) {
+  lines.forEach((line, k) => drawCenteredShadowedTextWithColor(COLORS.TEXT, line, yCoord + k * scale * TILE_SIZE * 1.05, scale));
+}
+
+function drawCenteredShadowedTextWithColor(color: string, text: string, yCoord: number, scale: number = 1) {
+  ctx.font = `bold ${Math.floor(scale * 30 * TILE_SIZE / 32)}px sans-serif`;
+  ctx.fillStyle = "black";
+  ctx.fillText(text, canvas_ctx.width / 2 + CONFIG.SHADOW_TEXT, yCoord + CONFIG.SHADOW_TEXT);
+  ctx.fillStyle = color;
+  ctx.fillText(text, canvas_ctx.width / 2, yCoord);
+}
+
+function drawImageCentered(image: HTMLImageElement, center: Vec2, scale: number = 1) {
+  const display_size = new Vec2(image.width, image.height).scale(scale * TILE_SIZE / 32);
+  const offset = center.sub(display_size.scale(.5));
+  ctx.drawImage(image, offset.x, offset.y, display_size.x, display_size.y);
+}
+
+function bounceText(id: string) {
+  bouncyTexts.set(id, 1);
+}
+
+function chores(dt: number) {
+  for (const [id, number] of bouncyTexts) {
+    bouncyTexts.set(id, Math.max(0, number - dt * 3));
+  }
+}
+
+function fillJumpyText(id: string, text: string, x: number, y: number) {
+  const v = bouncyTexts.get(id) ?? 0;
+  ctx.save();
+
+  if (id === 'multiplier') {
+    ctx.translate(x, y);
+    ctx.scale(1 + v * .2, 1 + v * .2);
+    ctx.drawImage(TEXTURES.multiplier, (12.5 - 13.6) * TILE_SIZE, -TILE_SIZE, TILE_SIZE, TILE_SIZE);
+    ctx.fillText(text, 0, 0);
+  }
+  else if (id === 'score') {
+    ctx.translate(x + TILE_SIZE * 2, y);
+    ctx.scale(1 + v * .2, 1 + v * .2);
+    ctx.fillText(text, -TILE_SIZE * 2, 0);
+  }
+
+  ctx.restore();
+}
+
+function blinking(period: number, cur_time: number, color1: string, color2: string): string {
+  return (mod(cur_time / period, 1) < 0.5) ? color1 : color2;
+}
+
+// document.addEventListener("click", ev => {
+//   Howler.ctx.resume();
+//   music.play();
+//   console.log('asdf')
+// }, {once: true});
