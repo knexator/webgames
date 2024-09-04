@@ -1186,7 +1186,7 @@ function generateShareMessage() {
   messages.push(`My fav song is ${songName(music_track)}, props to ${songAuthor(music_track)}`);
 */
   if ((last_lost_timestamp - started_at_timestamp) / 1000 < 4) {
-    return "Are you dying on purpose to see all messages?😜"
+    messages = ["Are you dying on purpose to see all messages?😜"]
   }
 
   return randomChoice(intros) + randomChoice(messages) + ' Play at https://pinchazumos.itch.io/bombsnack';
