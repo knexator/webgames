@@ -47,7 +47,7 @@ function loadImage(name: string): Promise<HTMLImageElement> {
   })
 }
 
-const song1Promise = loadSoundAsync(oggUrl("Song1"), 1, true);
+const song1Promise = loadSoundAsync(mp3Url("Song1"), 1, true);
 
 const textures_async = await Promise.all(["bomb", "clock", "heart", "star"].flatMap(name => [loadImage(name), loadImage(name + 'B')])
   .concat(["open", "KO", "closed"].map(s => loadImage("eye_" + s)))
@@ -619,16 +619,16 @@ const sounds_async = await Promise.all([
   loadSoundAsync(mp3Url("tock"), 1),
   loadSoundAsync(wavUrl("menu1"), .25),
   loadSoundAsync(wavUrl("menu2"), .25),
-  loadSoundAsync(oggUrl("waffel"), 1.1),
+  loadSoundAsync(wavUrl("waffel"), 1.1),
 ]);
 
 const async_songs = [
-  loadSoundAsync(oggUrl("Song2"), 0.35, true),
-  loadSoundAsync(oggUrl("Song3"), 0.35, true),
-  loadSoundAsync(oggUrl("Song4"), 0.35, true),
-  loadSoundAsync(oggUrl("Song5"), 0.40, true),
-  loadSoundAsync(oggUrl("Song6"), 0.40, true),
-  loadSoundAsync(oggUrl("Song7"), 0.35, true),
+  loadSoundAsync(mp3Url("Song2"), 0.35, true),
+  loadSoundAsync(mp3Url("Song3"), 0.35, true),
+  loadSoundAsync(mp3Url("Song4"), 0.35, true),
+  loadSoundAsync(mp3Url("Song5"), 0.40, true),
+  loadSoundAsync(mp3Url("Song6"), 0.40, true),
+  loadSoundAsync(mp3Url("Song7"), 0.35, true),
 ];
 
 const INITIAL_VOLUME_SONGS = [
