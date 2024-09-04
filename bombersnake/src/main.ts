@@ -1,16 +1,11 @@
 import * as twgl from "twgl.js"
 import GUI from "lil-gui";
-import { Grid2D } from "./kommon/grid2D";
 import { Input, KeyCode, Mouse, MouseButton } from "./kommon/input";
 import { DefaultMap, deepcopy, fromCount, fromRange, objectMap, repeat, zip2 } from "./kommon/kommon";
 import { mod, towards as approach, lerp, inRange, clamp, argmax, argmin, max, remap, clamp01, randomInt, randomFloat, randomChoice, doSegmentsIntersect, closestPointOnSegment, roundTo } from "./kommon/math";
-import { canvasFromAscii } from "./kommon/spritePS";
 import { Howl } from "howler"
 import { initGL2, IVec, Vec2, Color, GenericDrawer, StatefulDrawer, CircleDrawer, m3, CustomSpriteDrawer, Transform, IRect, IColor, IVec2, FullscreenShader } from "kanvas2d"
 import * as noise from './kommon/noise';
-import { generateGradient } from "./kommon/kolor";
-import triangle_pattern_url from "./images/triangle_pattern.png?url"
-import gifUrl from "./images/tweet.gif?url"
 
 
 // TODO: animated scarf not rounded right after corner
@@ -1154,7 +1149,7 @@ function generateShareMessage() {
   // all shared phrases start with “playing #bombsnack: score xxx, speed y.
   // If playing on mobile, add it at the end of the first sentence. Then follow with…
   const intros = [
-    `playing #bombsnack${is_phone ? ' on mobile' : ''}: score ${score}, speed ${game_speed}💣🐍 `
+    `playing #bombsnack${is_phone ? ' on mobile' : ''}: score ${score}, speed ${game_speed + 1}💣🐍 `
   ]
 
   let messages = [
