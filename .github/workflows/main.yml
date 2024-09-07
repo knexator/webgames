@@ -51,7 +51,7 @@ jobs:
           cd ..
       - name: Build Vite projects
         run: |
-          for project in timezones prime_tower mouse_sokoban mouse_particles bombersnake bombersnake_prototype
+          for project in timezones prime_tower mouse_sokoban mouse_particles bombersnake
           do
             echo "Building $project"
             cd "$project"
