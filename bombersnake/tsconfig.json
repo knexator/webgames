@@ -19,7 +19,6 @@
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
     "strictNullChecks": true,
-    "paths": {"kanvas2d": ["../kanvas2d"]}
   },
   "include": ["src"]
 }

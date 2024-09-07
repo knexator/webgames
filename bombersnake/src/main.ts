@@ -4,7 +4,7 @@ import { Input, KeyCode, Mouse, MouseButton } from "./kommon/input";
 import { DefaultMap, deepcopy, fromCount, fromRange, objectMap, repeat, zip2 } from "./kommon/kommon";
 import { mod, towards as approach, lerp, inRange, clamp, argmax, argmin, max, remap, clamp01, randomInt, randomFloat, randomChoice, doSegmentsIntersect, closestPointOnSegment, roundTo } from "./kommon/math";
 import { Howl } from "howler"
-import { initGL2, IVec, Vec2, Color, GenericDrawer, StatefulDrawer, CircleDrawer, m3, CustomSpriteDrawer, Transform, IRect, IColor, IVec2, FullscreenShader } from "kanvas2d"
+import { Vec2 } from "./kommon/vec2"
 import * as noise from './kommon/noise';
 
 

@@ -1,4 +1,4 @@
-import { Vec2 } from "kanvas2d";
+import { Vec2 } from "./vec2";
 
 export function randomFloat(low_inclusive: number, high_exclusive: number): number {
     return low_inclusive + Math.random() * (high_exclusive - low_inclusive);

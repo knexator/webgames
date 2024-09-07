@@ -1,4 +1,4 @@
-import { Vec2 } from "kanvas2d";
+import { Vec2 } from "./vec2";
 import { inRange } from "./math";
 import { fromCount } from "./kommon";
 
