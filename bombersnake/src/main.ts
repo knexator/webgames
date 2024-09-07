@@ -6,6 +6,7 @@ import { mod, towards as approach, lerp, inRange, clamp, argmax, argmin, max, re
 import { Howl } from "howler"
 import { Vec2 } from "./kommon/vec2"
 import * as noise from './kommon/noise';
+import { Grid2D } from "./kommon/grid2D";
 
 
 // TODO: animated scarf not rounded right after corner
@@ -304,7 +305,6 @@ let CONFIG = {
   BORDER_ARROWS: false,
   CHEAT_INMORTAL: false,
   FUSE_DURATION: 0,
-  PLAYER_CAN_EXPLODE: false,
   N_BOMBS: 3,
   N_MULTIPLIERS: 1,
   CLOCK_VALUE: 4,
@@ -466,9 +466,39 @@ let cam_noise = noise.makeNoise3D(0);
 let cur_screen_shake = { x: 0, y: 0, actualMag: 0 };
 let tick_tock_interval_id: number | null = null;
 
+class SnakeBlocks {
+  grid: Grid2D<{ valid: boolean; in_dir: Vec2; out_dir: Vec2; t: number; pos: Vec2, }>;
+  head_pos: Vec2;
+
+  constructor() {
+    this.grid = Grid2D.initV(BOARD_SIZE, pos => ({ valid: false, in_dir: Vec2.zero, out_dir: Vec2.zero, t: 0, pos: pos }));
+    this.head_pos = Vec2.zero;
+  }
+
+  setAll(blocks: { pos: Vec2; in_dir: Vec2; out_dir: Vec2; t: number; }[]) {
+    this.grid = Grid2D.initV(BOARD_SIZE, pos => ({ valid: false, in_dir: Vec2.zero, out_dir: Vec2.zero, t: 0, pos: pos }));
+
+    blocks.forEach(v => {
+      this.grid.setV(v.pos, {
+        valid: true,
+        in_dir: v.in_dir,
+        out_dir: v.out_dir,
+        t: v.t,
+        pos: v.pos,
+      });
+    });
+
+    this.head_pos = blocks[blocks.length - 1].pos;
+  }
+
+  getHead() {
+    return this.grid.getV(this.head_pos);
+  }
+}
+
 let game_state: "loading_menu" | "pause_menu" | "playing" | "lost";
 let turn: number;
-let snake_blocks: { pos: Vec2, in_dir: Vec2, out_dir: Vec2, t: number }[];
+let snake_blocks_new = new SnakeBlocks();
 let started_at_timestamp: number;
 let score: number;
 let input_queue: Vec2[];
@@ -494,17 +524,17 @@ function restartGame() {
   game_state = "playing";
   if (CONFIG.START_ON_BORDER) {
     turn = 1;
-    snake_blocks = [
+    snake_blocks_new.setAll([
       { pos: new Vec2(0, BOARD_SIZE.y - 2), in_dir: new Vec2(-1, 0), out_dir: new Vec2(1, 0), t: 0 },
       { pos: new Vec2(1, BOARD_SIZE.y - 2), in_dir: new Vec2(-1, 0), out_dir: new Vec2(0, 0), t: 1 },
-    ];
+    ]);
   } else {
     turn = 2;
-    snake_blocks = [
+    snake_blocks_new.setAll([
       { pos: new Vec2(6, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(1, 0), t: 0 },
       { pos: new Vec2(7, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(1, 0), t: 1 },
       { pos: new Vec2(8, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(0, 0), t: 2 },
-    ];
+    ]);
   }
   started_at_timestamp = last_timestamp;
   score = 0
@@ -562,17 +592,17 @@ type Collectable = Bomb | Multiplier | Clock;
 game_state = "loading_menu";
 if (CONFIG.START_ON_BORDER) {
   turn = 1;
-  snake_blocks = [
+  snake_blocks_new.setAll([
     { pos: new Vec2(0, BOARD_SIZE.y - 2), in_dir: new Vec2(-1, 0), out_dir: new Vec2(1, 0), t: 0 },
     { pos: new Vec2(1, BOARD_SIZE.y - 2), in_dir: new Vec2(-1, 0), out_dir: new Vec2(0, 0), t: 1 },
-  ];
+  ]);
 } else {
   turn = 2;
-  snake_blocks = [
+  snake_blocks_new.setAll([
     { pos: new Vec2(6, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(1, 0), t: 0 },
     { pos: new Vec2(7, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(1, 0), t: 1 },
     { pos: new Vec2(8, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(0, 0), t: 2 },
-  ];
+  ]);
 }
 score = 0
 input_queue = [];
@@ -700,15 +730,9 @@ function findSpotWithoutWall(): Vec2 {
       Math.floor(Math.random() * BOARD_SIZE.x),
       Math.floor(Math.random() * BOARD_SIZE.y)
     );
-    valid = true;
-    for (const cur_block of snake_blocks) {
-      if (pos.equal(cur_block.pos)) {
-        valid = false;
-        break;
-      }
-    }
-    let last_block = snake_blocks[snake_blocks.length - 1];
-    valid = valid && !pos.equal(last_block.pos.add(last_block.in_dir)) && !cur_collectables.some(x => x.pos.equal(pos));
+    valid = !snake_blocks_new.grid.getV(pos).valid;
+    let head_block = snake_blocks_new.getHead();
+    valid = valid && !pos.equal(head_block.pos.add(head_block.in_dir)) && !cur_collectables.some(x => x.pos.equal(pos));
   } while (!valid);
   return pos;
 }
@@ -716,10 +740,13 @@ function findSpotWithoutWall(): Vec2 {
 function placeBomb(): Bomb {
   let candidates = fromCount(CONFIG.LUCK, _ => findSpotWithoutWall());
   let visible_walls_at_each_candidate = candidates.map(pos => {
-    return snake_blocks.filter(({ pos, }, k) => {
-      let affected = (pos.x === pos.x || pos.y === pos.y);
-      return affected;
-    }).length;
+    let count = 0;
+    snake_blocks_new.grid.forEachV((pos, b) => {
+      if (b.valid && (pos.x === pos.x || pos.y === pos.y)) {
+        count += 1;
+      }
+    });
+    return count;
   });
   let pos = candidates[argmax(visible_walls_at_each_candidate)];
 
@@ -731,19 +758,13 @@ function placeMultiplier(): Multiplier {
 }
 
 function explodeBomb(k: number) {
-  let hit_head = false;
   let cur_bomb = cur_collectables[k];
-  snake_blocks = snake_blocks.filter(({ pos, t }, k) => {
-    let affected = (pos.x === cur_bomb.pos.x || pos.y === cur_bomb.pos.y);
-    if (affected) {
-      if (t === turn) {
-        hit_head = true;
-        return true;
-      }
-      return false
+  snake_blocks_new.grid.forEachV((pos, b) => {
+    let affected = b.valid && (pos.x === cur_bomb.pos.x || pos.y === cur_bomb.pos.y);
+    if (affected && b.t !== turn) {
+      b.valid = false;
     }
-    return true;
-  });
+  })
   cur_screen_shake.actualMag = 5.0;
   cur_collectables[k] = placeBomb();
   score += multiplier;
@@ -752,11 +773,6 @@ function explodeBomb(k: number) {
   collected_stuff_particles.push({ center: cur_bomb.pos, text: '+' + multiplier.toString(), turn: turn });
   SOUNDS.bomb.play();
   exploding_cross_particles.push({ center: cur_bomb.pos, turn: turn });
-
-  if (hit_head && CONFIG.PLAYER_CAN_EXPLODE && !CONFIG.CHEAT_INMORTAL) {
-    SOUNDS.crash.play();
-    lose();
-  }
 }
 
 function startTickTockSound(): void {
@@ -1017,7 +1033,7 @@ function every_frame(cur_timestamp: number) {
     //SOUNDS.step.play();
 
     // do turn
-    let last_block = snake_blocks[snake_blocks.length - 1];
+    let last_block = snake_blocks_new.getHead();
     let next_input: Vec2 | null = null;
     while (input_queue.length > 0) {
       let maybe_next_input = input_queue.shift()!;
@@ -1043,18 +1059,15 @@ function every_frame(cur_timestamp: number) {
       last_block.in_dir = delta.scale(-1);
     }
     last_block.out_dir = delta;
-    let new_block = {
-      pos: modVec2(last_block.pos.add(delta), BOARD_SIZE),
-      in_dir: delta.scale(-1),
-      out_dir: Vec2.zero,
-      t: turn
-    };
-    snake_blocks.push(new_block);
+    let new_block = snake_blocks_new.grid.getV(modVec2(snake_blocks_new.head_pos.add(delta), BOARD_SIZE));
 
-    let collision = false;
-    collision = snake_blocks.some(({ pos, t }) => {
-      return pos.equal(new_block.pos) && t !== turn
-    });
+    let collision = new_block.valid;
+
+    new_block.in_dir = delta.scale(-1);
+    new_block.out_dir = Vec2.zero;
+    new_block.t = turn;
+    new_block.valid = true;
+    snake_blocks_new.head_pos = new_block.pos;
 
     if (!CONFIG.CHEAT_INMORTAL && collision) {
       SOUNDS.crash.play();
@@ -1073,7 +1086,7 @@ function every_frame(cur_timestamp: number) {
         } else {
           cur_bomb.pos = modVec2(cur_bomb.pos.add(delta), BOARD_SIZE);
           cur_bomb.ticking = true;
-          if (snake_blocks.some(({ pos }) => cur_bomb.pos.equal(pos))
+          if (snake_blocks_new.grid.getV(cur_bomb.pos).valid
             || cur_collectables.some(({ pos }, other_k) => other_k !== k && cur_bomb.pos.equal(pos))) {
             explodeBomb(k);
           }
@@ -1375,7 +1388,8 @@ function draw(bullet_time: boolean, is_loading: boolean = false) {
   }
 
   if (CONFIG.SHADOW) {
-    snake_blocks.forEach((cur_block, k) => {
+    snake_blocks_new.grid.forEachV((_, cur_block) => {
+      if (!cur_block.valid) return;
       const is_scarf = CONFIG.SCARF === "full" && turn - cur_block.t === 1;
       if (cur_block.in_dir.equal(cur_block.out_dir.scale(-1))) {
         if (is_scarf && turn_offset < CONFIG.ANIM_PERC) {
@@ -1492,7 +1506,8 @@ function draw(bullet_time: boolean, is_loading: boolean = false) {
   });
 
   // snake body
-  snake_blocks.forEach((cur_block, k) => {
+  snake_blocks_new.grid.forEachV((_, cur_block) => {
+    if (!cur_block.valid) return;
     let fill: keyof typeof COLORS = mod(cur_block.t, 2) == 1 ? "SNAKE_HEAD" : "SNAKE_WALL";
     const is_scarf = CONFIG.SCARF === "full" && turn - cur_block.t === 1;
     if (is_scarf) {
@@ -1596,7 +1611,8 @@ function draw(bullet_time: boolean, is_loading: boolean = false) {
   });
 
   if (CONFIG.SCARF !== "no") {
-    snake_blocks.forEach((cur_block, k) => {
+    snake_blocks_new.grid.forEachV((_, cur_block) => {
+      if (!cur_block.valid) return;
       if (turn - cur_block.t !== 1) return;
       ctx.fillStyle = COLORS.SCARF_OUT;
       // fillTile(cur_block.pos);
@@ -1814,7 +1830,7 @@ function draw(bullet_time: boolean, is_loading: boolean = false) {
     ctx.resetTransform();
     ctx.translate(MARGIN * TILE_SIZE, (TOP_OFFSET + MARGIN) * TILE_SIZE);
     ctx.fillStyle = 'red';
-    const head_position = snake_blocks[snake_blocks.length - 1].pos;
+    const head_position = snake_blocks_new.head_pos;
     drawRotatedTextureNoWrap(new Vec2(-1, head_position.y).add(Vec2.both(.5)),
       anyBlockAt(new Vec2(BOARD_SIZE.x - 1, head_position.y)) ? TEXTURES.border_arrow.red : TEXTURES.border_arrow.white, Math.PI, new Vec2(.5, 1));
     drawRotatedTextureNoWrap(new Vec2(BOARD_SIZE.x, head_position.y).add(Vec2.both(.5)),
@@ -2122,7 +2138,7 @@ function textTile(text: string, pos: Vec2) {
 }
 
 function anyBlockAt(pos: Vec2): boolean {
-  return snake_blocks.some(b => pos.equal(b.pos));
+  return snake_blocks_new.grid.getV(pos).valid;
 }
 
 function drawCenteredShadowedText(text: string, yCoord: number, scale: number = 1) {
