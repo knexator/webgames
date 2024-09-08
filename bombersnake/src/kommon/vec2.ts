@@ -55,18 +55,14 @@ export class Vec2 {
         return dst;
     }
 
-    addX(x: number): Vec2 {
-        return new Vec2(
-            this.x + x,
-            this.y,
-        );
+    addXFixed(x: number, dst: Vec2 = this): Vec2 {
+        dst.x += x;
+        return dst;
     }
 
-    addY(y: number): Vec2 {
-        return new Vec2(
-            this.x,
-            this.y + y,
-        );
+    addYFixed(y: number, dst: Vec2 = this): Vec2 {
+        dst.y += y;
+        return dst;
     }
 
     addBoth(v: number, dst: Vec2 = this) {
@@ -87,6 +83,12 @@ export class Vec2 {
             this.x - other.x,
             this.y - other.y,
         );
+    }
+
+    subFixed(other: Vec2, dst: Vec2 = this): Vec2 {
+        dst.x = this.x - other.x;
+        dst.y = this.y - other.y;
+        return dst;
     }
 
     mul(other: Vec2): Vec2 {
