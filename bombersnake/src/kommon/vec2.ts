@@ -1,7 +1,9 @@
+import { mod } from "./math";
+
 export class Vec2 {
     constructor(
-        public readonly x: number,
-        public readonly y: number,
+        public x: number,
+        public y: number,
     ) { }
 
     static readonly zero = new Vec2(0, 0);
@@ -11,6 +13,11 @@ export class Vec2 {
     static readonly ypos = new Vec2(0, 1);
     static readonly xneg = new Vec2(-1, 0);
     static readonly yneg = new Vec2(0, -1);
+
+    static readonly tmp1 = new Vec2(0, 0);
+    static readonly tmp2 = new Vec2(0, 0);
+    static readonly tmp3 = new Vec2(0, 0);
+    static readonly tmp4 = new Vec2(0, 0);
 
     toArray(): [number, number] {
         return [this.x, this.y];
@@ -24,15 +31,28 @@ export class Vec2 {
         return new Vec2(value, value);
     }
 
-    static lerp(a: Vec2, b: Vec2, t: number): Vec2 {
-        return a.scale(1 - t).add(b.scale(t));
+    static lerpFixed(a: Vec2, b: Vec2, t: number, dst: Vec2): Vec2 {
+        dst.x = a.x + (b.x - a.x) * t;
+        dst.y = a.y + (b.y - a.y) * t;
+        return dst;
     }
 
-    add(other: Vec2): Vec2 {
-        return new Vec2(
-            this.x + other.x,
-            this.y + other.y,
-        );
+    set(x: number, y: number): Vec2 {
+        this.x = x;
+        this.y = y;
+        return this;
+    }
+
+    mod(bounds: Vec2, dst: Vec2 = this): Vec2 {
+        dst.x = mod(this.x, bounds.x);
+        dst.y = mod(this.y, bounds.y);
+        return dst;
+    }
+
+    addFixed(other: Vec2, dst: Vec2 = this): Vec2 {
+        dst.x = this.x + other.x;
+        dst.y = this.y + other.y;
+        return dst;
     }
 
     addX(x: number): Vec2 {
@@ -47,6 +67,12 @@ export class Vec2 {
             this.x,
             this.y + y,
         );
+    }
+
+    addBoth(v: number, dst: Vec2 = this) {
+        dst.x = this.x + v;
+        dst.y = this.y + v;
+        return dst;
     }
 
     addXY(x: number, y: number): Vec2 {
@@ -75,6 +101,12 @@ export class Vec2 {
             this.x * s,
             this.y * s,
         );
+    }
+
+    scaleFixed(s: number, dst: Vec2 = this): Vec2 {
+        dst.x = this.x * s;
+        dst.y = this.y * s;
+        return dst;
     }
 
     rotate(radians: number): Vec2 {
