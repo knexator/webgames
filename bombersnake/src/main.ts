@@ -732,9 +732,7 @@ function findSpotWithoutWall(): Vec2 {
     );
     valid = !snake_blocks_new.grid.getV(pos).valid;
     let head_block = snake_blocks_new.getHead();
-    valid = valid && !pos.equal(
-      head_block.pos.addFixed(head_block.in_dir, Vec2.tmp1)
-    ) && !cur_collectables.some(x => x.pos.equal(pos));
+    valid = valid && !pos.equal(head_block.pos.add(head_block.in_dir)) && !cur_collectables.some(x => x.pos.equal(pos));
   } while (!valid);
   return pos;
 }
@@ -1061,7 +1059,7 @@ function every_frame(cur_timestamp: number) {
       last_block.in_dir = delta.scale(-1);
     }
     last_block.out_dir = delta;
-    let new_block = snake_blocks_new.grid.getV(snake_blocks_new.head_pos.addFixed(delta, Vec2.tmp1).mod(BOARD_SIZE));
+    let new_block = snake_blocks_new.grid.getV(modVec2(snake_blocks_new.head_pos.add(delta), BOARD_SIZE));
 
     let collision = new_block.valid;
 
@@ -1086,7 +1084,7 @@ function every_frame(cur_timestamp: number) {
         if (cur_bomb.fuse_left <= 0) {
           explodeBomb(k);
         } else {
-          cur_bomb.pos.addFixed(delta).mod(BOARD_SIZE);
+          cur_bomb.pos = modVec2(cur_bomb.pos.add(delta), BOARD_SIZE);
           cur_bomb.ticking = true;
           if (snake_blocks_new.grid.getV(cur_bomb.pos).valid
             || cur_collectables.some(({ pos }, other_k) => other_k !== k && cur_bomb.pos.equal(pos))) {
@@ -1395,60 +1393,50 @@ function draw(bullet_time: boolean, is_loading: boolean = false) {
       const is_scarf = CONFIG.SCARF === "full" && turn - cur_block.t === 1;
       if (cur_block.in_dir.equal(cur_block.out_dir.scale(-1))) {
         if (is_scarf && turn_offset < CONFIG.ANIM_PERC) {
-          const center = cur_block.pos
-            .addBoth(CONFIG.SHADOW_DIST, Vec2.tmp1)
-            .addBoth(.5)
-            .addFixed(
-              cur_block.in_dir.scaleFixed((1 - turn_offset / CONFIG.ANIM_PERC) / 2, Vec2.tmp2)
-            );
+          const center = cur_block.pos.add(Vec2.both(CONFIG.SHADOW_DIST)).addXY(.5, .5).add(cur_block.in_dir.scale((1 - turn_offset / CONFIG.ANIM_PERC) / 2));
           fillTileCenterSize(center, Vec2.both(1), "SHADOW");
         } else {
-          fillTile(cur_block.pos.addBoth(CONFIG.SHADOW_DIST, Vec2.tmp1), "SHADOW");
+          fillTile(cur_block.pos.add(Vec2.both(CONFIG.SHADOW_DIST)), "SHADOW");
         }
       } else if (cur_block.out_dir.equal(Vec2.zero)) {
         let rounded_size = Math.min(.5, CONFIG.ROUNDED_SIZE);
         // let rounded_size = .5;
-        let center = cur_block.pos.addBoth(.5, Vec2.tmp1).addBoth(CONFIG.SHADOW_DIST);
+        let center = cur_block.pos.addXY(.5, .5).add(Vec2.both(CONFIG.SHADOW_DIST));
         if (turn_offset < CONFIG.ANIM_PERC) {
-          center.addFixed(cur_block.in_dir.scaleFixed(1 - turn_offset / CONFIG.ANIM_PERC, Vec2.tmp2));
+          center = center.add(cur_block.in_dir.scale(1 - turn_offset / CONFIG.ANIM_PERC));
         }
-        fillTileCenterSize(center.addFixed(cur_block.in_dir.scaleFixed(rounded_size / 2, Vec2.tmp2), Vec2.tmp3),
-          Vec2.tmp4.set(
+        fillTileCenterSize(center.add(cur_block.in_dir.scale(rounded_size / 2)),
+          new Vec2(
             cur_block.in_dir.x == 0 ? 1 : 1 - rounded_size,
             cur_block.in_dir.y == 0 ? 1 : 1 - rounded_size,
           ), "SHADOW"
         )
         fillTileCenterSize(center,
-          Vec2.tmp4.set(
+          new Vec2(
             cur_block.in_dir.y == 0 ? 1 : 1 - rounded_size * 2,
             cur_block.in_dir.x == 0 ? 1 : 1 - rounded_size * 2,
           ), "SHADOW"
         )
-        fillCircle(center.addFixed(cur_block.in_dir.addFixed(
-          rotQuarterA(cur_block.in_dir), Vec2.tmp2
-        ).scale(rounded_size - .5)), rounded_size, "SHADOW");
-        fillCircle(center.addFixed(cur_block.in_dir.addFixed(
-          rotQuarterB(cur_block.in_dir), Vec2.tmp2
-        ).scale(rounded_size - .5)), rounded_size, "SHADOW");
+        fillCircle(center.add(cur_block.in_dir.add(rotQuarterA(cur_block.in_dir)).scale(rounded_size - .5)), rounded_size, "SHADOW");
+        fillCircle(center.add(cur_block.in_dir.add(rotQuarterB(cur_block.in_dir)).scale(rounded_size - .5)), rounded_size, "SHADOW");
       } else {
-        const center = cur_block.pos.addBoth(.5, Vec2.tmp1).addBoth(CONFIG.SHADOW_DIST);
-        fillTileCenterSize(center.addFixed(cur_block.in_dir.scaleFixed(CONFIG.ROUNDED_SIZE / 2, Vec2.tmp2), Vec2.tmp3),
-          Vec2.tmp4.set(
+        const center = cur_block.pos.addXY(.5, .5).add(Vec2.both(CONFIG.SHADOW_DIST));
+        fillTileCenterSize(center.add(cur_block.in_dir.scale(CONFIG.ROUNDED_SIZE / 2)),
+          new Vec2(
             cur_block.in_dir.x == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
             cur_block.in_dir.y == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
           ), "SHADOW"
         )
-        fillTileCenterSize(center.addFixed(cur_block.out_dir.scaleFixed(CONFIG.ROUNDED_SIZE / 2, Vec2.tmp2), Vec2.tmp3),
-          Vec2.tmp4.set(
+        fillTileCenterSize(center.add(cur_block.out_dir.scale(CONFIG.ROUNDED_SIZE / 2)),
+          new Vec2(
             cur_block.out_dir.x == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
             cur_block.out_dir.y == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
           ), "SHADOW"
         )
         ctx.save();
         // ctx.beginPath();
-        ctx.clip(tileRegion(cur_block.pos.addBoth(CONFIG.SHADOW_DIST, Vec2.tmp1)));
-        fillCircle(center.addFixed(cur_block.in_dir.addFixed(cur_block.out_dir, Vec2.tmp2)
-          .scale(CONFIG.ROUNDED_SIZE - .5), Vec2.tmp3), CONFIG.ROUNDED_SIZE, "SHADOW");
+        ctx.clip(tileRegion(cur_block.pos.add(Vec2.both(CONFIG.SHADOW_DIST))));
+        fillCircle(center.add(cur_block.in_dir.add(cur_block.out_dir).scale(CONFIG.ROUNDED_SIZE - .5)), CONFIG.ROUNDED_SIZE, "SHADOW");
         ctx.restore();
       }
     });
@@ -1458,7 +1446,7 @@ function draw(bullet_time: boolean, is_loading: boolean = false) {
       const cur_collectable = cur_collectables[k];
       if (cur_collectable instanceof Bomb) {
         const cur_bomb = cur_collectable;
-        drawItem(cur_bomb.pos.addBoth(CONFIG.SHADOW_DIST, Vec2.tmp1), 'bomb', true);
+        drawItem(cur_bomb.pos.add(Vec2.both(CONFIG.SHADOW_DIST)), 'bomb', true);
         // ctx.fillStyle = COLORS.SHADOW;
         // fillTile(cur_bomb.pos.add(Vec2.both(CONFIG.SHADOW_DIST)));
         if (cur_bomb.ticking || CONFIG.FUSE_DURATION > 0) {
@@ -1468,11 +1456,11 @@ function draw(bullet_time: boolean, is_loading: boolean = false) {
       } else if (cur_collectable instanceof Multiplier) {
         // ctx.fillStyle = COLORS.SHADOW;
         // fillTile(cur_collectable.pos.add(Vec2.both(CONFIG.SHADOW_DIST));
-        drawItem(cur_collectable.pos.addBoth(CONFIG.SHADOW_DIST, Vec2.tmp1), 'multiplier', true);
+        drawItem(cur_collectable.pos.add(Vec2.both(CONFIG.SHADOW_DIST)), 'multiplier', true);
       } else if (cur_collectable instanceof Clock) {
         const clock = cur_collectable;
         if (clock.active) {
-          drawItem(clock.pos.addBoth(CONFIG.SHADOW_DIST, Vec2.tmp1), 'clock', true);
+          drawItem(clock.pos.add(Vec2.both(CONFIG.SHADOW_DIST)), 'clock', true);
         }
       } else {
         throw new Error();
@@ -1504,7 +1492,7 @@ function draw(bullet_time: boolean, is_loading: boolean = false) {
 
     if (CONFIG.EXPLOSION_CIRCLE) {
       ctx.beginPath();
-      drawCircleNoWrap(particle.center.addBoth(.5, Vec2.tmp1), 8 * turn_offset);
+      drawCircleNoWrap(particle.center.add(Vec2.both(.5)), 8 * turn_offset);
       ctx.stroke();
     }
 
@@ -1528,7 +1516,7 @@ function draw(bullet_time: boolean, is_loading: boolean = false) {
     ctx.fillStyle = COLORS[fill];
     if (cur_block.in_dir.equal(cur_block.out_dir.scale(-1))) {
       if (is_scarf && turn_offset < CONFIG.ANIM_PERC) {
-        const center = cur_block.pos.addBoth(.5, Vec2.tmp1).addFixed(cur_block.in_dir.scale(1 - turn_offset / CONFIG.ANIM_PERC));
+        const center = cur_block.pos.addXY(.5, .5).add(cur_block.in_dir.scale(1 - turn_offset / CONFIG.ANIM_PERC));
         fillTileCenterSize(center, Vec2.both(1), fill);
       } else {
         fillTile(cur_block.pos, fill);
@@ -1541,35 +1529,31 @@ function draw(bullet_time: boolean, is_loading: boolean = false) {
       }
       let rounded_size = Math.min(.5, CONFIG.ROUNDED_SIZE);
       // let rounded_size = .5;
-      let center = cur_block.pos.addBoth(.5, Vec2.tmp1);
+      let center = cur_block.pos.addXY(.5, .5);
       if (turn_offset < CONFIG.ANIM_PERC) {
-        center.addFixed(cur_block.in_dir.scale(1 - turn_offset / CONFIG.ANIM_PERC));
+        center = center.add(cur_block.in_dir.scale(1 - turn_offset / CONFIG.ANIM_PERC));
       }
 
       const real_center = center.scale(TILE_SIZE);
       ctx.translate(real_center.x, real_center.y);
       const bounce_scale = 1 + CONFIG.HEAD_BOUNCE * bounce;
       ctx.scale(bounce_scale, bounce_scale);
-      center.set(0, 0);
+      center = Vec2.zero;
 
-      fillTileCenterSize(center.addFixed(cur_block.in_dir.scale(rounded_size / 2), Vec2.tmp2),
-        Vec2.tmp4.set(
+      fillTileCenterSize(center.add(cur_block.in_dir.scale(rounded_size / 2)),
+        new Vec2(
           cur_block.in_dir.x == 0 ? 1 : 1 - rounded_size,
           cur_block.in_dir.y == 0 ? 1 : 1 - rounded_size,
         ), fill
       )
       fillTileCenterSize(center,
-        Vec2.tmp4.set(
+        new Vec2(
           cur_block.in_dir.y == 0 ? 1 : 1 - rounded_size * 2,
           cur_block.in_dir.x == 0 ? 1 : 1 - rounded_size * 2,
         ), fill
       )
-      fillCircle(center.addFixed(cur_block.in_dir.addFixed(
-        rotQuarterA(cur_block.in_dir), Vec2.tmp2
-      ).scale(rounded_size - .5)), rounded_size, fill);
-      fillCircle(center.addFixed(cur_block.in_dir.addFixed(
-        rotQuarterB(cur_block.in_dir), Vec2.tmp2
-      ).scale(rounded_size - .5)), rounded_size, fill);
+      fillCircle(center.add(cur_block.in_dir.add(rotQuarterA(cur_block.in_dir)).scale(rounded_size - .5)), rounded_size, fill);
+      fillCircle(center.add(cur_block.in_dir.add(rotQuarterB(cur_block.in_dir)).scale(rounded_size - .5)), rounded_size, fill);
 
       // eye
       let eye_texture = game_state === "lost"
@@ -1601,20 +1585,19 @@ function draw(bullet_time: boolean, is_loading: boolean = false) {
       if (is_scarf && turn_offset < CONFIG.ANIM_PERC) {
         let anim_t = turn_offset / CONFIG.ANIM_PERC;
         // center = center.add(cur_block.in_dir.scale(1 - ));
-        fillTileCenterSize(center.addFixed(cur_block.in_dir.scale(.5 + (1 - anim_t) / 2), Vec2.tmp2),
-          Vec2.tmp4.set(
-            cur_block.in_dir.x == 0 ? 1 : 1 - anim_t,
-            cur_block.in_dir.y == 0 ? 1 : 1 - anim_t,
-          ), fill);
+        fillTileCenterSize(center.add(cur_block.in_dir.scale(.5 + (1 - anim_t) / 2)), new Vec2(
+          cur_block.in_dir.x == 0 ? 1 : 1 - anim_t,
+          cur_block.in_dir.y == 0 ? 1 : 1 - anim_t,
+        ), fill);
       }
-      fillTileCenterSize(center.addFixed(cur_block.in_dir.scale(CONFIG.ROUNDED_SIZE / 2), Vec2.tmp2),
-        Vec2.tmp4.set(
+      fillTileCenterSize(center.add(cur_block.in_dir.scale(CONFIG.ROUNDED_SIZE / 2)),
+        new Vec2(
           cur_block.in_dir.x == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
           cur_block.in_dir.y == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
         ), fill
       )
-      fillTileCenterSize(center.addFixed(cur_block.out_dir.scale(CONFIG.ROUNDED_SIZE / 2), Vec2.tmp2),
-        Vec2.tmp4.set(
+      fillTileCenterSize(center.add(cur_block.out_dir.scale(CONFIG.ROUNDED_SIZE / 2)),
+        new Vec2(
           cur_block.out_dir.x == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
           cur_block.out_dir.y == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
         ), fill
@@ -1622,9 +1605,7 @@ function draw(bullet_time: boolean, is_loading: boolean = false) {
       ctx.save();
       ctx.beginPath();
       ctx.clip(tileRegion(cur_block.pos));
-      fillCircle(center.addFixed(
-        cur_block.in_dir.addFixed(cur_block.out_dir, Vec2.tmp3).scale(CONFIG.ROUNDED_SIZE - .5)
-        , Vec2.tmp2), CONFIG.ROUNDED_SIZE, fill);
+      fillCircle(center.add(cur_block.in_dir.add(cur_block.out_dir).scale(CONFIG.ROUNDED_SIZE - .5)), CONFIG.ROUNDED_SIZE, fill);
       ctx.restore();
     }
   });
@@ -1635,19 +1616,19 @@ function draw(bullet_time: boolean, is_loading: boolean = false) {
       if (turn - cur_block.t !== 1) return;
       ctx.fillStyle = COLORS.SCARF_OUT;
       // fillTile(cur_block.pos);
-      const center = cur_block.pos.addBoth(.5, Vec2.tmp1);
+      const center = cur_block.pos.addXY(.5, .5)
       if (CONFIG.SCARF === "full") {
         fillTileCenterSize(
-          center.addFixed(cur_block.in_dir.scale(.5 - CONFIG.SCARF_BORDER_WIDTH / 2), Vec2.tmp2),
-          Vec2.tmp4.set(
+          center.add(cur_block.in_dir.scale(.5 - CONFIG.SCARF_BORDER_WIDTH / 2)),
+          new Vec2(
             cur_block.in_dir.x == 0 ? 1 : CONFIG.SCARF_BORDER_WIDTH,
             cur_block.in_dir.y == 0 ? 1 : CONFIG.SCARF_BORDER_WIDTH
           ), "SCARF_OUT"
         );
       }
       fillTileCenterSize(
-        center.addFixed(cur_block.out_dir.scale(.5 - CONFIG.SCARF_BORDER_WIDTH / 2), Vec2.tmp2),
-        Vec2.tmp4.set(
+        center.add(cur_block.out_dir.scale(.5 - CONFIG.SCARF_BORDER_WIDTH / 2)),
+        new Vec2(
           cur_block.out_dir.x == 0 ? 1 : CONFIG.SCARF_BORDER_WIDTH,
           cur_block.out_dir.y == 0 ? 1 : CONFIG.SCARF_BORDER_WIDTH
         ), "SCARF_OUT"
@@ -1680,18 +1661,17 @@ function draw(bullet_time: boolean, is_loading: boolean = false) {
             if (!CONFIG.WRAP_ITEMS && (i !== 0 || j !== 0)) continue;
             ctx.strokeStyle = "black";
             ctx.beginPath();
-            const center = clock.pos
-              .addBoth(.5, Vec2.tmp3).addFixed(new Vec2(i * BOARD_SIZE.x, j * BOARD_SIZE.y));
+            const center = clock.pos.add(Vec2.both(.5)).add(new Vec2(i * BOARD_SIZE.x, j * BOARD_SIZE.y));
             const hand_delta = Vec2.fromTurns(
               remap(clock.remaining_turns - turn_offset, 0, CONFIG.CLOCK_DURATION, -1 / 4, -5 / 4)
             ).scale(.3);
             moveTo(center.scale(TILE_SIZE));
-            lineTo(hand_delta.addFixed(center).scale(TILE_SIZE));
+            lineTo(center.add(hand_delta).scale(TILE_SIZE));
             ctx.stroke();
             ctx.beginPath();
             ctx.fillStyle = "black";
             drawCircleNoWrap(center, .05);
-            drawCircleNoWrap(hand_delta.addFixed(center), .05);
+            drawCircleNoWrap(center.add(hand_delta), .05);
             ctx.fill();
           }
         }
@@ -1798,7 +1778,7 @@ function draw(bullet_time: boolean, is_loading: boolean = false) {
     const share_button_scale = CONFIG.SHARE_BUTTON_SCALE;
     if (share_button_state.folded) {
       const pos = new Vec2(canvas_ctx.width / 2, menuYCoordOf("share"));
-      drawImageCentered(TEXTURES.share.vanilla_shadow, pos.addBoth(CONFIG.SHADOW_TEXT, Vec2.tmp2), share_button_scale);
+      drawImageCentered(TEXTURES.share.vanilla_shadow, pos.add(Vec2.both(CONFIG.SHADOW_TEXT)), share_button_scale);
       if (share_button_state.hovered === 'vanilla') {
         drawImageCentered(TEXTURES.share.vanilla, pos.sub(Vec2.both(CONFIG.SHADOW_TEXT / 2)), share_button_scale);
       }
@@ -1851,13 +1831,13 @@ function draw(bullet_time: boolean, is_loading: boolean = false) {
     ctx.translate(MARGIN * TILE_SIZE, (TOP_OFFSET + MARGIN) * TILE_SIZE);
     ctx.fillStyle = 'red';
     const head_position = snake_blocks_new.head_pos;
-    drawRotatedTextureNoWrap(new Vec2(-1, head_position.y).addFixed(Vec2.both(.5)),
+    drawRotatedTextureNoWrap(new Vec2(-1, head_position.y).add(Vec2.both(.5)),
       anyBlockAt(new Vec2(BOARD_SIZE.x - 1, head_position.y)) ? TEXTURES.border_arrow.red : TEXTURES.border_arrow.white, Math.PI, new Vec2(.5, 1));
-    drawRotatedTextureNoWrap(new Vec2(BOARD_SIZE.x, head_position.y).addFixed(Vec2.both(.5)),
+    drawRotatedTextureNoWrap(new Vec2(BOARD_SIZE.x, head_position.y).add(Vec2.both(.5)),
       anyBlockAt(new Vec2(0, head_position.y)) ? TEXTURES.border_arrow.red : TEXTURES.border_arrow.white, 0, new Vec2(.5, 1));
-    drawRotatedTextureNoWrap(new Vec2(head_position.x, -1).addFixed(Vec2.both(.5)),
+    drawRotatedTextureNoWrap(new Vec2(head_position.x, -1).add(Vec2.both(.5)),
       anyBlockAt(new Vec2(head_position.x, BOARD_SIZE.y - 1)) ? TEXTURES.border_arrow.red : TEXTURES.border_arrow.white, -Math.PI / 2, new Vec2(.5, 1));
-    drawRotatedTextureNoWrap(new Vec2(head_position.x, BOARD_SIZE.y).addFixed(Vec2.both(.5)),
+    drawRotatedTextureNoWrap(new Vec2(head_position.x, BOARD_SIZE.y).add(Vec2.both(.5)),
       anyBlockAt(new Vec2(head_position.x, 1)) ? TEXTURES.border_arrow.red : TEXTURES.border_arrow.white, Math.PI / 2, new Vec2(.5, 1));
   }
 }
@@ -2022,6 +2002,10 @@ function roundToCardinalDirection(v: Vec2): Vec2 {
   }
 }
 
+function modVec2(value: Vec2, bounds: Vec2) {
+  return new Vec2(mod(value.x, bounds.x), mod(value.y, bounds.y));
+}
+
 function rotQuarterA(value: Vec2): Vec2 {
   return new Vec2(value.y, -value.x);
 }
@@ -2062,7 +2046,7 @@ function drawRotatedTextureNoWrap(center: Vec2, texture: HTMLImageElement, angle
 function drawRotatedTexture(center: Vec2, texture: HTMLImageElement, angle_in_radians: number, scale: number) {
   for (let i = -1; i <= 1; i++) {
     for (let j = -1; j <= 1; j++) {
-      drawRotatedTextureNoWrap(BOARD_SIZE.mul(new Vec2(i, j)).addFixed(center), texture, angle_in_radians, Vec2.one, scale);
+      drawRotatedTextureNoWrap(center.add(BOARD_SIZE.mul(new Vec2(i, j))), texture, angle_in_radians, Vec2.one, scale);
     }
   }
 }
@@ -2070,7 +2054,7 @@ function drawRotatedTexture(center: Vec2, texture: HTMLImageElement, angle_in_ra
 function drawFlippedTexture(center: Vec2, texture: HTMLImageElement, scale: number) {
   for (let i = -1; i <= 1; i++) {
     for (let j = -1; j <= 1; j++) {
-      const px_center = BOARD_SIZE.mul(new Vec2(i, j)).addFixed(center).scale(TILE_SIZE);
+      const px_center = center.add(BOARD_SIZE.mul(new Vec2(i, j))).scale(TILE_SIZE);
 
       ctx.translate(px_center.x, px_center.y);
       ctx.scale(-scale, scale);
