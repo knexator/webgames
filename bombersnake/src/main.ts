@@ -1446,11 +1446,9 @@ function draw(bullet_time: boolean, is_loading: boolean = false) {
         )
         ctx.save();
         // ctx.beginPath();
-        ctx.clip(tileRegion(cur_block.pos.addBoth(CONFIG.SHADOW_DIST, Vec2.tmp4)));
-        fillCircle(center.addFixed(
-          cur_block.in_dir.addFixed(cur_block.out_dir, Vec2.tmp2)
-            .scale(CONFIG.ROUNDED_SIZE - .5),
-          Vec2.tmp3), CONFIG.ROUNDED_SIZE, "SHADOW");
+        ctx.clip(tileRegion(cur_block.pos.addBoth(CONFIG.SHADOW_DIST, Vec2.tmp1)));
+        fillCircle(center.addFixed(cur_block.in_dir.addFixed(cur_block.out_dir, Vec2.tmp2)
+          .scale(CONFIG.ROUNDED_SIZE - .5), Vec2.tmp3), CONFIG.ROUNDED_SIZE, "SHADOW");
         ctx.restore();
       }
     });
