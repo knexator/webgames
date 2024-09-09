@@ -867,7 +867,7 @@ function every_frame(cur_timestamp: number) {
 
   const rect = canvas_ctx.getBoundingClientRect();
   const raw_mouse_pos = new Vec2(input.mouse.clientX - rect.left, input.mouse.clientY - rect.top);
-  const canvas_mouse_pos = raw_mouse_pos.sub(Vec2.both(MARGIN * TILE_SIZE).addYFixed(TOP_OFFSET * TILE_SIZE));
+  const canvas_mouse_pos = raw_mouse_pos.sub(Vec2.both(MARGIN * TILE_SIZE).addY(TOP_OFFSET * TILE_SIZE));
 
   let bullet_time = false;
 
@@ -930,11 +930,11 @@ function every_frame(cur_timestamp: number) {
       }
     } else {
       const share_vanilla = new Vec2(percX(.5), menuYCoordOf('share'));
-      const pos_twitter = share_vanilla.addXFixed(-TILE_SIZE * 2);
-      const pos_bsky = share_vanilla.addXFixed(TILE_SIZE * 2);
-      share_button_state.hovered = (pos_twitter.subFixed(raw_mouse_pos).mag() < TILE_SIZE * CONFIG.SHARE_BUTTON_SCALE)
+      const pos_twitter = share_vanilla.addX(-TILE_SIZE * 2);
+      const pos_bsky = share_vanilla.addX(TILE_SIZE * 2);
+      share_button_state.hovered = (pos_twitter.sub(raw_mouse_pos).mag() < TILE_SIZE * CONFIG.SHARE_BUTTON_SCALE)
         ? "twitter"
-        : (pos_bsky.subFixed(raw_mouse_pos).mag() < TILE_SIZE * CONFIG.SHARE_BUTTON_SCALE)
+        : (pos_bsky.sub(raw_mouse_pos).mag() < TILE_SIZE * CONFIG.SHARE_BUTTON_SCALE)
           ? 'bsky'
           : null;
       if (input.mouse.wasPressed(MouseButton.Left) && share_button_state.hovered !== null) {
@@ -1807,10 +1807,10 @@ function draw(bullet_time: boolean, is_loading: boolean = false) {
       }
     } else {
       const center = new Vec2(canvas_ctx.width / 2, menuYCoordOf("share"));
-      drawImageCentered(TEXTURES.share.twitter, center.addXFixed(-TILE_SIZE * 2, Vec2.tmp2)
-        .subFixed(share_button_state.hovered === 'twitter' ? Vec2.both(CONFIG.SHADOW_TEXT / 2) : Vec2.zero), share_button_scale);
-      drawImageCentered(TEXTURES.share.bsky, center.addXFixed(TILE_SIZE * 2, Vec2.tmp2)
-        .subFixed(share_button_state.hovered === 'bsky' ? Vec2.both(CONFIG.SHADOW_TEXT / 2) : Vec2.zero), share_button_scale);
+      drawImageCentered(TEXTURES.share.twitter, center.addX(-TILE_SIZE * 2)
+        .sub(share_button_state.hovered === 'twitter' ? Vec2.both(CONFIG.SHADOW_TEXT / 2) : Vec2.zero), share_button_scale);
+      drawImageCentered(TEXTURES.share.bsky, center.addX(TILE_SIZE * 2)
+        .sub(share_button_state.hovered === 'bsky' ? Vec2.both(CONFIG.SHADOW_TEXT / 2) : Vec2.zero), share_button_scale);
     }
 
     // ctx.fillText("", canvas.width / 2, canvas.height / 2);
