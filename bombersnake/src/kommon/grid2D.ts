@@ -12,7 +12,9 @@ export class Grid2D<T> {
     // 6 7 8
     constructor(
         public size: Vec2,
-        private data: T[]) { }
+        public data: T[]) {
+            size.persist();
+        }
 
     getV<S>(pos: Vec2): T;
     getV<S>(pos: Vec2, outOfBounds: S): T | S;
@@ -36,7 +38,7 @@ export class Grid2D<T> {
     forEachV(callback: (pos: Vec2, element: T) => void): void {
         for (let j = 0; j < this.size.y; j++) {
             for (let i = 0; i < this.size.x; i++) {
-                callback(new Vec2(i, j), this.data[i + j * this.size.x]);
+                callback(Vec2.fromPool(i, j), this.data[i + j * this.size.x]);
             }
         }
     }
@@ -75,7 +77,7 @@ export class Grid2D<T> {
         let buffer: T[] = [];
         for (let j = 0; j < size.y; j++) {
             for (let i = 0; i < size.x; i++) {
-                buffer.push(fillFunc(new Vec2(i, j)));
+                buffer.push(fillFunc(Vec2.fromPool(i, j)));
             }
         }
         return new Grid2D(size, buffer);
@@ -88,6 +90,6 @@ export class Grid2D<T> {
         if (ascii_lines.some(line => line.length !== width)) {
             throw new Error(`The given ascii is not a proper rectangle: ${ascii}`);
         }
-        return this.initV(new Vec2(width, height), ({ x, y }) => ascii_lines[y][x]);
+        return this.initV(Vec2.fromPool(width, height), ({ x, y }) => ascii_lines[y][x]);
     }
 }

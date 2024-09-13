@@ -1,8 +1,60 @@
+import { fromCount } from "./kommon";
+
 export class Vec2 {
-    constructor(
-        public readonly x: number,
-        public readonly y: number,
-    ) { }
+    private static pool: Vec2[] = fromCount(4000, k => {
+        const asdf = new Vec2(0, 0);
+        asdf.pool_index = k;
+        return asdf;
+    });
+    private static freePoolIndex: number = 0;
+
+    private _x: number;
+    private _y: number;
+    private pool_index: number = -1;
+
+    constructor(x: number, y: number) {
+        this._x = x;
+        this._y = y;
+    }
+
+    get x(): number { return this._x; }
+    get y(): number { return this._y; }
+
+    static clearPool(): void {
+        // console.log('cleared: ', Vec2.freePoolIndex);
+        Vec2.freePoolIndex = 0;
+    }
+
+    // static clearPoolExcept(vecs: Vec2[]): void {
+    //     vecs.forEach(v => {
+    //         v.persist();
+    //     });
+    //     Vec2.freePoolIndex = 0;
+    // }
+
+    static fromPool(x: number, y: number): Vec2 {
+        while (Vec2.freePoolIndex >= Vec2.pool.length) {
+            // throw new Error("not enough pool left");
+            // console.log('growing');
+            Vec2.pool.push(new Vec2(0, 0));
+        }
+
+        const v = Vec2.pool[Vec2.freePoolIndex];
+        Vec2.freePoolIndex += 1;
+        v._x = x;
+        v._y = y;
+        return v;
+    }
+
+    persist(): Vec2 {
+        if (this.pool_index !== -1) {
+            const k = this.pool_index;
+            Vec2.pool[k] = new Vec2(0, 0);
+            Vec2.pool[k].pool_index = k;
+            this.pool_index = -1;
+        }
+        return this;
+    }
 
     static readonly zero = new Vec2(0, 0);
     static readonly one = new Vec2(1, 1);
@@ -21,7 +73,7 @@ export class Vec2 {
     }
 
     static both(value: number): Vec2 {
-        return new Vec2(value, value);
+        return Vec2.fromPool(value, value);
     }
 
     static lerp(a: Vec2, b: Vec2, t: number): Vec2 {
@@ -29,49 +81,49 @@ export class Vec2 {
     }
 
     add(other: Vec2): Vec2 {
-        return new Vec2(
+        return Vec2.fromPool(
             this.x + other.x,
             this.y + other.y,
         );
     }
 
     addX(x: number): Vec2 {
-        return new Vec2(
+        return Vec2.fromPool(
             this.x + x,
             this.y,
         );
     }
 
     addY(y: number): Vec2 {
-        return new Vec2(
+        return Vec2.fromPool(
             this.x,
             this.y + y,
         );
     }
 
     addXY(x: number, y: number): Vec2 {
-        return new Vec2(
+        return Vec2.fromPool(
             this.x + x,
             this.y + y,
         );
     }
 
     sub(other: Vec2): Vec2 {
-        return new Vec2(
+        return Vec2.fromPool(
             this.x - other.x,
             this.y - other.y,
         );
     }
 
     mul(other: Vec2): Vec2 {
-        return new Vec2(
+        return Vec2.fromPool(
             this.x * other.x,
             this.y * other.y,
         );
     }
 
     scale(s: number): Vec2 {
-        return new Vec2(
+        return Vec2.fromPool(
             this.x * s,
             this.y * s,
         );
@@ -80,7 +132,7 @@ export class Vec2 {
     rotate(radians: number): Vec2 {
         let c = Math.cos(radians);
         let s = Math.sin(radians);
-        return new Vec2(
+        return Vec2.fromPool(
             this.x * c - this.y * s,
             this.x * s + this.y * c
         );
@@ -107,7 +159,7 @@ export class Vec2 {
     }
 
     static fromRadians(radians: number): Vec2 {
-        return new Vec2(Math.cos(radians), Math.sin(radians));
+        return Vec2.fromPool(Math.cos(radians), Math.sin(radians));
     }
 
     static fromTurns(turns: number): Vec2 {
