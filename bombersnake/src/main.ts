@@ -56,7 +56,7 @@ const textures_async = await Promise.all(["bomb", "clock", "heart", "star"].flat
   .concat([loadImage("side_arrow_W"), loadImage("side_arrow_R")])
   .concat([loadImage("title4"), loadImage("title4A")])
   .concat([loadImage("pause")])
-  .concat([loadImage("bomb_G"), loadImage("clock_G"), loadImage("star_G")]) // 21
+  .concat([loadImage("bomb_G"), loadImage("clock_G"), loadImage("star_G")]) // 20
   .concat([loadImage(`cross`)])
   .concat("UDLR".split('').map(c => loadImage(`Cross${c}`)))
   .concat([loadImage("shareSG"), loadImage("shareSB")])
@@ -75,9 +75,9 @@ const TEXTURES = {
     multiplier: textures_async[7],
   },
   gray: {
-    bomb: textures_async[19],
-    clock: textures_async[20],
-    multiplier: textures_async[21],
+    bomb: textures_async[18],
+    clock: textures_async[19],
+    multiplier: textures_async[20],
   },
   eye: {
     open: textures_async[8],
@@ -318,7 +318,7 @@ let CONFIG = {
   ALWAYS_SLOWDOWN: false,
   DRAW_WRAP: 1.8,
   WRAP_GRAY: true,
-  WRAP_ITEMS: false,
+  WRAP_ITEMS: true,
   ROUNDED_SIZE: .5,
   CHECKERED_BACKGROUND: "3_v2" as "no" | "2" | "3" | "3_v2",
   SHADOW: true,
@@ -861,9 +861,9 @@ function every_frame(cur_timestamp: number) {
     CONFIG.PAUSED = !CONFIG.PAUSED;
   }
 */
-  // if (input.keyboard.wasPressed(KeyCode.KeyH)) {
-  //   gui.show(gui._hidden);
-  // }
+  if (input.keyboard.wasPressed(KeyCode.KeyK)) {
+    gui.show(gui._hidden);
+  }
   if (input.keyboard.wasPressed(KeyCode.KeyH)) {
     hide_end_text = true;
   }
