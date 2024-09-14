@@ -202,7 +202,7 @@ if (is_phone) {
     const rect = dpad.getBoundingClientRect();
     const x = touch.clientX - rect.left;
     const y = touch.clientY - rect.top;
-    return Vec2.fromPool(x - rect.width / 2, y - rect.height / 2);
+    return new Vec2(x - rect.width / 2, y - rect.height / 2);
   }
 
   dpad.hidden = false;
@@ -479,12 +479,12 @@ class SnakeBlocks {
     this.grid = Grid2D.initV(BOARD_SIZE, pos => ({ valid: false, in_dir: Vec2.zero, out_dir: Vec2.zero, t: 0, pos: pos }));
 
     blocks.forEach(v => {
-      this.grid.setV(v.pos.persist(), {
+      this.grid.setV(v.pos, {
         valid: true,
-        in_dir: v.in_dir.persist(),
-        out_dir: v.out_dir.persist(),
+        in_dir: v.in_dir,
+        out_dir: v.out_dir,
         t: v.t,
-        pos: v.pos.persist(),
+        pos: v.pos,
       });
     });
 
@@ -493,15 +493,6 @@ class SnakeBlocks {
 
   getHead() {
     return this.grid.getV(this.head_pos);
-  }
-
-  persist(): void {
-    this.grid.size.persist();
-    for (const { in_dir, out_dir, pos } of this.grid.data) {
-      in_dir.persist();
-      out_dir.persist();
-      pos.persist();
-    }
   }
 }
 
@@ -534,15 +525,15 @@ function restartGame() {
   if (CONFIG.START_ON_BORDER) {
     turn = 1;
     snake_blocks_new.setAll([
-      { pos: Vec2.fromPool(0, BOARD_SIZE.y - 2), in_dir: Vec2.fromPool(-1, 0), out_dir: Vec2.fromPool(1, 0), t: 0 },
-      { pos: Vec2.fromPool(1, BOARD_SIZE.y - 2), in_dir: Vec2.fromPool(-1, 0), out_dir: Vec2.fromPool(0, 0), t: 1 },
+      { pos: new Vec2(0, BOARD_SIZE.y - 2), in_dir: new Vec2(-1, 0), out_dir: new Vec2(1, 0), t: 0 },
+      { pos: new Vec2(1, BOARD_SIZE.y - 2), in_dir: new Vec2(-1, 0), out_dir: new Vec2(0, 0), t: 1 },
     ]);
   } else {
     turn = 2;
     snake_blocks_new.setAll([
-      { pos: Vec2.fromPool(6, 8), in_dir: Vec2.fromPool(-1, 0), out_dir: Vec2.fromPool(1, 0), t: 0 },
-      { pos: Vec2.fromPool(7, 8), in_dir: Vec2.fromPool(-1, 0), out_dir: Vec2.fromPool(1, 0), t: 1 },
-      { pos: Vec2.fromPool(8, 8), in_dir: Vec2.fromPool(-1, 0), out_dir: Vec2.fromPool(0, 0), t: 2 },
+      { pos: new Vec2(6, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(1, 0), t: 0 },
+      { pos: new Vec2(7, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(1, 0), t: 1 },
+      { pos: new Vec2(8, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(0, 0), t: 2 },
     ]);
   }
   started_at_timestamp = last_timestamp;
@@ -572,7 +563,6 @@ class Bomb {
   constructor(
     public pos: Vec2,
   ) {
-    pos.persist();
     this.ticking = false;
     this.fuse_left = CONFIG.FUSE_DURATION;
   }
@@ -581,9 +571,7 @@ class Bomb {
 class Multiplier {
   constructor(
     public pos: Vec2,
-  ) {
-    pos.persist();
-  }
+  ) { }
 }
 
 class Clock {
@@ -592,7 +580,7 @@ class Clock {
   public remaining_turns: number;
 
   constructor() {
-    this.pos = findSpotWithoutWall().persist();
+    this.pos = findSpotWithoutWall();
     this.active = false;
     this.remaining_turns = CONFIG.CLOCK_FREQUENCY;
   }
@@ -605,24 +593,24 @@ game_state = "loading_menu";
 if (CONFIG.START_ON_BORDER) {
   turn = 1;
   snake_blocks_new.setAll([
-    { pos: Vec2.fromPool(0, BOARD_SIZE.y - 2), in_dir: Vec2.fromPool(-1, 0), out_dir: Vec2.fromPool(1, 0), t: 0 },
-    { pos: Vec2.fromPool(1, BOARD_SIZE.y - 2), in_dir: Vec2.fromPool(-1, 0), out_dir: Vec2.fromPool(0, 0), t: 1 },
+    { pos: new Vec2(0, BOARD_SIZE.y - 2), in_dir: new Vec2(-1, 0), out_dir: new Vec2(1, 0), t: 0 },
+    { pos: new Vec2(1, BOARD_SIZE.y - 2), in_dir: new Vec2(-1, 0), out_dir: new Vec2(0, 0), t: 1 },
   ]);
 } else {
   turn = 2;
   snake_blocks_new.setAll([
-    { pos: Vec2.fromPool(6, 8), in_dir: Vec2.fromPool(-1, 0), out_dir: Vec2.fromPool(1, 0), t: 0 },
-    { pos: Vec2.fromPool(7, 8), in_dir: Vec2.fromPool(-1, 0), out_dir: Vec2.fromPool(1, 0), t: 1 },
-    { pos: Vec2.fromPool(8, 8), in_dir: Vec2.fromPool(-1, 0), out_dir: Vec2.fromPool(0, 0), t: 2 },
+    { pos: new Vec2(6, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(1, 0), t: 0 },
+    { pos: new Vec2(7, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(1, 0), t: 1 },
+    { pos: new Vec2(8, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(0, 0), t: 2 },
   ]);
 }
 score = 0
 input_queue = [];
 cur_collectables = RECORDING_GIF ? [
-  new Multiplier(Vec2.fromPool(11, 6)),
-  new Bomb(Vec2.fromPool(11, 14)),
-  new Bomb(Vec2.fromPool(12, 8)),
-  new Bomb(Vec2.fromPool(5, 6))
+  new Multiplier(new Vec2(11, 6)),
+  new Bomb(new Vec2(11, 14)),
+  new Bomb(new Vec2(12, 8)),
+  new Bomb(new Vec2(5, 6))
 ] : [new Bomb(BOARD_SIZE.sub(Vec2.both(2)))];
 turn_offset = 0.99; // always between 0..1
 exploding_cross_particles = [];
@@ -737,7 +725,8 @@ function findSpotWithoutWall(): Vec2 {
   let pos: Vec2;
   let valid: boolean;
   do {
-    pos = Vec2.fromPool(
+    // pos = new Vec2(Math.random(), Math.random()).mul(BOARD_SIZE)
+    pos = new Vec2(
       Math.floor(Math.random() * BOARD_SIZE.x),
       Math.floor(Math.random() * BOARD_SIZE.y)
     );
@@ -827,11 +816,6 @@ document.querySelector<HTMLButtonElement>("#sliders_button")?.addEventListener("
 last_timestamp = 0;
 // main loop; game logic lives here
 function every_frame(cur_timestamp: number) {
-  input_queue.forEach(v => v.persist());
-  cur_collectables.forEach(c => c.pos.persist());
-  snake_blocks_new.persist();
-  Vec2.clearPool();
-  // Vec2.clearPoolExcept(input_queue);
   // in seconds
   let delta_time = (cur_timestamp - last_timestamp) / 1000;
   last_timestamp = cur_timestamp;
@@ -880,13 +864,13 @@ function every_frame(cur_timestamp: number) {
   }
 
   const rect = canvas_ctx.getBoundingClientRect();
-  const raw_mouse_pos = Vec2.fromPool(input.mouse.clientX - rect.left, input.mouse.clientY - rect.top);
+  const raw_mouse_pos = new Vec2(input.mouse.clientX - rect.left, input.mouse.clientY - rect.top);
   const canvas_mouse_pos = raw_mouse_pos.sub(Vec2.both(MARGIN * TILE_SIZE).addY(TOP_OFFSET * TILE_SIZE));
 
   let bullet_time = false;
 
   settings_overlapped = canvas_mouse_pos.sub(
-    Vec2.fromPool(-TILE_SIZE * 1.1, -TILE_SIZE * 2.5)).mag() < TILE_SIZE * .7;
+    new Vec2(-TILE_SIZE * 1.1, -TILE_SIZE * 2.5)).mag() < TILE_SIZE * .7;
 
   if (game_state === "loading_menu") {
     // turn_offset += delta_time / CONFIG.TURN_DURATION;
@@ -934,7 +918,7 @@ function every_frame(cur_timestamp: number) {
 
     let pressed_some_menu_button = false;
     if (share_button_state.folded) {
-      const share_vanilla = Vec2.fromPool(percX(.5), menuYCoordOf('share'));
+      const share_vanilla = new Vec2(percX(.5), menuYCoordOf('share'));
       share_button_state.hovered = (share_vanilla.sub(raw_mouse_pos).mag() < TILE_SIZE * CONFIG.SHARE_BUTTON_SCALE) ? "vanilla" : null;
       if (input.mouse.wasPressed(MouseButton.Left) && share_button_state.hovered === 'vanilla') {
         share_button_state.folded = false;
@@ -943,7 +927,7 @@ function every_frame(cur_timestamp: number) {
         SOUNDS.waffel.play();
       }
     } else {
-      const share_vanilla = Vec2.fromPool(percX(.5), menuYCoordOf('share'));
+      const share_vanilla = new Vec2(percX(.5), menuYCoordOf('share'));
       const pos_twitter = share_vanilla.addX(-TILE_SIZE * 2);
       const pos_bsky = share_vanilla.addX(TILE_SIZE * 2);
       share_button_state.hovered = (pos_twitter.sub(raw_mouse_pos).mag() < TILE_SIZE * CONFIG.SHARE_BUTTON_SCALE)
@@ -1008,7 +992,7 @@ function every_frame(cur_timestamp: number) {
       function btnp(ks: KeyCode[]) {
         return ks.some(k => CONFIG.ALWAYS_SLOWDOWN ? input.keyboard.wasReleased(k) : input.keyboard.wasPressed(k));
       }
-      input_queue.push(Vec2.fromPool(
+      input_queue.push(new Vec2(
         (btnp([KeyCode.KeyD, KeyCode.ArrowRight]) ? 1 : 0)
         - (btnp([KeyCode.KeyA, KeyCode.ArrowLeft]) ? 1 : 0),
         (btnp([KeyCode.KeyS, KeyCode.ArrowDown]) ? 1 : 0)
@@ -1079,11 +1063,11 @@ function every_frame(cur_timestamp: number) {
 
     let collision = new_block.valid;
 
-    new_block.in_dir = delta.scale(-1).persist();
+    new_block.in_dir = delta.scale(-1);
     new_block.out_dir = Vec2.zero;
     new_block.t = turn;
     new_block.valid = true;
-    snake_blocks_new.head_pos = new_block.pos.persist();
+    snake_blocks_new.head_pos = new_block.pos;
 
     if (!CONFIG.CHEAT_INMORTAL && collision) {
       SOUNDS.crash.play();
@@ -1275,7 +1259,7 @@ function doMenu(canvas_mouse_pos: Vec2, raw_mouse_pos: Vec2, is_final_screen: bo
       }
       return ks.some(k => CONFIG.ALWAYS_SLOWDOWN ? input.keyboard.wasReleased(k) : input.keyboard.wasPressed(k));
     }
-    let delta = Vec2.fromPool(
+    let delta = new Vec2(
       (btnp([KeyCode.KeyD, KeyCode.ArrowRight, KeyCode.Space]) ? 1 : 0)
       - (btnp([KeyCode.KeyA, KeyCode.ArrowLeft]) ? 1 : 0),
       (btnp([KeyCode.KeyS, KeyCode.ArrowDown]) ? 1 : 0)
@@ -1398,7 +1382,7 @@ function draw(bullet_time: boolean, is_loading: boolean = false) {
         } else {
           throw new Error("unreachable");
         }
-        fillTile(Vec2.fromPool(i, j), fill);
+        fillTile(new Vec2(i, j), fill);
       }
     }
   }
@@ -1422,13 +1406,13 @@ function draw(bullet_time: boolean, is_loading: boolean = false) {
           center = center.add(cur_block.in_dir.scale(1 - turn_offset / CONFIG.ANIM_PERC));
         }
         fillTileCenterSize(center.add(cur_block.in_dir.scale(rounded_size / 2)),
-          Vec2.fromPool(
+          new Vec2(
             cur_block.in_dir.x == 0 ? 1 : 1 - rounded_size,
             cur_block.in_dir.y == 0 ? 1 : 1 - rounded_size,
           ), "SHADOW"
         )
         fillTileCenterSize(center,
-          Vec2.fromPool(
+          new Vec2(
             cur_block.in_dir.y == 0 ? 1 : 1 - rounded_size * 2,
             cur_block.in_dir.x == 0 ? 1 : 1 - rounded_size * 2,
           ), "SHADOW"
@@ -1438,13 +1422,13 @@ function draw(bullet_time: boolean, is_loading: boolean = false) {
       } else {
         const center = cur_block.pos.addXY(.5, .5).add(Vec2.both(CONFIG.SHADOW_DIST));
         fillTileCenterSize(center.add(cur_block.in_dir.scale(CONFIG.ROUNDED_SIZE / 2)),
-          Vec2.fromPool(
+          new Vec2(
             cur_block.in_dir.x == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
             cur_block.in_dir.y == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
           ), "SHADOW"
         )
         fillTileCenterSize(center.add(cur_block.out_dir.scale(CONFIG.ROUNDED_SIZE / 2)),
-          Vec2.fromPool(
+          new Vec2(
             cur_block.out_dir.x == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
             cur_block.out_dir.y == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
           ), "SHADOW"
@@ -1513,10 +1497,10 @@ function draw(bullet_time: boolean, is_loading: boolean = false) {
     }
 
     for (let y = 0; y < BOARD_SIZE.y; y++) {
-      fillTile(Vec2.fromPool(particle.center.x, y), "EXPLOSION");
+      fillTile(new Vec2(particle.center.x, y), "EXPLOSION");
     }
     for (let x = 0; x < BOARD_SIZE.y; x++) {
-      fillTile(Vec2.fromPool(x, particle.center.y), "EXPLOSION");
+      fillTile(new Vec2(x, particle.center.y), "EXPLOSION");
     }
     return true;
   });
@@ -1557,13 +1541,13 @@ function draw(bullet_time: boolean, is_loading: boolean = false) {
       center = Vec2.zero;
 
       fillTileCenterSize(center.add(cur_block.in_dir.scale(rounded_size / 2)),
-        Vec2.fromPool(
+        new Vec2(
           cur_block.in_dir.x == 0 ? 1 : 1 - rounded_size,
           cur_block.in_dir.y == 0 ? 1 : 1 - rounded_size,
         ), fill
       )
       fillTileCenterSize(center,
-        Vec2.fromPool(
+        new Vec2(
           cur_block.in_dir.y == 0 ? 1 : 1 - rounded_size * 2,
           cur_block.in_dir.x == 0 ? 1 : 1 - rounded_size * 2,
         ), fill
@@ -1577,7 +1561,7 @@ function draw(bullet_time: boolean, is_loading: boolean = false) {
         : false
           ? TEXTURES.eye.closed
           : TEXTURES.eye.open;
-      if (cur_block.in_dir.equal(Vec2.fromPool(1, 0))) {
+      if (cur_block.in_dir.equal(new Vec2(1, 0))) {
         drawFlippedTexture(center, eye_texture, 1 + CONFIG.EYE_BOUNCE * bounce);
       } else {
         drawRotatedTexture(center, eye_texture,
@@ -1601,19 +1585,19 @@ function draw(bullet_time: boolean, is_loading: boolean = false) {
       if (is_scarf && turn_offset < CONFIG.ANIM_PERC) {
         let anim_t = turn_offset / CONFIG.ANIM_PERC;
         // center = center.add(cur_block.in_dir.scale(1 - ));
-        fillTileCenterSize(center.add(cur_block.in_dir.scale(.5 + (1 - anim_t) / 2)), Vec2.fromPool(
+        fillTileCenterSize(center.add(cur_block.in_dir.scale(.5 + (1 - anim_t) / 2)), new Vec2(
           cur_block.in_dir.x == 0 ? 1 : 1 - anim_t,
           cur_block.in_dir.y == 0 ? 1 : 1 - anim_t,
         ), fill);
       }
       fillTileCenterSize(center.add(cur_block.in_dir.scale(CONFIG.ROUNDED_SIZE / 2)),
-        Vec2.fromPool(
+        new Vec2(
           cur_block.in_dir.x == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
           cur_block.in_dir.y == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
         ), fill
       )
       fillTileCenterSize(center.add(cur_block.out_dir.scale(CONFIG.ROUNDED_SIZE / 2)),
-        Vec2.fromPool(
+        new Vec2(
           cur_block.out_dir.x == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
           cur_block.out_dir.y == 0 ? 1 : 1 - CONFIG.ROUNDED_SIZE,
         ), fill
@@ -1636,7 +1620,7 @@ function draw(bullet_time: boolean, is_loading: boolean = false) {
       if (CONFIG.SCARF === "full") {
         fillTileCenterSize(
           center.add(cur_block.in_dir.scale(.5 - CONFIG.SCARF_BORDER_WIDTH / 2)),
-          Vec2.fromPool(
+          new Vec2(
             cur_block.in_dir.x == 0 ? 1 : CONFIG.SCARF_BORDER_WIDTH,
             cur_block.in_dir.y == 0 ? 1 : CONFIG.SCARF_BORDER_WIDTH
           ), "SCARF_OUT"
@@ -1644,7 +1628,7 @@ function draw(bullet_time: boolean, is_loading: boolean = false) {
       }
       fillTileCenterSize(
         center.add(cur_block.out_dir.scale(.5 - CONFIG.SCARF_BORDER_WIDTH / 2)),
-        Vec2.fromPool(
+        new Vec2(
           cur_block.out_dir.x == 0 ? 1 : CONFIG.SCARF_BORDER_WIDTH,
           cur_block.out_dir.y == 0 ? 1 : CONFIG.SCARF_BORDER_WIDTH
         ), "SCARF_OUT"
@@ -1677,7 +1661,7 @@ function draw(bullet_time: boolean, is_loading: boolean = false) {
             if (!CONFIG.WRAP_ITEMS && (i !== 0 || j !== 0)) continue;
             ctx.strokeStyle = "black";
             ctx.beginPath();
-            const center = clock.pos.add(Vec2.both(.5)).add(Vec2.fromPool(i * BOARD_SIZE.x, j * BOARD_SIZE.y));
+            const center = clock.pos.add(Vec2.both(.5)).add(new Vec2(i * BOARD_SIZE.x, j * BOARD_SIZE.y));
             const hand_delta = Vec2.fromTurns(
               remap(clock.remaining_turns - turn_offset, 0, CONFIG.CLOCK_DURATION, -1 / 4, -5 / 4)
             ).scale(.3);
@@ -1732,7 +1716,7 @@ function draw(bullet_time: boolean, is_loading: boolean = false) {
 
   if (game_state === "loading_menu") {
     drawImageCentered((mod(last_timestamp / 600, 1) > 0.5) ? TEXTURES.logo.frame1 : TEXTURES.logo.frame2,
-      Vec2.fromPool(canvas_ctx.width / 2, menuYCoordOf("logo")));
+      new Vec2(canvas_ctx.width / 2, menuYCoordOf("logo")));
 
 
     if (is_loading) {
@@ -1763,7 +1747,7 @@ function draw(bullet_time: boolean, is_loading: boolean = false) {
     drawCenteredShadowedText('By knexator & Pinchazumos', (MARGIN + TOP_OFFSET + BOARD_SIZE.y * 1.05) * TILE_SIZE);
   } else if (game_state === "pause_menu") {
 
-    drawImageCentered(TEXTURES.pause_text, Vec2.fromPool(canvas_ctx.width / 2, menuYCoordOf("logo") * 0.85));
+    drawImageCentered(TEXTURES.pause_text, new Vec2(canvas_ctx.width / 2, menuYCoordOf("logo") * 0.85));
 
     if (is_phone) {
       drawCenteredShadowedTextWithColor(
@@ -1793,7 +1777,7 @@ function draw(bullet_time: boolean, is_loading: boolean = false) {
     }
     const share_button_scale = CONFIG.SHARE_BUTTON_SCALE;
     if (share_button_state.folded) {
-      const pos = Vec2.fromPool(canvas_ctx.width / 2, menuYCoordOf("share"));
+      const pos = new Vec2(canvas_ctx.width / 2, menuYCoordOf("share"));
       drawImageCentered(TEXTURES.share.vanilla_shadow, pos.add(Vec2.both(CONFIG.SHADOW_TEXT)), share_button_scale);
       if (share_button_state.hovered === 'vanilla') {
         drawImageCentered(TEXTURES.share.vanilla, pos.sub(Vec2.both(CONFIG.SHADOW_TEXT / 2)), share_button_scale);
@@ -1802,7 +1786,7 @@ function draw(bullet_time: boolean, is_loading: boolean = false) {
         drawImageCentered(TEXTURES.share.vanilla, pos, share_button_scale);
       }
     } else {
-      const center = Vec2.fromPool(canvas_ctx.width / 2, menuYCoordOf("share"));
+      const center = new Vec2(canvas_ctx.width / 2, menuYCoordOf("share"));
       drawImageCentered(TEXTURES.share.twitter, center.addX(-TILE_SIZE * 2)
         .sub(share_button_state.hovered === 'twitter' ? Vec2.both(CONFIG.SHADOW_TEXT / 2) : Vec2.zero), share_button_scale);
       drawImageCentered(TEXTURES.share.bsky, center.addX(TILE_SIZE * 2)
@@ -1834,10 +1818,10 @@ function draw(bullet_time: boolean, is_loading: boolean = false) {
   // ctx.drawImage(TEXTURES.multiplier, 12.5 * TILE_SIZE, 0, TILE_SIZE, TILE_SIZE);
 
   if (game_state !== 'loading_menu') {
-    drawImageCentered(TEXTURES.settings, Vec2.fromPool(-TILE_SIZE * 1.2, TILE_SIZE * .6), settings_overlapped ? .8 : .7);
-    drawImageCentered(TEXTURES.speed, Vec2.fromPool(TILE_SIZE * .4, TILE_SIZE * .6));
+    drawImageCentered(TEXTURES.settings, new Vec2(-TILE_SIZE * 1.2, TILE_SIZE * .6), settings_overlapped ? .8 : .7);
+    drawImageCentered(TEXTURES.speed, new Vec2(TILE_SIZE * .4, TILE_SIZE * .6));
     ctx.fillText((game_speed + 1).toString(), TILE_SIZE * .9, TILE_SIZE * 1.175);
-    drawImageCentered(TEXTURES.note, Vec2.fromPool(TILE_SIZE * 2.3, TILE_SIZE * .6), .9);
+    drawImageCentered(TEXTURES.note, new Vec2(TILE_SIZE * 2.3, TILE_SIZE * .6), .9);
     ctx.fillText(music_track.toString(), TILE_SIZE * 2.6, TILE_SIZE * 1.175);
   }
 
@@ -1847,14 +1831,14 @@ function draw(bullet_time: boolean, is_loading: boolean = false) {
     ctx.translate(MARGIN * TILE_SIZE, (TOP_OFFSET + MARGIN) * TILE_SIZE);
     ctx.fillStyle = 'red';
     const head_position = snake_blocks_new.head_pos;
-    drawRotatedTextureNoWrap(Vec2.fromPool(-1, head_position.y).add(Vec2.both(.5)),
-      anyBlockAt(Vec2.fromPool(BOARD_SIZE.x - 1, head_position.y)) ? TEXTURES.border_arrow.red : TEXTURES.border_arrow.white, Math.PI, Vec2.fromPool(.5, 1));
-    drawRotatedTextureNoWrap(Vec2.fromPool(BOARD_SIZE.x, head_position.y).add(Vec2.both(.5)),
-      anyBlockAt(Vec2.fromPool(0, head_position.y)) ? TEXTURES.border_arrow.red : TEXTURES.border_arrow.white, 0, Vec2.fromPool(.5, 1));
-    drawRotatedTextureNoWrap(Vec2.fromPool(head_position.x, -1).add(Vec2.both(.5)),
-      anyBlockAt(Vec2.fromPool(head_position.x, BOARD_SIZE.y - 1)) ? TEXTURES.border_arrow.red : TEXTURES.border_arrow.white, -Math.PI / 2, Vec2.fromPool(.5, 1));
-    drawRotatedTextureNoWrap(Vec2.fromPool(head_position.x, BOARD_SIZE.y).add(Vec2.both(.5)),
-      anyBlockAt(Vec2.fromPool(head_position.x, 1)) ? TEXTURES.border_arrow.red : TEXTURES.border_arrow.white, Math.PI / 2, Vec2.fromPool(.5, 1));
+    drawRotatedTextureNoWrap(new Vec2(-1, head_position.y).add(Vec2.both(.5)),
+      anyBlockAt(new Vec2(BOARD_SIZE.x - 1, head_position.y)) ? TEXTURES.border_arrow.red : TEXTURES.border_arrow.white, Math.PI, new Vec2(.5, 1));
+    drawRotatedTextureNoWrap(new Vec2(BOARD_SIZE.x, head_position.y).add(Vec2.both(.5)),
+      anyBlockAt(new Vec2(0, head_position.y)) ? TEXTURES.border_arrow.red : TEXTURES.border_arrow.white, 0, new Vec2(.5, 1));
+    drawRotatedTextureNoWrap(new Vec2(head_position.x, -1).add(Vec2.both(.5)),
+      anyBlockAt(new Vec2(head_position.x, BOARD_SIZE.y - 1)) ? TEXTURES.border_arrow.red : TEXTURES.border_arrow.white, -Math.PI / 2, new Vec2(.5, 1));
+    drawRotatedTextureNoWrap(new Vec2(head_position.x, BOARD_SIZE.y).add(Vec2.both(.5)),
+      anyBlockAt(new Vec2(head_position.x, 1)) ? TEXTURES.border_arrow.red : TEXTURES.border_arrow.white, Math.PI / 2, new Vec2(.5, 1));
   }
 }
 
@@ -1890,7 +1874,7 @@ function menuYCoordOf(setting: "resume" | "haptic" | "speed" | "music" | "start"
 }
 
 function posFromPerc(p: Vec2): Vec2 {
-  return Vec2.fromPool(
+  return new Vec2(
     (MARGIN + BOARD_SIZE.x * p.x) * TILE_SIZE,
     (TOP_OFFSET + MARGIN + BOARD_SIZE.y * p.y) * TILE_SIZE,
   );
@@ -1926,11 +1910,11 @@ function drawMenuArrow(setting: "speed" | "music" | "haptic", left: boolean): vo
 
 function menuArrowSize(): Vec2 {
   // TODO
-  return Vec2.fromPool(1, 1).scale(TILE_SIZE);
+  return new Vec2(1, 1).scale(TILE_SIZE);
 }
 
 function menuArrowPos(setting: "speed" | "music" | "haptic", left: boolean): Vec2 {
-  return Vec2.fromPool(
+  return new Vec2(
     canvas_ctx.width / 2 + (left ? -1 : 1) * 3.25 * TILE_SIZE,
     menuYCoordOf(setting));
 }
@@ -2000,11 +1984,11 @@ function getDirFromDelta(delta: Vec2): Vec2 | null {
   if (delta.mag() < CONFIG.SWIPE_DIST * TILE_SIZE) return null;
 
   if (Math.abs(delta.x) * CONFIG.SWIPE_MARGIN > Math.abs(delta.y)) {
-    return Vec2.fromPool(Math.sign(delta.x), 0);
+    return new Vec2(Math.sign(delta.x), 0);
   }
 
   if (Math.abs(delta.y) * CONFIG.SWIPE_MARGIN > Math.abs(delta.x)) {
-    return Vec2.fromPool(0, Math.sign(delta.y));
+    return new Vec2(0, Math.sign(delta.y));
   }
 
   return null;
@@ -2012,22 +1996,22 @@ function getDirFromDelta(delta: Vec2): Vec2 | null {
 
 function roundToCardinalDirection(v: Vec2): Vec2 {
   if (Math.abs(v.x) > Math.abs(v.y)) {
-    return Vec2.fromPool(Math.sign(v.x), 0);
+    return new Vec2(Math.sign(v.x), 0);
   } else {
-    return Vec2.fromPool(0, Math.sign(v.y));
+    return new Vec2(0, Math.sign(v.y));
   }
 }
 
 function modVec2(value: Vec2, bounds: Vec2) {
-  return Vec2.fromPool(mod(value.x, bounds.x), mod(value.y, bounds.y));
+  return new Vec2(mod(value.x, bounds.x), mod(value.y, bounds.y));
 }
 
 function rotQuarterA(value: Vec2): Vec2 {
-  return Vec2.fromPool(value.y, -value.x);
+  return new Vec2(value.y, -value.x);
 }
 
 function rotQuarterB(value: Vec2): Vec2 {
-  return Vec2.fromPool(-value.y, value.x);
+  return new Vec2(-value.y, value.x);
 }
 
 function drawItem(top_left: Vec2, item: "bomb" | "multiplier" | "clock", is_shadow: boolean = false) {
@@ -2062,7 +2046,7 @@ function drawRotatedTextureNoWrap(center: Vec2, texture: HTMLImageElement, angle
 function drawRotatedTexture(center: Vec2, texture: HTMLImageElement, angle_in_radians: number, scale: number) {
   for (let i = -1; i <= 1; i++) {
     for (let j = -1; j <= 1; j++) {
-      drawRotatedTextureNoWrap(center.add(BOARD_SIZE.mul(Vec2.fromPool(i, j))), texture, angle_in_radians, Vec2.one, scale);
+      drawRotatedTextureNoWrap(center.add(BOARD_SIZE.mul(new Vec2(i, j))), texture, angle_in_radians, Vec2.one, scale);
     }
   }
 }
@@ -2070,7 +2054,7 @@ function drawRotatedTexture(center: Vec2, texture: HTMLImageElement, angle_in_ra
 function drawFlippedTexture(center: Vec2, texture: HTMLImageElement, scale: number) {
   for (let i = -1; i <= 1; i++) {
     for (let j = -1; j <= 1; j++) {
-      const px_center = center.add(BOARD_SIZE.mul(Vec2.fromPool(i, j))).scale(TILE_SIZE);
+      const px_center = center.add(BOARD_SIZE.mul(new Vec2(i, j))).scale(TILE_SIZE);
 
       ctx.translate(px_center.x, px_center.y);
       ctx.scale(-scale, scale);
@@ -2174,7 +2158,7 @@ function drawCenteredShadowedTextWithColor(color: string, text: string, yCoord: 
 }
 
 function drawImageCentered(image: HTMLImageElement, center: Vec2, scale: number = 1) {
-  const display_size = Vec2.fromPool(image.width, image.height).scale(scale * TILE_SIZE / 32);
+  const display_size = new Vec2(image.width, image.height).scale(scale * TILE_SIZE / 32);
   const offset = center.sub(display_size.scale(.5));
   ctx.drawImage(image, offset.x, offset.y, display_size.x, display_size.y);
 }
