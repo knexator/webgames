@@ -15,9 +15,11 @@ const gl = initGL2(canvas_gl)!;
 gl.clearColor(.5, .5, .5, 1);
 
 const CONFIG = {
+  ant_size: 5,
 };
 
 const gui = new GUI();
+gui.add(CONFIG, 'ant_size', 1, 10);
 
 const RATIO = 16 / 9;
 // top-left: (-1, -RATIO)
@@ -75,7 +77,7 @@ function every_frame(cur_timestamp: number) {
   ctx.beginPath();
   ants.forEach(ant => {
     const pos = ant.screenPos(canvas_size);
-    ctx.rect(pos.x, pos.y, 10, 10);
+    ctx.rect(pos.x, pos.y, CONFIG.ant_size, CONFIG.ant_size);
   });
   ctx.fill();
 
