@@ -17,6 +17,8 @@ gl.clearColor(.5, .5, .5, 1);
 const CONFIG = {
   ant_size: 5,
   click_seconds: .5,
+  pick_start_size: 100,
+  pick_final_size: 20,
 };
 
 const gui = new GUI();
@@ -34,6 +36,11 @@ class Ant {
     public vel: number,
     public rot_vel: number,
   ) { }
+
+  randomize(): void {
+    this.pos = randomPos();
+    this.dir = randomDir();
+  }
 
   screenPos(canvas_size: Vec2): Vec2 {
     return new Vec2(
@@ -68,8 +75,9 @@ function every_frame(cur_timestamp: number) {
   }
 
   const rect = canvas_ctx.getBoundingClientRect();
-  const raw_mouse_pos = new Vec2(input.mouse.clientX - rect.left, input.mouse.clientY - rect.top);
+  const screen_mouse_pos = new Vec2(input.mouse.clientX - rect.left, input.mouse.clientY - rect.top);
   const canvas_size = new Vec2(canvas_ctx.width, canvas_ctx.height);
+  const game_mouse_pos = screen2game(screen_mouse_pos, canvas_size);
 
   let released_at: number | null = null;
   if (input.mouse.wasPressed(MouseButton.Left)) {
@@ -85,14 +93,28 @@ function every_frame(cur_timestamp: number) {
     }
   }
 
+  if (released_at !== null) {
+    const radius = remap(released_at, 0, CONFIG.click_seconds, CONFIG.pick_start_size, CONFIG.pick_final_size);
+    ants.forEach(ant => {
+      const dist_sq = ant.screenPos(canvas_size).sub(screen_mouse_pos).magSq();
+      if (dist_sq < radius * radius) {
+        ant.randomize();
+      }
+    })
+  }
+
   ants.forEach(ant => {
     ant.update(delta_time);
   });
 
   ctx.fillStyle = '#ff000044';
   ctx.beginPath();
-  ctx.arc(raw_mouse_pos.x, raw_mouse_pos.y, remap(time_since_click ?? 0, 0, CONFIG.click_seconds, 100, 0), 0, 2 * Math.PI);
+  ctx.arc(screen_mouse_pos.x, screen_mouse_pos.y, remap(time_since_click ?? 0, 0, CONFIG.click_seconds, CONFIG.pick_start_size, CONFIG.pick_final_size), 0, 2 * Math.PI);
   ctx.fill();
+  ctx.strokeStyle = '#ff000044';
+  ctx.beginPath();
+  ctx.arc(screen_mouse_pos.x, screen_mouse_pos.y, CONFIG.pick_final_size, 0, 2 * Math.PI);
+  ctx.stroke();
 
   ctx.fillStyle = 'black';
   ctx.beginPath();
@@ -155,6 +177,13 @@ function wrapPos(pos: Vec2): Vec2 {
   return new Vec2(
     wrap(pos.x, -RATIO, RATIO),
     wrap(pos.y, -1, 1),
+  );
+}
+
+function screen2game(screen_pos: Vec2, canvas_size: Vec2): Vec2 {
+  return new Vec2(
+    remap(screen_pos.x, 0, canvas_size.x, -RATIO, RATIO),
+    remap(screen_pos.y, 0, canvas_size.y, -1, 1),
   );
 }
 
