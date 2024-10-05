@@ -1,0 +1,25 @@
+{
+  "name": "template_vanilla",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "lint": "eslint src",
+    "update": "tsc && vite build && butler push ./dist USERNAME/GAME_NAME:html",
+    "ghpages_kanvas2d": "cd .. && git clone https://github.com/knexator/kanvas2d.git && cd kanvas2d && npm i && npm run build:lib",
+    "ghpages_build": "tsc && vite build --mode include_frame"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.1.1",
+    "eslint": "^8.57.0",
+    "typescript": "^5.4.5",
+    "typescript-eslint": "^7.7.1",
+    "vite": "^4.4.5"
+  },
+  "dependencies": {
+    "lil-gui": "^0.18.2",
+    "twgl.js": "^5.5.3"
+  }
+}
