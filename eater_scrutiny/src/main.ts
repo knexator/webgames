@@ -16,6 +16,7 @@ gl.clearColor(.5, .5, .5, 1);
 
 const CONFIG = {
   ant_size: 5,
+  click_seconds: .5,
 };
 
 const gui = new GUI();
@@ -48,6 +49,7 @@ class Ant {
 }
 
 const ants = fromCount(500, k => new Ant(randomPos(), randomDir(), k % 2 == 0 ? .3 : .5, k % 4 < 2 ? -.1 : .1));
+let time_since_click: number | null = null;
 
 let last_timestamp = 0;
 // main loop; game logic lives here
@@ -64,14 +66,33 @@ function every_frame(cur_timestamp: number) {
     // resizing stuff
     gl.viewport(0, 0, canvas_gl.width, canvas_gl.height);
   }
-  
+
   const rect = canvas_ctx.getBoundingClientRect();
   const raw_mouse_pos = new Vec2(input.mouse.clientX - rect.left, input.mouse.clientY - rect.top);
   const canvas_size = new Vec2(canvas_ctx.width, canvas_ctx.height);
 
+  let released_at: number | null = null;
+  if (input.mouse.wasPressed(MouseButton.Left)) {
+    time_since_click = 0;
+  } else if (input.mouse.wasReleased(MouseButton.Left)) {
+    released_at = time_since_click;
+    time_since_click = null;
+  } else if (time_since_click !== null) {
+    time_since_click += delta_time;
+    if (time_since_click >= CONFIG.click_seconds) {
+      released_at = CONFIG.click_seconds;
+      time_since_click = null;
+    }
+  }
+
   ants.forEach(ant => {
     ant.update(delta_time);
   });
+
+  ctx.fillStyle = '#ff000044';
+  ctx.beginPath();
+  ctx.arc(raw_mouse_pos.x, raw_mouse_pos.y, remap(time_since_click ?? 0, 0, CONFIG.click_seconds, 100, 0), 0, 2 * Math.PI);
+  ctx.fill();
 
   ctx.fillStyle = 'black';
   ctx.beginPath();
@@ -80,9 +101,6 @@ function every_frame(cur_timestamp: number) {
     ctx.rect(pos.x, pos.y, CONFIG.ant_size, CONFIG.ant_size);
   });
   ctx.fill();
-
-  ctx.fillStyle = 'red';
-  ctx.fillRect(raw_mouse_pos.x, raw_mouse_pos.y, 10, 10);
 
   animation_id = requestAnimationFrame(every_frame);
 }
@@ -135,8 +153,8 @@ function randomDir(): Vec2 {
 
 function wrapPos(pos: Vec2): Vec2 {
   return new Vec2(
-    wrap(pos.x, -RATIO, RATIO), 
-    wrap(pos.y, -1, 1), 
+    wrap(pos.x, -RATIO, RATIO),
+    wrap(pos.y, -1, 1),
   );
 }
 
