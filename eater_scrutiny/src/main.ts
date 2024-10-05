@@ -29,6 +29,7 @@ class Ant {
     public pos: Vec2,
     public dir: Vec2,
     public vel: number,
+    public rot_vel: number,
   ) { }
 
   screenPos(canvas_size: Vec2): Vec2 {
@@ -40,10 +41,11 @@ class Ant {
 
   update(delta_time: number) {
     this.pos = wrapPos(this.pos.add(this.dir.scale(this.vel * delta_time)));
+    this.dir = this.dir.rotateTurns(this.rot_vel * delta_time);
   }
 }
 
-const ants = fromCount(500, k => new Ant(randomPos(), randomDir(), k % 2 == 0 ? .2 : .4));
+const ants = fromCount(500, k => new Ant(randomPos(), randomDir(), k % 2 == 0 ? .3 : .5, k % 4 < 2 ? -.1 : .1));
 
 let last_timestamp = 0;
 // main loop; game logic lives here
