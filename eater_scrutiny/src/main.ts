@@ -7,6 +7,14 @@ import { mod, towards as approach, lerp, inRange, clamp, argmax, argmin, max, re
 import { canvasFromAscii } from "./kommon/spritePS";
 import { initGL2, IVec, Vec2, Color, GenericDrawer, StatefulDrawer, CircleDrawer, m3, CustomSpriteDrawer, Transform, IRect, IColor, IVec2, FullscreenShader } from "kanvas2d"
 
+// TODO: update the code to work with the new 4/3 game area ratio
+
+import anteater_url from "./images/anteater.png?url";
+
+const TEXTURES = {
+  anteater: await imageFromUrl(anteater_url),
+};
+
 const input = new Input();
 const canvas_ctx = document.querySelector<HTMLCanvasElement>("#ctx_canvas")!;
 const ctx = canvas_ctx.getContext("2d")!;
@@ -16,10 +24,16 @@ gl.clearColor(.5, .5, .5, 1);
 
 const CONFIG = {
   ant_size: 5,
-  click_seconds: .5,
-  pick_start_size: 100,
+  click_seconds: .4,
+  pick_start_size: 60,
   pick_final_size: 20,
+  lupa_size: 120,
 };
+
+const COLORS = {
+  background: 'gray',
+  column: '#646464',
+}
 
 const gui = new GUI();
 gui.add(CONFIG, 'ant_size', 1, 10);
@@ -67,7 +81,7 @@ function every_frame(cur_timestamp: number) {
   input.startFrame();
   ctx.resetTransform();
   ctx.clearRect(0, 0, canvas_ctx.width, canvas_ctx.height);
-  ctx.fillStyle = 'gray';
+  ctx.fillStyle = COLORS.background;
   ctx.fillRect(0, 0, canvas_ctx.width, canvas_ctx.height);
   if (or(twgl.resizeCanvasToDisplaySize(canvas_ctx), twgl.resizeCanvasToDisplaySize(canvas_gl))) {
     // resizing stuff
@@ -111,7 +125,7 @@ function every_frame(cur_timestamp: number) {
   ctx.beginPath();
   ctx.arc(screen_mouse_pos.x, screen_mouse_pos.y, remap(time_since_click ?? 0, 0, CONFIG.click_seconds, CONFIG.pick_start_size, CONFIG.pick_final_size), 0, 2 * Math.PI);
   ctx.fill();
-  ctx.strokeStyle = '#ff000044';
+  ctx.strokeStyle = '#ff000088';
   ctx.beginPath();
   ctx.arc(screen_mouse_pos.x, screen_mouse_pos.y, CONFIG.pick_final_size, 0, 2 * Math.PI);
   ctx.stroke();
@@ -122,6 +136,18 @@ function every_frame(cur_timestamp: number) {
     const pos = ant.screenPos(canvas_size);
     ctx.rect(pos.x, pos.y, CONFIG.ant_size, CONFIG.ant_size);
   });
+  ctx.fill();
+
+  const column_width = TEXTURES.anteater.width;
+  ctx.fillStyle = COLORS.column;
+  ctx.fillRect(0, 0, column_width, canvas_size.y);
+
+  ctx.drawImage(TEXTURES.anteater, 0, 0);
+  console.log(column_width / 2);
+
+  ctx.fillStyle = '#ff000044';
+  ctx.beginPath();
+  ctx.arc(column_width / 2, TEXTURES.anteater.height + column_width / 2, CONFIG.lupa_size, 0, 2 * Math.PI);
   ctx.fill();
 
   animation_id = requestAnimationFrame(every_frame);
@@ -185,6 +211,20 @@ function screen2game(screen_pos: Vec2, canvas_size: Vec2): Vec2 {
     remap(screen_pos.x, 0, canvas_size.x, -RATIO, RATIO),
     remap(screen_pos.y, 0, canvas_size.y, -1, 1),
   );
+}
+
+function imageFromUrl(url: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'Anonymous'; // to avoid CORS if used with Canvas
+    img.src = url
+    img.onload = () => {
+      resolve(img);
+    }
+    img.onerror = e => {
+      reject(e);
+    }
+  })
 }
 
 if (import.meta.hot) {
