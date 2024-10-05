@@ -121,9 +121,11 @@ function every_frame(cur_timestamp: number) {
     ant.update(delta_time);
   });
 
+  const cur_picker_radius = remap(time_since_click ?? 0, 0, CONFIG.click_seconds, CONFIG.pick_start_size, CONFIG.pick_final_size);
+
   ctx.fillStyle = '#ff000044';
   ctx.beginPath();
-  ctx.arc(screen_mouse_pos.x, screen_mouse_pos.y, remap(time_since_click ?? 0, 0, CONFIG.click_seconds, CONFIG.pick_start_size, CONFIG.pick_final_size), 0, 2 * Math.PI);
+  ctx.arc(screen_mouse_pos.x, screen_mouse_pos.y, cur_picker_radius, 0, 2 * Math.PI);
   ctx.fill();
   ctx.strokeStyle = '#ff000088';
   ctx.beginPath();
@@ -145,9 +147,26 @@ function every_frame(cur_timestamp: number) {
   ctx.drawImage(TEXTURES.anteater, 0, 0);
   console.log(column_width / 2);
 
+  const lupa_center = new Vec2(column_width / 2, TEXTURES.anteater.height + column_width / 2);
   ctx.fillStyle = '#ff000044';
   ctx.beginPath();
-  ctx.arc(column_width / 2, TEXTURES.anteater.height + column_width / 2, CONFIG.lupa_size, 0, 2 * Math.PI);
+  ctx.arc(lupa_center.x, lupa_center.y, CONFIG.lupa_size, 0, 2 * Math.PI);
+  ctx.fill();
+
+  const scale = CONFIG.lupa_size / cur_picker_radius;
+  ctx.fillStyle = 'black';
+  ctx.beginPath();
+  ants.forEach(ant => {
+    const delta = ant.screenPos(canvas_size).sub(screen_mouse_pos);
+    if (delta.magSq() < cur_picker_radius * cur_picker_radius) {
+      ctx.rect(
+        delta.x * scale + lupa_center.x,
+        delta.y * scale + lupa_center.y,
+        CONFIG.ant_size * scale,
+        CONFIG.ant_size * scale,
+      );
+    }
+  })
   ctx.fill();
 
   animation_id = requestAnimationFrame(every_frame);
