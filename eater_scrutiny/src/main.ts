@@ -41,6 +41,8 @@ const COLORS = {
   tongue: '#C293A6',
   ants: '#000000',
   dialogue: '#000000',
+  highlight_fill: '#00ffff44',
+  highlight_stroke: '#C293A688',
 };
 
 const gui = new GUI();
@@ -51,6 +53,8 @@ gui.add(CONFIG, 'pick_final_size', 5, 40);
 gui.addColor(COLORS, 'column');
 gui.addColor(COLORS, 'tongue');
 gui.addColor(COLORS, 'ants');
+gui.addColor(COLORS, 'highlight_fill');
+gui.addColor(COLORS, 'highlight_stroke');
 
 const RATIO = 16 / 9;
 // top-left: (-1, -RATIO)
@@ -227,7 +231,7 @@ function every_frame(cur_timestamp: number) {
   const column_width = TEXTURES.anteater.width;
   ctx.drawImage(TEXTURES.dirt, column_width, 0);
 
-  ctx.fillStyle = '#ff000044';
+  ctx.fillStyle = COLORS.highlight_fill;
   ctx.beginPath();
   ctx.arc(screen_mouse_pos.x, screen_mouse_pos.y, cur_picker_radius, 0, 2 * Math.PI);
   ctx.fill();
@@ -259,10 +263,6 @@ function every_frame(cur_timestamp: number) {
   })
 
   const lupa_center = new Vec2(column_width / 2, canvas_size.y - column_width / 2);
-  // ctx.fillStyle = '#ff000044';
-  // ctx.beginPath();
-  // ctx.arc(lupa_center.x, lupa_center.y, CONFIG.lupa_size, 0, 2 * Math.PI);
-  // ctx.fill();
 
   const scale = CONFIG.lupa_size / cur_picker_radius;
   ctx.fillStyle = 'black';
