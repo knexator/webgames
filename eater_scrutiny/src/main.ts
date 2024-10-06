@@ -50,12 +50,22 @@ const RATIO = 16 / 9;
 // bottom-right: (1, RATIO)
 
 class Ant {
-  constructor(
-    public pos: Vec2,
-    public dir: Vec2,
-    public vel: number,
-    public rot_vel: number,
-  ) { }
+  public pos: Vec2;
+  public dir: Vec2;
+  public vel: number;
+  public rot_vel: number;
+
+  constructor(public type: number) {
+    if (!inRange(type, 0, 4)) throw new Error("unreachable");
+    this.pos = randomPos();
+    this.dir = randomDir();
+    this.vel = type % 2 == 0 ? .3 : .5;
+    this.rot_vel = type < 2 ? -.1 : .1;
+  }
+
+  getScore(): number {
+    return this.type == 0 ? 2 : -1;
+  }
 
   randomize(): void {
     this.pos = randomPos();
@@ -76,7 +86,7 @@ class Ant {
 }
 
 class Tongue {
-  union: null | { target: Vec2, progress: number, state: 'in' | 'wait' | 'out', ants_delta: Vec2[] } = null;
+  union: null | { target: Vec2, progress: number, state: 'in' | 'wait' | 'out', ants_delta: Vec2[], ants_score: number[] } = null;
   constructor() { }
 
   draw() {
@@ -99,6 +109,12 @@ class Tongue {
       ctx.rect(fake_ants_pos.x + delta.x, fake_ants_pos.y + delta.y, CONFIG.ant_size, CONFIG.ant_size);
     });
     ctx.fill();
+
+    if (this.union.state !== 'in') {
+      for (const [score, delta] of zip2(this.union.ants_score, this.union.ants_delta)) {
+        ctx.fillText(score.toString(), this.union.target.x + 2 * delta.x, this.union.target.y + 2 * delta.y);
+      }
+    }
   }
 
   static state_duration(state: 'in' | 'wait' | 'out'): number {
@@ -133,15 +149,16 @@ class Tongue {
   }
 
   activate(target: Vec2) {
-    this.union = { target, progress: 0, state: 'in', ants_delta: [] };
+    this.union = { target, progress: 0, state: 'in', ants_delta: [], ants_score: [] };
   }
 
-  add_ant(delta: Vec2) {
+  add_ant(delta: Vec2, score: number) {
     this.union!.ants_delta.push(delta);
+    this.union!.ants_score.push(score);
   }
 }
 
-const ants = fromCount(500, k => new Ant(randomPos(), randomDir(), k % 2 == 0 ? .3 : .5, k % 4 < 2 ? -.1 : .1));
+const ants = fromCount(500, k => new Ant(k % 4));
 let picker_progress = 0;
 let waiting_for_mouse_release = false;
 const tongue = new Tongue();
@@ -185,7 +202,7 @@ function every_frame(cur_timestamp: number) {
       const delta = ant.screenPos(canvas_size).sub(screen_mouse_pos);
       const dist_sq = delta.magSq();
       if (dist_sq < radius * radius) {
-        tongue.add_ant(delta);
+        tongue.add_ant(delta, ant.getScore());
         ant.randomize();
       }
     });
