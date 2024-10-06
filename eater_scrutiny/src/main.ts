@@ -7,8 +7,6 @@ import { mod, towards as approach, lerp, inRange, clamp, argmax, argmin, max, re
 import { canvasFromAscii } from "./kommon/spritePS";
 import { initGL2, IVec, Vec2, Color, GenericDrawer, StatefulDrawer, CircleDrawer, m3, CustomSpriteDrawer, Transform, IRect, IColor, IVec2, FullscreenShader } from "kanvas2d"
 
-// TODO: update the code to work with the new 4/3 game area ratio
-
 import anteater_url from "./images/anteater.png?url";
 import bocadillo_url from "./images/bocadillo.png?url";
 import dirt_url from "./images/dirt.png?url";
@@ -67,11 +65,6 @@ gui.addColor(COLORS, 'score_bar_text_full');
 gui.addColor(COLORS, 'score_bar_text_empty');
 gui.hide();
 
-const RATIO = 16 / 9;
-// top-left: (-1, -RATIO)
-// center: (0, 0)
-// bottom-right: (1, RATIO)
-
 class Ant {
   public pos: Vec2;
   public dir: Vec2;
@@ -98,7 +91,7 @@ class Ant {
 
   screenPos(canvas_size: Vec2): Vec2 {
     return new Vec2(
-      remap(this.pos.x, -RATIO, RATIO, 0, canvas_size.x),
+      remap(this.pos.x, -1, 1, 0, canvas_size.x) + column_width,
       remap(this.pos.y, -1, 1, 0, canvas_size.y),
     );
   }
@@ -207,6 +200,8 @@ class Tongue {
   }
 }
 
+const column_width = TEXTURES.anteater.width;
+
 let ants: Ant[];
 const tongue = new Tongue();
 let score = 0;
@@ -290,7 +285,6 @@ function every_frame(cur_timestamp: number) {
 
   const cur_picker_radius = lerp(CONFIG.pick_start_size, CONFIG.pick_final_size, picker_progress);
 
-  const column_width = TEXTURES.anteater.width;
   ctx.drawImage(TEXTURES.dirt, column_width, 0);
 
   ctx.fillStyle = COLORS.highlight_fill;
@@ -403,7 +397,7 @@ function or(a: boolean, b: boolean) {
 }
 
 function randomPos(): Vec2 {
-  return new Vec2(randomFloat(-RATIO, RATIO), randomFloat(-1, 1));
+  return new Vec2(randomFloat(-1, 1), randomFloat(-1, 1));
 }
 
 function randomDir(): Vec2 {
@@ -412,14 +406,14 @@ function randomDir(): Vec2 {
 
 function wrapPos(pos: Vec2): Vec2 {
   return new Vec2(
-    wrap(pos.x, -RATIO, RATIO),
+    wrap(pos.x, -1, 1),
     wrap(pos.y, -1, 1),
   );
 }
 
 function screen2game(screen_pos: Vec2, canvas_size: Vec2): Vec2 {
   return new Vec2(
-    remap(screen_pos.x, 0, canvas_size.x, -RATIO, RATIO),
+    remap(screen_pos.x, column_width, canvas_size.x, -1, 1),
     remap(screen_pos.y, 0, canvas_size.y, -1, 1),
   );
 }
