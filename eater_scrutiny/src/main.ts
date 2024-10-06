@@ -33,6 +33,8 @@ const CONFIG = {
   pick_final_size: 15,
   lupa_size: 120,
   anteater_offset_y: 130,
+  blink_enter_duration: 1.2,
+  blink_exit_duration: 0.4,
 };
 
 const COLORS = {
@@ -47,6 +49,7 @@ const COLORS = {
   score_bar_empty: '#4a4540',
   score_bar_text_full: '#4a4540',
   score_bar_text_empty: '#a99274',
+  curtains: '#63c64d',
 };
 
 const gui = new GUI();
@@ -63,6 +66,7 @@ gui.addColor(COLORS, 'score_bar_full');
 gui.addColor(COLORS, 'score_bar_empty');
 gui.addColor(COLORS, 'score_bar_text_full');
 gui.addColor(COLORS, 'score_bar_text_empty');
+gui.addColor(COLORS, 'curtains');
 gui.hide();
 
 class Ant {
@@ -210,6 +214,8 @@ let level_remaining_time: number;
 let picker_progress = 0;
 let waiting_for_mouse_release = false;
 
+let game_state: { state: 'playing' } | { state: 'entering' | 'exiting', progress: number } = { state: 'entering', progress: -1 };
+
 const levels = [
   new Level(30, "I must be careful with what\nI eat! No fast food for me;\nonly slow termites.", ['20px', 30, 45], 500, k => new Ant(k % 2 == 0 ? .2 : .5, 0, k % 2 == 0)),
   new Level(30, "Ants going in circles? Idk,\nsounds like a broken leg.\nNot tasty! I'll avoid them.", ['20px', 30, 45], 500, k => new Ant(.3, remap(k % 3, 0, 2, -1, 1), k % 3 == 1)),
@@ -224,10 +230,13 @@ function loadLevel() {
 
 loadLevel();
 
-let last_timestamp = 0;
+let last_timestamp: number | null = null;
 // main loop; game logic lives here
 function every_frame(cur_timestamp: number) {
   // in seconds
+  if (last_timestamp === null) {
+    last_timestamp = cur_timestamp;
+  }
   const delta_time = (cur_timestamp - last_timestamp) / 1000;
   last_timestamp = cur_timestamp;
   input.startFrame();
@@ -243,7 +252,6 @@ function every_frame(cur_timestamp: number) {
   const rect = canvas_ctx.getBoundingClientRect();
   const screen_mouse_pos = new Vec2(input.mouse.clientX - rect.left, input.mouse.clientY - rect.top);
   const canvas_size = new Vec2(canvas_ctx.width, canvas_ctx.height);
-  const game_mouse_pos = screen2game(screen_mouse_pos, canvas_size);
 
   if (!input.mouse.isDown(MouseButton.Left)) {
     waiting_for_mouse_release = false;
@@ -251,7 +259,7 @@ function every_frame(cur_timestamp: number) {
 
   const won = cur_level_index + 1 == levels.length;
 
-  if (!won && !waiting_for_mouse_release && input.mouse.isDown(MouseButton.Left)) {
+  if (!won && game_state.state === 'playing' && !waiting_for_mouse_release && input.mouse.isDown(MouseButton.Left)) {
     picker_progress = towards(picker_progress, 1, delta_time / CONFIG.click_seconds);
   } else {
     picker_progress = towards(picker_progress, 0, 2 * delta_time / CONFIG.click_seconds);
@@ -278,10 +286,26 @@ function every_frame(cur_timestamp: number) {
   });
 
   const cur_level = levels[cur_level_index];
-  level_remaining_time -= delta_time;
-  if (level_remaining_time <= 0) {
-    cur_level_index += 1;
-    loadLevel();
+
+  if (game_state.state === 'playing') {
+    level_remaining_time -= delta_time;
+    if (level_remaining_time <= 0) {
+      game_state = { state: 'exiting', progress: 0 };
+    }
+  } else if (game_state.state === 'entering' || game_state.state === 'exiting') {
+    game_state.progress = towards(game_state.progress, 1, delta_time / (game_state.state === 'entering' ? CONFIG.blink_enter_duration : CONFIG.blink_exit_duration));
+    if (game_state.progress >= 1) {
+      if (game_state.state === 'entering') {
+        game_state = { state: 'playing' };
+      } else {
+        cur_level_index += 1;
+        loadLevel();
+        game_state = { state: 'entering', progress: 0 };
+      }
+    }
+  } else {
+    const _: never = game_state.state;
+    throw new Error("unreachable");
   }
 
   const cur_picker_radius = lerp(CONFIG.pick_start_size, CONFIG.pick_final_size, picker_progress);
@@ -353,6 +377,13 @@ function every_frame(cur_timestamp: number) {
     }
   })
   ctx.fill();
+
+  if (game_state.state !== 'playing') {
+    ctx.fillStyle = COLORS.curtains;
+    const curtain_height = (game_state.state === 'exiting' ? game_state.progress : clamp01(remap(game_state.progress, .2, 1, 1, 0))) * canvas_size.y / 2;
+    ctx.fillRect(column_width, 0, canvas_size.y, curtain_height);
+    ctx.fillRect(column_width, canvas_size.y - curtain_height, canvas_size.y, curtain_height);
+  }
 
   ctx.drawImage(TEXTURES.lupa, 0, canvas_size.y - column_width);
 
