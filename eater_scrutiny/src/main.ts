@@ -3,7 +3,7 @@ import GUI from "lil-gui";
 import { Grid2D } from "./kommon/grid2D";
 import { Input, KeyCode, Mouse, MouseButton } from "./kommon/input";
 import { DefaultMap, fromCount, fromRange, objectMap, repeat, zip2 } from "./kommon/kommon";
-import { mod, towards as approach, lerp, inRange, clamp, argmax, argmin, max, remap, clamp01, randomInt, randomFloat, randomChoice, doSegmentsIntersect, closestPointOnSegment, roundTo, wrap, towards } from "./kommon/math";
+import { mod, towards as approach, lerp, inRange, clamp, argmax, argmin, max, remap, clamp01, randomInt, randomFloat, randomChoice, doSegmentsIntersect, closestPointOnSegment, roundTo, wrap, towards, inverseLerp } from "./kommon/math";
 import { canvasFromAscii } from "./kommon/spritePS";
 import { initGL2, IVec, Vec2, Color, GenericDrawer, StatefulDrawer, CircleDrawer, m3, CustomSpriteDrawer, Transform, IRect, IColor, IVec2, FullscreenShader } from "kanvas2d"
 
@@ -42,6 +42,7 @@ const COLORS = {
   tongue: '#C293A6',
   ants: '#000000',
   dialogue: '#000000',
+  score_float: '#FFFFFF',
   highlight_fill: '#00ffff44',
   highlight_stroke: '#C293A688',
 };
@@ -101,11 +102,17 @@ class Ant {
 }
 
 class Level {
+  public font: string;
+  public line_spacing: number;
   constructor(
     public flavor_text: string,
+    [font_size, line_spacing]: [string, number],
     public ant_count: number,
     public ant_generator: (k: number) => Ant,
-  ) { }
+  ) {
+    this.font = font_size + ' sans-serif';
+    this.line_spacing = line_spacing;
+  }
 
   getAnts(): Ant[] {
     return fromCount(this.ant_count, k => this.ant_generator(k));
@@ -137,6 +144,7 @@ class Tongue {
     });
     ctx.fill();
 
+    ctx.fillStyle = COLORS.score_float;
     if (this.union.state !== 'in') {
       for (const [score, delta] of zip2(this.union.ants_score, this.union.ants_delta)) {
         ctx.fillText(score > 0 ? '+' + score.toString() : score.toString(),
@@ -195,7 +203,8 @@ let picker_progress = 0;
 let waiting_for_mouse_release = false;
 
 const levels = [
-  new Level('the only tasty ants:\nslow & left-moving', 500, k => new Ant(k % 2 == 0 ? .3 : .5, k % 4 < 2 ? -.1 : .1, k % 4 == 0)),
+  new Level("I must be careful with what\nI eat! No fast food for me;\nonly slow termites.", ['20px', 30], 500, k => new Ant(k % 2 == 0 ? .2 : .5, 0, k % 2 == 0)),
+  new Level('the only tasty ants:\nslow & left-moving', ['28px', 40], 500, k => new Ant(k % 2 == 0 ? .3 : .5, k % 4 < 2 ? -.1 : .1, k % 4 == 0)),
 ]
 
 const ants: Ant[] = levels[cur_level_index].getAnts();
@@ -282,9 +291,10 @@ function every_frame(cur_timestamp: number) {
   ctx.drawImage(TEXTURES.bocadillo, 0, 0);
 
   ctx.fillStyle = COLORS.dialogue;
-  ctx.font = '28px sans-serif';
-  levels[cur_level_index].flavor_text.split('\n').forEach((line, k) => {
-    ctx.fillText(line, 28, k * 40 + 50);
+  const cur_level = levels[cur_level_index];
+  ctx.font = cur_level.font;
+  cur_level.flavor_text.split('\n').forEach((line, k) => {
+    ctx.fillText(line, 28, k * cur_level.line_spacing + 50);
   })
 
   ctx.fillText(`Score: ${score}`, 16, CONFIG.anteater_offset_y + TEXTURES.anteater.height + 40);
@@ -292,7 +302,7 @@ function every_frame(cur_timestamp: number) {
   const lupa_center = new Vec2(column_width / 2, canvas_size.y - column_width / 2);
 
   const scale = CONFIG.lupa_size / cur_picker_radius;
-  ctx.fillStyle = 'black';
+  ctx.fillStyle = COLORS.ants;
   ctx.beginPath();
   ants.forEach(ant => {
     const delta = ant.screenPos(canvas_size).sub(screen_mouse_pos);
