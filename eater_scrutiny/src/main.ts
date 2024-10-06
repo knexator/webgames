@@ -10,9 +10,11 @@ import { initGL2, IVec, Vec2, Color, GenericDrawer, StatefulDrawer, CircleDrawer
 // TODO: update the code to work with the new 4/3 game area ratio
 
 import anteater_url from "./images/anteater.png?url";
+import bocadillo_url from "./images/bocadillo.png?url";
 
 const TEXTURES = {
   anteater: await imageFromUrl(anteater_url),
+  bocadillo: await imageFromUrl(bocadillo_url),
 };
 
 const input = new Input();
@@ -144,10 +146,17 @@ function every_frame(cur_timestamp: number) {
   ctx.fillStyle = COLORS.column;
   ctx.fillRect(0, 0, column_width, canvas_size.y);
 
-  ctx.drawImage(TEXTURES.anteater, 0, 0);
-  console.log(column_width / 2);
+  ctx.drawImage(TEXTURES.anteater, 0, canvas_size.y - column_width - TEXTURES.anteater.height);
+  ctx.drawImage(TEXTURES.bocadillo, 0, 0);
 
-  const lupa_center = new Vec2(column_width / 2, TEXTURES.anteater.height + column_width / 2);
+  ctx.fillStyle = 'black';
+  ctx.font = '28px sans-serif';
+  'the only tasty ants:\nslow & left-moving'.split('\n').forEach((line, k) => {
+    ctx.fillText(line, 28, k * 40 + 50);
+  })
+  
+
+  const lupa_center = new Vec2(column_width / 2, canvas_size.y - column_width / 2);
   ctx.fillStyle = '#ff000044';
   ctx.beginPath();
   ctx.arc(lupa_center.x, lupa_center.y, CONFIG.lupa_size, 0, 2 * Math.PI);
