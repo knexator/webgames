@@ -112,7 +112,10 @@ class Tongue {
 
     if (this.union.state !== 'in') {
       for (const [score, delta] of zip2(this.union.ants_score, this.union.ants_delta)) {
-        ctx.fillText(score.toString(), this.union.target.x + 2 * delta.x, this.union.target.y + 2 * delta.y);
+        ctx.fillText(score > 0 ? '+' + score.toString() : score.toString(),
+          this.union.target.x + 2 * delta.x,
+          this.union.target.y + 2 * delta.y - ((this.union.state === 'wait') ? 0 : this.union.progress * 50)
+        );
       }
     }
   }
