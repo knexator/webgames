@@ -35,9 +35,10 @@ const CONFIG = {
 };
 
 const COLORS = {
-  background: 'gray',
   column: '#646464',
   tongue: '#C293A6',
+  ants: '#000000',
+  dialogue: '#000000',
 };
 
 const gui = new GUI();
@@ -45,6 +46,9 @@ gui.add(CONFIG, 'ant_size', 1, 10);
 gui.add(CONFIG, 'click_seconds', 0, 1);
 gui.add(CONFIG, 'pick_start_size', 30, 100);
 gui.add(CONFIG, 'pick_final_size', 5, 40);
+gui.addColor(COLORS, 'column');
+gui.addColor(COLORS, 'tongue');
+gui.addColor(COLORS, 'ants');
 
 const RATIO = 16 / 9;
 // top-left: (-1, -RATIO)
@@ -105,7 +109,7 @@ class Tongue {
     ctx.fill();
 
     const fake_ants_pos = this.union.state === 'out' ? cur_pos : this.union.target;
-    ctx.fillStyle = 'black';
+    ctx.fillStyle = COLORS.ants;
     ctx.beginPath();
     this.union.ants_delta.forEach(delta => {
       ctx.rect(fake_ants_pos.x + delta.x, fake_ants_pos.y + delta.y, CONFIG.ant_size, CONFIG.ant_size);
@@ -177,8 +181,6 @@ function every_frame(cur_timestamp: number) {
   input.startFrame();
   ctx.resetTransform();
   ctx.clearRect(0, 0, canvas_ctx.width, canvas_ctx.height);
-  ctx.fillStyle = COLORS.background;
-  ctx.fillRect(0, 0, canvas_ctx.width, canvas_ctx.height);
   if (or(twgl.resizeCanvasToDisplaySize(canvas_ctx), twgl.resizeCanvasToDisplaySize(canvas_gl))) {
     // resizing stuff
     gl.viewport(0, 0, canvas_gl.width, canvas_gl.height);
@@ -232,7 +234,7 @@ function every_frame(cur_timestamp: number) {
   ctx.arc(screen_mouse_pos.x, screen_mouse_pos.y, CONFIG.pick_final_size, 0, 2 * Math.PI);
   ctx.stroke();
 
-  ctx.fillStyle = 'black';
+  ctx.fillStyle = COLORS.ants;
   ctx.beginPath();
   ants.forEach(ant => {
     const pos = ant.screenPos(canvas_size);
@@ -248,7 +250,7 @@ function every_frame(cur_timestamp: number) {
   ctx.drawImage(TEXTURES.anteater, 0, canvas_size.y - column_width - TEXTURES.anteater.height);
   ctx.drawImage(TEXTURES.bocadillo, 0, 0);
 
-  ctx.fillStyle = 'black';
+  ctx.fillStyle = COLORS.dialogue;
   ctx.font = '28px sans-serif';
   'the only tasty ants:\nslow & left-moving'.split('\n').forEach((line, k) => {
     ctx.fillText(line, 28, k * 40 + 50);
