@@ -212,6 +212,7 @@ let waiting_for_mouse_release = false;
 
 const levels = [
   new Level(30, "I must be careful with what\nI eat! No fast food for me;\nonly slow termites.", ['20px', 30, 45], 500, k => new Ant(k % 2 == 0 ? .2 : .5, 0, k % 2 == 0)),
+  new Level(30, "Ants going in circles? Idk,\nsounds like a broken leg.\nNot tasty! I'll avoid them.", ['20px', 30, 45], 500, k => new Ant(.3, remap(k % 3, 0, 2, -1, 1), k % 3 == 1)),
   new Level(30, "The only tasty ants:\nslow & left-moving", ['28px', 40, 50], 500, k => new Ant(k % 2 == 0 ? .3 : .5, k % 4 < 2 ? -.1 : .1, k % 4 == 0)),
   new Level(Infinity, 'Thanks for playing!', ['28px', 40, 60], 500, k => new Ant(k % 2 == 0 ? .3 : .5, k % 4 < 2 ? -.1 : .1, k % 4 == 0)),
 ];
