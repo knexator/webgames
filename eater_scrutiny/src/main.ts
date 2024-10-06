@@ -25,8 +25,8 @@ const gl = initGL2(canvas_gl)!;
 gl.clearColor(.5, .5, .5, 1);
 
 const CONFIG = {
-  ant_size: 3,
-  click_seconds: .3,
+  ant_size: 2.25,
+  click_seconds: 0,
   pick_start_size: 45,
   pick_final_size: 15,
   lupa_size: 120,
@@ -146,7 +146,8 @@ class Tongue {
     ctx.fillStyle = COLORS.ants;
     ctx.beginPath();
     this.union.ants_delta.forEach(delta => {
-      ctx.rect(fake_ants_pos.x + delta.x, fake_ants_pos.y + delta.y, CONFIG.ant_size, CONFIG.ant_size);
+      ctx.moveTo(fake_ants_pos.x + delta.x, fake_ants_pos.y + delta.y);
+      ctx.arc(fake_ants_pos.x + delta.x, fake_ants_pos.y + delta.y, CONFIG.ant_size, 0, Math.PI * 2);
     });
     ctx.fill();
 
@@ -259,9 +260,11 @@ function every_frame(cur_timestamp: number) {
   const won = cur_level_index + 1 == levels.length;
 
   if (!won && game_state.state === 'playing' && !waiting_for_mouse_release && input.mouse.isDown(MouseButton.Left)) {
-    picker_progress = towards(picker_progress, 1, delta_time / CONFIG.click_seconds);
+    picker_progress = 1;
+    // picker_progress = towards(picker_progress, 1, delta_time / CONFIG.click_seconds);
   } else {
-    picker_progress = towards(picker_progress, 0, 2 * delta_time / CONFIG.click_seconds);
+    picker_progress = 0;
+    // picker_progress = towards(picker_progress, 0, 2 * delta_time / CONFIG.click_seconds);
   }
 
   if (picker_progress >= 1) {
@@ -326,7 +329,8 @@ function every_frame(cur_timestamp: number) {
   ctx.beginPath();
   ants.forEach(ant => {
     const pos = ant.screenPos(canvas_size);
-    ctx.rect(pos.x, pos.y, CONFIG.ant_size, CONFIG.ant_size);
+    ctx.moveTo(pos.x, pos.y);
+    ctx.arc(pos.x, pos.y, CONFIG.ant_size, 0, Math.PI * 2);
   });
   ctx.fill();
 
@@ -367,11 +371,12 @@ function every_frame(cur_timestamp: number) {
     const delta = ant.screenPos(canvas_size).sub(screen_mouse_pos);
     if (game_state.state !== 'playing') return; // TODO: better
     if (delta.magSq() < cur_picker_radius * cur_picker_radius) {
-      ctx.rect(
+      ctx.moveTo(delta.x * scale + lupa_center.x, delta.y * scale + lupa_center.y);
+      ctx.arc(
         delta.x * scale + lupa_center.x,
         delta.y * scale + lupa_center.y,
         CONFIG.ant_size * scale,
-        CONFIG.ant_size * scale,
+        0, Math.PI * 2
       );
     }
   })
