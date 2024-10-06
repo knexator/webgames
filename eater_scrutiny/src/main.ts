@@ -56,6 +56,7 @@ gui.addColor(COLORS, 'tongue');
 gui.addColor(COLORS, 'ants');
 gui.addColor(COLORS, 'highlight_fill');
 gui.addColor(COLORS, 'highlight_stroke');
+gui.hide();
 
 const RATIO = 16 / 9;
 // top-left: (-1, -RATIO)
@@ -193,6 +194,8 @@ function every_frame(cur_timestamp: number) {
     // resizing stuff
     gl.viewport(0, 0, canvas_gl.width, canvas_gl.height);
   }
+
+  if (input.keyboard.wasPressed(KeyCode.KeyH)) gui.show(gui._hidden);
 
   const rect = canvas_ctx.getBoundingClientRect();
   const screen_mouse_pos = new Vec2(input.mouse.clientX - rect.left, input.mouse.clientY - rect.top);
