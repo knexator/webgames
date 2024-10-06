@@ -11,10 +11,12 @@ import { initGL2, IVec, Vec2, Color, GenericDrawer, StatefulDrawer, CircleDrawer
 
 import anteater_url from "./images/anteater.png?url";
 import bocadillo_url from "./images/bocadillo.png?url";
+import dirt_url from "./images/dirt.png?url";
 
 const TEXTURES = {
   anteater: await imageFromUrl(anteater_url),
   bocadillo: await imageFromUrl(bocadillo_url),
+  dirt: await imageFromUrl(dirt_url),
 };
 
 const input = new Input();
@@ -218,6 +220,9 @@ function every_frame(cur_timestamp: number) {
 
   const cur_picker_radius = lerp(CONFIG.pick_start_size, CONFIG.pick_final_size, picker_progress);
 
+  const column_width = TEXTURES.anteater.width;
+  ctx.drawImage(TEXTURES.dirt, column_width, 0);
+
   ctx.fillStyle = '#ff000044';
   ctx.beginPath();
   ctx.arc(screen_mouse_pos.x, screen_mouse_pos.y, cur_picker_radius, 0, 2 * Math.PI);
@@ -237,7 +242,6 @@ function every_frame(cur_timestamp: number) {
 
   tongue.draw();
 
-  const column_width = TEXTURES.anteater.width;
   ctx.fillStyle = COLORS.column;
   ctx.fillRect(0, 0, column_width, canvas_size.y);
 

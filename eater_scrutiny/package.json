@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "lint": "eslint src",
-    "update": "tsc && vite build && butler push ./dist USERNAME/GAME_NAME:html",
+    "update": "tsc && vite build && butler push ./dist knexator/eater-scrutiny:html",
     "ghpages_kanvas2d": "cd .. && git clone https://github.com/knexator/kanvas2d.git && cd kanvas2d && npm i && npm run build:lib",
     "ghpages_build": "tsc && vite build --mode include_frame"
   },
