@@ -25,10 +25,10 @@ const gl = initGL2(canvas_gl)!;
 gl.clearColor(.5, .5, .5, 1);
 
 const CONFIG = {
-  ant_size: 5,
-  click_seconds: .4,
-  pick_start_size: 60,
-  pick_final_size: 20,
+  ant_size: 3,
+  click_seconds: .3,
+  pick_start_size: 45,
+  pick_final_size: 15,
   lupa_size: 120,
 };
 
@@ -39,6 +39,9 @@ const COLORS = {
 
 const gui = new GUI();
 gui.add(CONFIG, 'ant_size', 1, 10);
+gui.add(CONFIG, 'click_seconds', 0, 1);
+gui.add(CONFIG, 'pick_start_size', 30, 100);
+gui.add(CONFIG, 'pick_final_size', 5, 40);
 
 const RATIO = 16 / 9;
 // top-left: (-1, -RATIO)
