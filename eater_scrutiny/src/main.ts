@@ -12,11 +12,13 @@ import { initGL2, IVec, Vec2, Color, GenericDrawer, StatefulDrawer, CircleDrawer
 import anteater_url from "./images/anteater.png?url";
 import bocadillo_url from "./images/bocadillo.png?url";
 import dirt_url from "./images/dirt.png?url";
+import lupa_url from "./images/lupa.png?url";
 
 const TEXTURES = {
   anteater: await imageFromUrl(anteater_url),
   bocadillo: await imageFromUrl(bocadillo_url),
   dirt: await imageFromUrl(dirt_url),
+  lupa: await imageFromUrl(lupa_url),
 };
 
 const input = new Input();
@@ -257,10 +259,10 @@ function every_frame(cur_timestamp: number) {
   })
 
   const lupa_center = new Vec2(column_width / 2, canvas_size.y - column_width / 2);
-  ctx.fillStyle = '#ff000044';
-  ctx.beginPath();
-  ctx.arc(lupa_center.x, lupa_center.y, CONFIG.lupa_size, 0, 2 * Math.PI);
-  ctx.fill();
+  // ctx.fillStyle = '#ff000044';
+  // ctx.beginPath();
+  // ctx.arc(lupa_center.x, lupa_center.y, CONFIG.lupa_size, 0, 2 * Math.PI);
+  // ctx.fill();
 
   const scale = CONFIG.lupa_size / cur_picker_radius;
   ctx.fillStyle = 'black';
@@ -277,6 +279,8 @@ function every_frame(cur_timestamp: number) {
     }
   })
   ctx.fill();
+
+  ctx.drawImage(TEXTURES.lupa, 0, canvas_size.y - column_width);
 
   animation_id = requestAnimationFrame(every_frame);
 }
