@@ -76,21 +76,52 @@ class Ant {
 }
 
 class Tongue {
-  union: null | { target: Vec2, progress: number, state: 'in' | 'out' } = null;
+  union: null | { target: Vec2, progress: number, state: 'in' | 'wait' | 'out', ants_delta: Vec2[] } = null;
   constructor() { }
 
   draw() {
     if (this.union === null) return;
+    const max_tongue_height = canvas_ctx.height;
+    const cur_pos = this.union.state === 'wait'
+      ? this.union.target
+      : Vec2.lerp(this.union.target.addY(max_tongue_height), this.union.target,
+        this.union.state == 'in' ? this.union.progress : (1 - this.union.progress));
     ctx.fillStyle = COLORS.tongue;
-    ctx.fillRect(this.union.target.x, this.union.target.y, 20, 20);
+    ctx.beginPath();
+    ctx.arc(cur_pos.x, cur_pos.y, CONFIG.pick_final_size, 0, 2 * Math.PI);
+    ctx.rect(cur_pos.x - CONFIG.pick_final_size, cur_pos.y, CONFIG.pick_final_size * 2, max_tongue_height);
+    ctx.fill();
+
+    const fake_ants_pos = this.union.state === 'out' ? cur_pos : this.union.target;
+    ctx.fillStyle = 'black';
+    ctx.beginPath();
+    this.union.ants_delta.forEach(delta => {
+      ctx.rect(fake_ants_pos.x + delta.x, fake_ants_pos.y + delta.y, CONFIG.ant_size, CONFIG.ant_size);
+    });
+    ctx.fill();
+  }
+
+  static state_duration(state: 'in' | 'wait' | 'out'): number {
+    if (state === 'in') {
+      return .05;
+    } else if (state === 'wait') {
+      return .1;
+    } else if (state === 'out') {
+      return 1;
+    } else {
+      const _: never = state;
+      throw new Error("unreachable");
+    }
   }
 
   update(delta_time: number) {
     if (this.union === null) return;
-    this.union.progress += delta_time / (this.union.state === 'in' ? .05 : .1);
+    this.union.progress += delta_time / Tongue.state_duration(this.union.state);
     if (this.union.progress >= 1) {
       this.union.progress = 0;
       if (this.union.state === 'in') {
+        this.union.state = 'wait';
+      } else if (this.union.state === 'wait') {
         this.union.state = 'out';
       } else if (this.union.state === 'out') {
         this.union = null;
@@ -102,7 +133,11 @@ class Tongue {
   }
 
   activate(target: Vec2) {
-    this.union = { target, progress: 0, state: 'in' };
+    this.union = { target, progress: 0, state: 'in', ants_delta: [] };
+  }
+
+  add_ant(delta: Vec2) {
+    this.union!.ants_delta.push(delta);
   }
 }
 
@@ -147,8 +182,10 @@ function every_frame(cur_timestamp: number) {
     tongue.activate(screen_mouse_pos);
     const radius = CONFIG.pick_final_size;
     ants.forEach(ant => {
-      const dist_sq = ant.screenPos(canvas_size).sub(screen_mouse_pos).magSq();
+      const delta = ant.screenPos(canvas_size).sub(screen_mouse_pos);
+      const dist_sq = delta.magSq();
       if (dist_sq < radius * radius) {
+        tongue.add_ant(delta);
         ant.randomize();
       }
     });
