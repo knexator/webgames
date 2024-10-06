@@ -8,13 +8,11 @@ import { canvasFromAscii } from "./kommon/spritePS";
 import { initGL2, IVec, Vec2, Color, GenericDrawer, StatefulDrawer, CircleDrawer, m3, CustomSpriteDrawer, Transform, IRect, IColor, IVec2, FullscreenShader } from "kanvas2d"
 
 import anteater_url from "./images/anteater.png?url";
-import bocadillo_url from "./images/bocadillo.png?url";
 import dirt_url from "./images/dirt.png?url";
 import lupa_url from "./images/lupa.png?url";
 
 const TEXTURES = {
   anteater: await imageFromUrl(anteater_url),
-  bocadillo: await imageFromUrl(bocadillo_url),
   dirt: await imageFromUrl(dirt_url),
   lupa: await imageFromUrl(lupa_url),
 };
@@ -32,7 +30,6 @@ const CONFIG = {
   pick_start_size: 45,
   pick_final_size: 15,
   lupa_size: 120,
-  anteater_offset_y: 130,
   blink_enter_duration: 1.2,
   blink_exit_duration: 0.4,
 };
@@ -49,7 +46,7 @@ const COLORS = {
   score_bar_empty: '#4a4540',
   score_bar_text_full: '#4a4540',
   score_bar_text_empty: '#a99274',
-  curtains: '#63c64d',
+  curtains: '#8C9851',
 };
 
 const gui = new GUI();
@@ -336,8 +333,7 @@ function every_frame(cur_timestamp: number) {
   ctx.fillStyle = COLORS.column;
   ctx.fillRect(0, 0, column_width, canvas_size.y);
 
-  ctx.drawImage(TEXTURES.anteater, 0, CONFIG.anteater_offset_y);
-  ctx.drawImage(TEXTURES.bocadillo, 0, 0);
+  ctx.drawImage(TEXTURES.anteater, 0, 0);
 
   ctx.fillStyle = COLORS.dialogue;
   ctx.font = cur_level.font;
@@ -347,17 +343,17 @@ function every_frame(cur_timestamp: number) {
 
   ctx.font = '28px sans-serif';
   ctx.fillStyle = COLORS.score_bar_empty;
-  ctx.fillRect(0, CONFIG.anteater_offset_y + TEXTURES.anteater.height, column_width, 40);
+  ctx.fillRect(0, TEXTURES.anteater.height, column_width, 40);
   ctx.fillStyle = COLORS.score_bar_text_empty;
-  ctx.fillText(`Score: ${score}`, 16, CONFIG.anteater_offset_y + TEXTURES.anteater.height + 30);
+  ctx.fillText(`Score: ${score}`, 16, TEXTURES.anteater.height + 30);
   ctx.fillStyle = COLORS.score_bar_full;
   const full_bar_region = new Path2D();
-  full_bar_region.rect(0, CONFIG.anteater_offset_y + TEXTURES.anteater.height, column_width * level_remaining_time / cur_level.duration, 40);
+  full_bar_region.rect(0, TEXTURES.anteater.height, column_width * level_remaining_time / cur_level.duration, 40);
   ctx.fill(full_bar_region);
   ctx.save();
   ctx.fillStyle = COLORS.score_bar_text_full;
   ctx.clip(full_bar_region);
-  ctx.fillText(`Score: ${score}`, 16, CONFIG.anteater_offset_y + TEXTURES.anteater.height + 30);
+  ctx.fillText(`Score: ${score}`, 16, TEXTURES.anteater.height + 30);
   ctx.restore();
 
   const lupa_center = new Vec2(column_width / 2, canvas_size.y - column_width / 2);
