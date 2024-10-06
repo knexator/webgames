@@ -66,19 +66,20 @@ const RATIO = 16 / 9;
 class Ant {
   public pos: Vec2;
   public dir: Vec2;
-  public vel: number;
-  public rot_vel: number;
 
-  constructor(public type: number) {
-    if (!inRange(type, 0, 4)) throw new Error("unreachable");
+  constructor(
+    public vel: number,
+    public rot_vel: number,
+    public edible: boolean,
+  ) {
     this.pos = randomPos();
     this.dir = randomDir();
-    this.vel = type % 2 == 0 ? .3 : .5;
-    this.rot_vel = type < 2 ? -.1 : .1;
+    this.vel = vel;
+    this.rot_vel = rot_vel;
   }
 
   getScore(): number {
-    return this.type == 0 ? 2 : -1;
+    return this.edible ? 2 : -1;
   }
 
   randomize(): void {
@@ -96,6 +97,18 @@ class Ant {
   update(delta_time: number) {
     this.pos = wrapPos(this.pos.add(this.dir.scale(this.vel * delta_time)));
     this.dir = this.dir.rotateTurns(this.rot_vel * delta_time);
+  }
+}
+
+class Level {
+  constructor(
+    public flavor_text: string,
+    public ant_count: number,
+    public ant_generator: (k: number) => Ant,
+  ) { }
+
+  getAnts(): Ant[] {
+    return fromCount(this.ant_count, k => this.ant_generator(k));
   }
 }
 
@@ -175,11 +188,17 @@ class Tongue {
   }
 }
 
-const ants = fromCount(500, k => new Ant(k % 4));
 const tongue = new Tongue();
 let score = 0;
+const cur_level = 0;
 let picker_progress = 0;
 let waiting_for_mouse_release = false;
+
+const levels = [
+  new Level('the only tasty ants:\nslow & left-moving', 500, k => new Ant(k % 2 == 0 ? .3 : .5, k % 4 < 2 ? -.1 : .1, k % 4 == 0)),
+]
+
+const ants: Ant[] = levels[cur_level].getAnts();
 
 let last_timestamp = 0;
 // main loop; game logic lives here
