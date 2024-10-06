@@ -367,6 +367,7 @@ function every_frame(cur_timestamp: number) {
   ctx.beginPath();
   ants.forEach(ant => {
     const delta = ant.screenPos(canvas_size).sub(screen_mouse_pos);
+    if (game_state.state !== 'playing') return; // TODO: better
     if (delta.magSq() < cur_picker_radius * cur_picker_radius) {
       ctx.rect(
         delta.x * scale + lupa_center.x,
