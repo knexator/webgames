@@ -44,7 +44,11 @@ const COLORS = {
   dialogue: '#000000',
   score_float: '#FFFFFF',
   highlight_fill: '#00ffff44',
-  highlight_stroke: '#C293A688',
+  highlight_stroke: '#C293A6', // #ff000088
+  score_bar_full: '#a99274',
+  score_bar_empty: '#4a4540',
+  score_bar_text_full: '#4a4540',
+  score_bar_text_empty: '#a99274',
 };
 
 const gui = new GUI();
@@ -57,6 +61,10 @@ gui.addColor(COLORS, 'tongue');
 gui.addColor(COLORS, 'ants');
 gui.addColor(COLORS, 'highlight_fill');
 gui.addColor(COLORS, 'highlight_stroke');
+gui.addColor(COLORS, 'score_bar_full');
+gui.addColor(COLORS, 'score_bar_empty');
+gui.addColor(COLORS, 'score_bar_text_full');
+gui.addColor(COLORS, 'score_bar_text_empty');
 gui.hide();
 
 const RATIO = 16 / 9;
@@ -104,14 +112,17 @@ class Ant {
 class Level {
   public font: string;
   public line_spacing: number;
+  public line_offset: number;
   constructor(
+    public duration: number,
     public flavor_text: string,
-    [font_size, line_spacing]: [string, number],
+    [font_size, line_spacing, line_offset]: [string, number, number],
     public ant_count: number,
     public ant_generator: (k: number) => Ant,
   ) {
     this.font = font_size + ' sans-serif';
     this.line_spacing = line_spacing;
+    this.line_offset = line_offset;
   }
 
   getAnts(): Ant[] {
@@ -196,18 +207,26 @@ class Tongue {
   }
 }
 
+let ants: Ant[];
 const tongue = new Tongue();
 let score = 0;
-const cur_level_index = 0;
+let cur_level_index = 0;
+let level_remaining_time: number;
 let picker_progress = 0;
 let waiting_for_mouse_release = false;
 
 const levels = [
-  new Level("I must be careful with what\nI eat! No fast food for me;\nonly slow termites.", ['20px', 30], 500, k => new Ant(k % 2 == 0 ? .2 : .5, 0, k % 2 == 0)),
-  new Level('the only tasty ants:\nslow & left-moving', ['28px', 40], 500, k => new Ant(k % 2 == 0 ? .3 : .5, k % 4 < 2 ? -.1 : .1, k % 4 == 0)),
-]
+  new Level(30, "I must be careful with what\nI eat! No fast food for me;\nonly slow termites.", ['20px', 30, 45], 500, k => new Ant(k % 2 == 0 ? .2 : .5, 0, k % 2 == 0)),
+  new Level(30, "The only tasty ants:\nslow & left-moving", ['28px', 40, 50], 500, k => new Ant(k % 2 == 0 ? .3 : .5, k % 4 < 2 ? -.1 : .1, k % 4 == 0)),
+  new Level(Infinity, 'Thanks for playing!', ['28px', 40, 60], 500, k => new Ant(k % 2 == 0 ? .3 : .5, k % 4 < 2 ? -.1 : .1, k % 4 == 0)),
+];
 
-const ants: Ant[] = levels[cur_level_index].getAnts();
+function loadLevel() {
+  ants = levels[cur_level_index].getAnts();
+  level_remaining_time = levels[cur_level_index].duration;
+}
+
+loadLevel();
 
 let last_timestamp = 0;
 // main loop; game logic lives here
@@ -234,7 +253,9 @@ function every_frame(cur_timestamp: number) {
     waiting_for_mouse_release = false;
   }
 
-  if (!waiting_for_mouse_release && input.mouse.isDown(MouseButton.Left)) {
+  const won = cur_level_index + 1 == levels.length;
+
+  if (!won && !waiting_for_mouse_release && input.mouse.isDown(MouseButton.Left)) {
     picker_progress = towards(picker_progress, 1, delta_time / CONFIG.click_seconds);
   } else {
     picker_progress = towards(picker_progress, 0, 2 * delta_time / CONFIG.click_seconds);
@@ -260,6 +281,13 @@ function every_frame(cur_timestamp: number) {
     ant.update(delta_time);
   });
 
+  const cur_level = levels[cur_level_index];
+  level_remaining_time -= delta_time;
+  if (level_remaining_time <= 0) {
+    cur_level_index += 1;
+    loadLevel();
+  }
+
   const cur_picker_radius = lerp(CONFIG.pick_start_size, CONFIG.pick_final_size, picker_progress);
 
   const column_width = TEXTURES.anteater.width;
@@ -269,10 +297,12 @@ function every_frame(cur_timestamp: number) {
   ctx.beginPath();
   ctx.arc(screen_mouse_pos.x, screen_mouse_pos.y, cur_picker_radius, 0, 2 * Math.PI);
   ctx.fill();
-  ctx.strokeStyle = '#ff000088';
-  ctx.beginPath();
-  ctx.arc(screen_mouse_pos.x, screen_mouse_pos.y, CONFIG.pick_final_size, 0, 2 * Math.PI);
-  ctx.stroke();
+  if (!won) {
+    ctx.strokeStyle = COLORS.highlight_stroke;
+    ctx.beginPath();
+    ctx.arc(screen_mouse_pos.x, screen_mouse_pos.y, CONFIG.pick_final_size, 0, 2 * Math.PI);
+    ctx.stroke();
+  }
 
   ctx.fillStyle = COLORS.ants;
   ctx.beginPath();
@@ -291,13 +321,25 @@ function every_frame(cur_timestamp: number) {
   ctx.drawImage(TEXTURES.bocadillo, 0, 0);
 
   ctx.fillStyle = COLORS.dialogue;
-  const cur_level = levels[cur_level_index];
   ctx.font = cur_level.font;
   cur_level.flavor_text.split('\n').forEach((line, k) => {
-    ctx.fillText(line, 28, k * cur_level.line_spacing + 50);
+    ctx.fillText(line, 28, k * cur_level.line_spacing + cur_level.line_offset);
   })
 
-  ctx.fillText(`Score: ${score}`, 16, CONFIG.anteater_offset_y + TEXTURES.anteater.height + 40);
+  ctx.font = '28px sans-serif';
+  ctx.fillStyle = COLORS.score_bar_empty;
+  ctx.fillRect(0, CONFIG.anteater_offset_y + TEXTURES.anteater.height, column_width, 40);
+  ctx.fillStyle = COLORS.score_bar_text_empty;
+  ctx.fillText(`Score: ${score}`, 16, CONFIG.anteater_offset_y + TEXTURES.anteater.height + 30);
+  ctx.fillStyle = COLORS.score_bar_full;
+  const full_bar_region = new Path2D();
+  full_bar_region.rect(0, CONFIG.anteater_offset_y + TEXTURES.anteater.height, column_width * level_remaining_time / cur_level.duration, 40);
+  ctx.fill(full_bar_region);
+  ctx.save();
+  ctx.fillStyle = COLORS.score_bar_text_full;
+  ctx.clip(full_bar_region);
+  ctx.fillText(`Score: ${score}`, 16, CONFIG.anteater_offset_y + TEXTURES.anteater.height + 30);
+  ctx.restore();
 
   const lupa_center = new Vec2(column_width / 2, canvas_size.y - column_width / 2);
 
