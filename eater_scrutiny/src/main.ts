@@ -218,7 +218,7 @@ const levels = [
   new Level(30, "I must be careful with what\nI eat! No fast food for me;\nonly slow termites.", ['20px', 30, 45], 500, k => new Ant(k % 2 == 0 ? .2 : .5, 0, k % 2 == 0)),
   new Level(40, "Bugs going in circles? Idk,\nsounds like a broken leg.\nNot tasty! I'll avoid them.", ['20px', 30, 45], 500, k => new Ant(.3, remap(k % 3, 0, 2, -1, 1), k % 3 == 1)),
   new Level(40, "I've heard super-fast ants\nare low on fat! They're\ntricky to catch, tho...", ['20px', 30, 45], 500, k => new Ant(k % 10 == 0 ? .6 : .2, 0, k % 10 == 0, 5)),
-  new Level(40, "I'm trying a new diet: only\nslow & left-moving ants.", ['20px', 30, 45], 500, k => new Ant(k % 2 == 0 ? .3 : .5, k % 4 < 2 ? -.1 : .1, k % 4 == 0, 3)),
+  new Level(40, "Ok, last new diet: only\nslow & left-moving ants", ['22px', 30, 45], 500, k => new Ant(k % 2 == 0 ? .3 : .5, k % 4 < 2 ? -.1 : .1, k % 4 == 0, 3)),
   new Level(Infinity, 'Thanks for playing!', ['28px', 40, 60], 500, k => new Ant(k % 2 == 0 ? .3 : .5, k % 4 < 2 ? -.1 : .1, k % 4 == 0)),
 ];
 
