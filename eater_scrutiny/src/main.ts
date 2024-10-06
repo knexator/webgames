@@ -3,7 +3,7 @@ import GUI from "lil-gui";
 import { Grid2D } from "./kommon/grid2D";
 import { Input, KeyCode, Mouse, MouseButton } from "./kommon/input";
 import { DefaultMap, fromCount, fromRange, objectMap, repeat, zip2 } from "./kommon/kommon";
-import { mod, towards as approach, lerp, inRange, clamp, argmax, argmin, max, remap, clamp01, randomInt, randomFloat, randomChoice, doSegmentsIntersect, closestPointOnSegment, roundTo, wrap } from "./kommon/math";
+import { mod, towards as approach, lerp, inRange, clamp, argmax, argmin, max, remap, clamp01, randomInt, randomFloat, randomChoice, doSegmentsIntersect, closestPointOnSegment, roundTo, wrap, towards } from "./kommon/math";
 import { canvasFromAscii } from "./kommon/spritePS";
 import { initGL2, IVec, Vec2, Color, GenericDrawer, StatefulDrawer, CircleDrawer, m3, CustomSpriteDrawer, Transform, IRect, IColor, IVec2, FullscreenShader } from "kanvas2d"
 
@@ -35,7 +35,8 @@ const CONFIG = {
 const COLORS = {
   background: 'gray',
   column: '#646464',
-}
+  tongue: '#C293A6',
+};
 
 const gui = new GUI();
 gui.add(CONFIG, 'ant_size', 1, 10);
@@ -75,7 +76,7 @@ class Ant {
 }
 
 const ants = fromCount(500, k => new Ant(randomPos(), randomDir(), k % 2 == 0 ? .3 : .5, k % 4 < 2 ? -.1 : .1));
-let time_since_click: number | null = null;
+let picker_progress = 0;
 
 let last_timestamp = 0;
 // main loop; game logic lives here
@@ -98,35 +99,27 @@ function every_frame(cur_timestamp: number) {
   const canvas_size = new Vec2(canvas_ctx.width, canvas_ctx.height);
   const game_mouse_pos = screen2game(screen_mouse_pos, canvas_size);
 
-  let released_at: number | null = null;
-  if (input.mouse.wasPressed(MouseButton.Left)) {
-    time_since_click = 0;
-  } else if (input.mouse.wasReleased(MouseButton.Left)) {
-    released_at = time_since_click;
-    time_since_click = null;
-  } else if (time_since_click !== null) {
-    time_since_click += delta_time;
-    if (time_since_click >= CONFIG.click_seconds) {
-      released_at = CONFIG.click_seconds;
-      time_since_click = null;
-    }
+  if (input.mouse.isDown(MouseButton.Left)) {
+    picker_progress = towards(picker_progress, 1, delta_time / CONFIG.click_seconds);
+  } else {
+    picker_progress = towards(picker_progress, 0, 2 * delta_time / CONFIG.click_seconds);
   }
 
-  if (released_at !== null) {
-    const radius = remap(released_at, 0, CONFIG.click_seconds, CONFIG.pick_start_size, CONFIG.pick_final_size);
+  if (picker_progress >= 1) {
+    const radius = CONFIG.pick_final_size;
     ants.forEach(ant => {
       const dist_sq = ant.screenPos(canvas_size).sub(screen_mouse_pos).magSq();
       if (dist_sq < radius * radius) {
         ant.randomize();
       }
-    })
+    });
   }
 
   ants.forEach(ant => {
     ant.update(delta_time);
   });
 
-  const cur_picker_radius = remap(time_since_click ?? 0, 0, CONFIG.click_seconds, CONFIG.pick_start_size, CONFIG.pick_final_size);
+  const cur_picker_radius = lerp(CONFIG.pick_start_size, CONFIG.pick_final_size, picker_progress);
 
   ctx.fillStyle = '#ff000044';
   ctx.beginPath();
@@ -157,7 +150,6 @@ function every_frame(cur_timestamp: number) {
   'the only tasty ants:\nslow & left-moving'.split('\n').forEach((line, k) => {
     ctx.fillText(line, 28, k * 40 + 50);
   })
-  
 
   const lupa_center = new Vec2(column_width / 2, canvas_size.y - column_width / 2);
   ctx.fillStyle = '#ff000044';
