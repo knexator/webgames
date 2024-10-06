@@ -75,8 +75,41 @@ class Ant {
   }
 }
 
+class Tongue {
+  union: null | { target: Vec2, progress: number, state: 'in' | 'out' } = null;
+  constructor() { }
+
+  draw() {
+    if (this.union === null) return;
+    ctx.fillStyle = COLORS.tongue;
+    ctx.fillRect(this.union.target.x, this.union.target.y, 20, 20);
+  }
+
+  update(delta_time: number) {
+    if (this.union === null) return;
+    this.union.progress += delta_time / (this.union.state === 'in' ? .05 : .1);
+    if (this.union.progress >= 1) {
+      this.union.progress = 0;
+      if (this.union.state === 'in') {
+        this.union.state = 'out';
+      } else if (this.union.state === 'out') {
+        this.union = null;
+      } else {
+        const _: never = this.union.state;
+        throw new Error("unreachable");
+      }
+    }
+  }
+
+  activate(target: Vec2) {
+    this.union = { target, progress: 0, state: 'in' };
+  }
+}
+
 const ants = fromCount(500, k => new Ant(randomPos(), randomDir(), k % 2 == 0 ? .3 : .5, k % 4 < 2 ? -.1 : .1));
 let picker_progress = 0;
+let waiting_for_mouse_release = false;
+const tongue = new Tongue();
 
 let last_timestamp = 0;
 // main loop; game logic lives here
@@ -99,13 +132,19 @@ function every_frame(cur_timestamp: number) {
   const canvas_size = new Vec2(canvas_ctx.width, canvas_ctx.height);
   const game_mouse_pos = screen2game(screen_mouse_pos, canvas_size);
 
-  if (input.mouse.isDown(MouseButton.Left)) {
+  if (!input.mouse.isDown(MouseButton.Left)) {
+    waiting_for_mouse_release = false;
+  }
+
+  if (!waiting_for_mouse_release && input.mouse.isDown(MouseButton.Left)) {
     picker_progress = towards(picker_progress, 1, delta_time / CONFIG.click_seconds);
   } else {
     picker_progress = towards(picker_progress, 0, 2 * delta_time / CONFIG.click_seconds);
   }
 
   if (picker_progress >= 1) {
+    waiting_for_mouse_release = true;
+    tongue.activate(screen_mouse_pos);
     const radius = CONFIG.pick_final_size;
     ants.forEach(ant => {
       const dist_sq = ant.screenPos(canvas_size).sub(screen_mouse_pos).magSq();
@@ -114,6 +153,7 @@ function every_frame(cur_timestamp: number) {
       }
     });
   }
+  tongue.update(delta_time);
 
   ants.forEach(ant => {
     ant.update(delta_time);
@@ -137,6 +177,8 @@ function every_frame(cur_timestamp: number) {
     ctx.rect(pos.x, pos.y, CONFIG.ant_size, CONFIG.ant_size);
   });
   ctx.fill();
+
+  tongue.draw();
 
   const column_width = TEXTURES.anteater.width;
   ctx.fillStyle = COLORS.column;
