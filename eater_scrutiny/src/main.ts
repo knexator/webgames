@@ -190,7 +190,7 @@ class Tongue {
 
 const tongue = new Tongue();
 let score = 0;
-const cur_level = 0;
+const cur_level_index = 0;
 let picker_progress = 0;
 let waiting_for_mouse_release = false;
 
@@ -198,7 +198,7 @@ const levels = [
   new Level('the only tasty ants:\nslow & left-moving', 500, k => new Ant(k % 2 == 0 ? .3 : .5, k % 4 < 2 ? -.1 : .1, k % 4 == 0)),
 ]
 
-const ants: Ant[] = levels[cur_level].getAnts();
+const ants: Ant[] = levels[cur_level_index].getAnts();
 
 let last_timestamp = 0;
 // main loop; game logic lives here
@@ -283,7 +283,7 @@ function every_frame(cur_timestamp: number) {
 
   ctx.fillStyle = COLORS.dialogue;
   ctx.font = '28px sans-serif';
-  'the only tasty ants:\nslow & left-moving'.split('\n').forEach((line, k) => {
+  levels[cur_level_index].flavor_text.split('\n').forEach((line, k) => {
     ctx.fillText(line, 28, k * 40 + 50);
   })
 
