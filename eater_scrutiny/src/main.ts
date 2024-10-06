@@ -34,6 +34,7 @@ const CONFIG = {
   pick_start_size: 45,
   pick_final_size: 15,
   lupa_size: 120,
+  anteater_offset_y: 130,
 };
 
 const COLORS = {
@@ -174,9 +175,10 @@ class Tongue {
 }
 
 const ants = fromCount(500, k => new Ant(k % 4));
+const tongue = new Tongue();
+let score = 0;
 let picker_progress = 0;
 let waiting_for_mouse_release = false;
-const tongue = new Tongue();
 
 let last_timestamp = 0;
 // main loop; game logic lives here
@@ -215,6 +217,7 @@ function every_frame(cur_timestamp: number) {
       const delta = ant.screenPos(canvas_size).sub(screen_mouse_pos);
       const dist_sq = delta.magSq();
       if (dist_sq < radius * radius) {
+        score += ant.getScore();
         tongue.add_ant(delta, ant.getScore());
         ant.randomize();
       }
@@ -253,7 +256,7 @@ function every_frame(cur_timestamp: number) {
   ctx.fillStyle = COLORS.column;
   ctx.fillRect(0, 0, column_width, canvas_size.y);
 
-  ctx.drawImage(TEXTURES.anteater, 0, canvas_size.y - column_width - TEXTURES.anteater.height);
+  ctx.drawImage(TEXTURES.anteater, 0, CONFIG.anteater_offset_y);
   ctx.drawImage(TEXTURES.bocadillo, 0, 0);
 
   ctx.fillStyle = COLORS.dialogue;
@@ -261,6 +264,8 @@ function every_frame(cur_timestamp: number) {
   'the only tasty ants:\nslow & left-moving'.split('\n').forEach((line, k) => {
     ctx.fillText(line, 28, k * 40 + 50);
   })
+
+  ctx.fillText(`Score: ${score}`, 16, CONFIG.anteater_offset_y + TEXTURES.anteater.height + 40);
 
   const lupa_center = new Vec2(column_width / 2, canvas_size.y - column_width / 2);
 
