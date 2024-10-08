@@ -298,9 +298,6 @@ const gui = new GUI();
   gui.add(CONFIG, "MUSIC_DURING_TICKTOCK", 0, 1);
   gui.add(CONFIG, "LUCK", 1, 15, 1);
   gui.add(CONFIG, "PLAYER_CAN_EXPLODE");
-  gui.add(CONFIG, "SLOWDOWN", 1, 10);
-  gui.add(CONFIG, "TOTAL_SLOWDOWN");
-  gui.add(CONFIG, "ALWAYS_SLOWDOWN");
   gui.add(CONFIG, "DRAW_WRAP", 0, MARGIN);
   gui.add(CONFIG, "WRAP_GRAY");
   gui.add(CONFIG, "WRAP_ITEMS");
@@ -552,7 +549,7 @@ let last_timestamp = 0;
 const bouncyTexts = new Map<string, number>();
 let hide_end_text = false;
 
-draw(false, true);
+draw(true);
 
 const sounds_async = await Promise.all([
   song1Promise,
@@ -741,8 +738,6 @@ function every_frame(cur_timestamp: number) {
   const rect = canvas_ctx.getBoundingClientRect();
   const raw_mouse_pos = new Vec2(input.mouse.clientX - rect.left, input.mouse.clientY - rect.top);
   const canvas_mouse_pos = raw_mouse_pos.sub(Vec2.both(MARGIN * TILE_SIZE).addY(TOP_OFFSET * TILE_SIZE));
-
-  let bullet_time = false;
 
   settings_overlapped = canvas_mouse_pos.sub(
     new Vec2(-TILE_SIZE * 1.1, -TILE_SIZE * 2.5)).mag() < TILE_SIZE * .7;
@@ -973,7 +968,7 @@ function every_frame(cur_timestamp: number) {
 
   chores(delta_time);
 
-  draw(bullet_time);
+  draw(false);
 
   animation_id = requestAnimationFrame(every_frame);
 }
@@ -1026,34 +1021,6 @@ function generateShareMessage() {
   }
 
   return randomChoice(intros) + randomChoice(messages) + ' Play at https://pinchazumos.itch.io/bombsnack';
-}
-
-function songName(track: number) {
-  const names = [
-    'name',
-    'name',
-    'name',
-    'name',
-    'name',
-    'name',
-    'name',
-    'name',
-  ];
-  return names[track];
-}
-
-function songAuthor(track: number) {
-  const names = [
-    'name',
-    'name',
-    'name',
-    'name',
-    'name',
-    'name',
-    'name',
-    'name',
-  ];
-  return names[track];
 }
 
 function doMenu(canvas_mouse_pos: Vec2, raw_mouse_pos: Vec2, is_final_screen: boolean): boolean {
@@ -1171,7 +1138,7 @@ function doMenu(canvas_mouse_pos: Vec2, raw_mouse_pos: Vec2, is_final_screen: bo
   return user_clicked_something;
 }
 
-function draw(bullet_time: boolean, is_loading: boolean = false) {
+function draw(is_loading: boolean) {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.translate(cur_screen_shake.x, cur_screen_shake.y);
   // cur_screen_shake.actualMag = lerp(cur_screen_shake.actualMag, cur_screen_shake.targetMag, .1);
