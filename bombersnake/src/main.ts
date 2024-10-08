@@ -21,9 +21,6 @@ const RECORDING_GIF = false;
 const input = new Input();
 const canvas_ctx = document.querySelector<HTMLCanvasElement>("#ctx_canvas")!;
 const ctx = canvas_ctx.getContext("2d")!;
-// const canvas_gl = document.querySelector<HTMLCanvasElement>("#gl_canvas")!;
-// const gl = initGL2(canvas_gl)!;
-// gl.clearColor(.5, .5, .5, 1);
 
 const vibrate = navigator.vibrate ? () => {
   if (haptic) {
@@ -120,19 +117,9 @@ function wavUrl(name: string): string {
   return new URL(`./sounds/${name}.wav`, import.meta.url).href;
 }
 
-function oggUrl(name: string): string {
-  console.log(name, new URL(`./sounds/${name}.ogg`, import.meta.url).href);
-  return new URL(`./sounds/${name}.ogg`, import.meta.url).href;
-}
-
 function mp3Url(name: string): string {
   console.log(name, 'mp3', new URL(`./sounds/${name}.mp3`, import.meta.url).href);
   return new URL(`./sounds/${name}.mp3`, import.meta.url).href;
-}
-
-function aacUrl(name: string): string {
-  console.log(name, 'aac', new URL(`./sounds/${name}.aac`, import.meta.url).href);
-  return new URL(`./sounds/${name}.aac`, import.meta.url).href;
 }
 
 const is_phone = (function () {
@@ -149,9 +136,7 @@ const TOP_OFFSET = 2;
 const container = document.querySelector("#canvas_container") as HTMLElement;
 
 const TILE_SIZE = is_phone ? Math.round(container.clientWidth / (BOARD_SIZE.x + MARGIN * 2)) : 32;
-// const TILE_SIZE = is_phone ? 15 : 32;
 MARGIN = Math.round(TILE_SIZE * MARGIN) / TILE_SIZE;
-console.log(TILE_SIZE, MARGIN);
 
 container.style.width = `${TILE_SIZE * (BOARD_SIZE.x + MARGIN * 2)}px`
 container.style.height = `${TILE_SIZE * (BOARD_SIZE.y + MARGIN * 2 + TOP_OFFSET)}px`
@@ -207,7 +192,7 @@ if (is_phone) {
 
   dpad.hidden = false;
   dpad.addEventListener("touchstart", ev => {
-    if (!CONFIG.SWIPE_CONTROLS && game_state === 'playing') {
+    if (game_state === 'playing') {
       const touch = ev.changedTouches.item(ev.changedTouches.length - 1)!;
       const place = touchPos(touch);
       const dir = roundToCardinalDirection(place);
@@ -239,7 +224,7 @@ if (is_phone) {
     return absorbEvent(ev);
   });
   dpad.addEventListener("touchmove", ev => {
-    if (!CONFIG.SWIPE_CONTROLS && game_state === 'playing') {
+    if (game_state === 'playing') {
       const touch = ev.changedTouches.item(ev.changedTouches.length - 1)!;
       const place = touchPos(touch);
       const dir = roundToCardinalDirection(place);
@@ -266,45 +251,15 @@ if (is_phone) {
   pause_button.remove();
 }
 
-// let CONFIG = {
-//   PAUSED: false,
-//   TURN_DURATION: .15,
-//   CHEAT_INMORTAL: false,
-//   FUSE_DURATION: 0,
-//   PLAYER_CAN_EXPLODE: false,
-//   N_BOMBS: 3,
-//   N_MULTIPLIERS: 1,
-//   LUCK: 5,
-//   SLOWDOWN: 3,
-//   TOTAL_SLOWDOWN: false,
-//   ALWAYS_SLOWDOWN: false,
-//   DRAW_WRAP: 1,
-//   DRAW_PATTERN: false,
-//   DRAW_SNAKE_BORDER: true,
-//   BORDER_SIZE: .2,
-//   GRIDLINE: true,
-//   GRIDLINE_OVER: false,
-//   GRIDLINE_WIDTH: .05,
-//   DRAW_ROUNDED: true,
-//   ROUNDED_SIZE: .2,
-//   CHECKERED_SNAKE: true,
-//   CHECKERED_BACKGROUND: "no" as "no" | "2" | "3",
-// }
-
 let CONFIG = {
   HEAD_BOUNCE: 0,
   EYE_BOUNCE: 0,
-  SECONDS_OF_DISABLED_INPUT: 0,
   SHARE_BUTTON_SCALE: 1.5,
-  SWIPE_CONTROLS: false,
-  SWIPE_DIST: 1,
-  SWIPE_MARGIN: 1,
   PAUSED: false,
   TURN_DURATION: .16,
   ANIM_PERC: 0.2,
   BORDER_ARROWS: false,
   CHEAT_INMORTAL: false,
-  FUSE_DURATION: 0,
   N_BOMBS: 3,
   N_MULTIPLIERS: 1,
   CLOCK_VALUE: 4,
@@ -313,14 +268,10 @@ let CONFIG = {
   TICKTOCK_SPEED: 400,
   MUSIC_DURING_TICKTOCK: .25,
   LUCK: 5,
-  SLOWDOWN: 3,
-  TOTAL_SLOWDOWN: false,
-  ALWAYS_SLOWDOWN: false,
   DRAW_WRAP: 1.8,
   WRAP_GRAY: true,
   WRAP_ITEMS: true,
   ROUNDED_SIZE: .5,
-  CHECKERED_BACKGROUND: "3_v2" as "no" | "2" | "3" | "3_v2",
   SHADOW: true,
   SHADOW_DIST: .2,
   SHADOW_TEXT: 3,
@@ -333,9 +284,6 @@ let CONFIG = {
 
 const gui = new GUI();
 {
-  gui.add(CONFIG, "SWIPE_CONTROLS");
-  gui.add(CONFIG, "SWIPE_DIST", 0, 2);
-  gui.add(CONFIG, "SWIPE_MARGIN", 1, 3);
   gui.add(CONFIG, "PAUSED");
   gui.add(CONFIG, "TURN_DURATION", .05, 1);
   gui.add(CONFIG, "ANIM_PERC", 0, 1);
@@ -357,7 +305,6 @@ const gui = new GUI();
   gui.add(CONFIG, "WRAP_GRAY");
   gui.add(CONFIG, "WRAP_ITEMS");
   gui.add(CONFIG, "ROUNDED_SIZE", 0, 1);
-  gui.add(CONFIG, "CHECKERED_BACKGROUND", ["no", "2", "3", "3_v2"]);
   gui.add(CONFIG, "SHADOW");
   gui.add(CONFIG, "SHADOW_DIST", 0, .5);
   gui.add(CONFIG, "SCARF", ["no", "half", "full"]);
@@ -381,22 +328,6 @@ function loadSoundAsync(url: string, volume: number, loop: boolean = false) {
 }
 
 const SPEEDS = [0.2, 0.16, 0.12];
-
-// https://lospec.com/palette-list/sweetie-16
-// const COLORS = {
-//   BORDER: "#8ccbf2",
-//   BACKGROUND: "#1a1c2c",
-//   BACKGROUND_2: "#000000",
-//   BACKGROUND_3: "#ff00ff",
-//   BOMB: "#a7f070",
-//   TEXT: "#f4f4f4",
-//   SNAKE_WALL: '#3b5dc9',
-//   SNAKE_HEAD: '#41a6f6',
-//   EXPLOSION: "#ffcd75",
-//   MULTIPLIER: "#f4f4f4",
-//   GRIDLINE: "#2f324b",
-//   SNAKE: [] as string[],
-// };
 
 const GRAYSCALE = {
   WEB_BG: "#83c253;",
@@ -516,8 +447,6 @@ let menu_focus: "speed" | "music" | "resume" | "haptic";
 let share_button_state: { folded: boolean, hovered: null | 'vanilla' | 'twitter' | 'bsky' };
 let last_lost_timestamp = 0;
 let settings_overlapped = false;
-// let music = SOUNDS.song1;
-// music.play();
 
 function restartGame() {
   stopTickTockSound();
@@ -558,14 +487,9 @@ function restartGame() {
 }
 
 class Bomb {
-  public ticking: boolean;
-  public fuse_left: number;
   constructor(
     public pos: Vec2,
-  ) {
-    this.ticking = false;
-    this.fuse_left = CONFIG.FUSE_DURATION;
-  }
+  ) { }
 }
 
 class Multiplier {
@@ -632,12 +556,6 @@ draw(false, true);
 
 const sounds_async = await Promise.all([
   song1Promise,
-  // loadSoundAsync(oggUrl("Song2"), 0.35, true),
-  // loadSoundAsync(oggUrl("Song3"), 0.35, true),
-  // loadSoundAsync(oggUrl("Song4"), 0.35, true),
-  // loadSoundAsync(oggUrl("Song5"), 0.40, true),
-  // loadSoundAsync(oggUrl("Song6"), 0.40, true),
-  // loadSoundAsync(oggUrl("Song7"), 0.35, true),
   loadSoundAsync(wavUrl("hiss1"), 0.25),
   loadSoundAsync(wavUrl("apple"), 0.5),
   loadSoundAsync(wavUrl("move1"), 0.25),
@@ -679,13 +597,6 @@ async_songs.forEach((x, k) => {
 });
 
 const SOUNDS = {
-  // song1: sounds_async[0],
-  // song2: sounds_async[1],
-  // song3: sounds_async[2],
-  // song4: sounds_async[3],
-  // song5: sounds_async[4],
-  // song6: sounds_async[5],
-  // song7: sounds_async[6],
   hiss1: sounds_async[1],
   bomb: sounds_async[2],
   move1: sounds_async[3],
@@ -699,12 +610,6 @@ const SOUNDS = {
   menu2: sounds_async[11],
   waffel: sounds_async[12],
 };
-// const SONGS = [null, SOUNDS.song1, SOUNDS.song2, SOUNDS.song3, SOUNDS.song4, SOUNDS.song5, SOUNDS.song6, SOUNDS.song7];
-// SONGS.forEach((x, k) => {
-//   x.play();
-//   x.mute(k != 0);
-// })
-// SONGS[0].play();
 
 function updateSong() {
   // SONGS.forEach((x, k) => x.mute(k !== music_track));
@@ -725,7 +630,6 @@ function findSpotWithoutWall(): Vec2 {
   let pos: Vec2;
   let valid: boolean;
   do {
-    // pos = new Vec2(Math.random(), Math.random()).mul(BOARD_SIZE)
     pos = new Vec2(
       Math.floor(Math.random() * BOARD_SIZE.x),
       Math.floor(Math.random() * BOARD_SIZE.y)
@@ -796,23 +700,6 @@ function stopTickTockSound(): void {
   }
 }
 
-document.querySelector<HTMLButtonElement>("#menu_button")?.addEventListener("click", _ => {
-  game_state = "pause_menu";
-  touch_input_base_point = null;
-});
-
-document.querySelector<HTMLButtonElement>("#restart_button")?.addEventListener("click", _ => {
-  restartGame();
-  touch_input_base_point = null;
-});
-
-document.querySelector<HTMLButtonElement>("#sliders_button")?.addEventListener("click", _ => {
-  gui.show(gui._hidden);
-  touch_input_base_point = null;
-});
-
-// objectMap(SOUNDS, x => x.mute(true));
-
 last_timestamp = 0;
 // main loop; game logic lives here
 function every_frame(cur_timestamp: number) {
@@ -821,16 +708,8 @@ function every_frame(cur_timestamp: number) {
   last_timestamp = cur_timestamp;
   input.startFrame();
   ctx.resetTransform();
-  // ctx.clearRect(0, 0, canvas_ctx.width, canvas_ctx.height);
   ctx.fillStyle = COLORS.WEB_BG;
   ctx.fillRect(0, 0, canvas_ctx.width, canvas_ctx.height);
-  // if (twgl.resizeCanvasToDisplaySize(canvas_ctx) && is_phone) {
-  // if (or(twgl.resizeCanvasToDisplaySize(canvas_ctx), twgl.resizeCanvasToDisplaySize(canvas_gl))) {
-  // resizing stuff
-  // gl.viewport(0, 0, canvas_gl.width, canvas_gl.height);
-  //   TILE_SIZE = Math.round(canvas_ctx.width / (BOARD_SIZE.x + MARGIN.x * 2));
-  //   SWIPE_DIST = TILE_SIZE * 2;
-  // }
 
   if (input.keyboard.wasPressed(KeyCode.KeyT)) {
     fetch(`http://dreamlo.com/lb/-HkIeRvNC0GMueaYC7mG2gSvfvURE4n0CJLwwfSGkTAQ/add/player${Math.floor(cur_timestamp / 1000)}/101`);
@@ -841,10 +720,6 @@ function every_frame(cur_timestamp: number) {
     });
   }
 
-  /*if (input.keyboard.wasPressed(KeyCode.KeyQ)) {
-    CONFIG.PAUSED = !CONFIG.PAUSED;
-  }
-*/
   if (input.keyboard.wasPressed(KeyCode.KeyK)) {
     gui.show(gui._hidden);
   }
@@ -955,42 +830,17 @@ function every_frame(cur_timestamp: number) {
       restartGame();
     }
   } else if (game_state === "playing") {
-    if (CONFIG.SWIPE_CONTROLS) {
-      if (input.mouse.wasPressed(MouseButton.Left) && canvas_mouse_pos.y < BOARD_SIZE.y * TILE_SIZE) {
-        // game_state = "pause_menu";
-      } else if (input.mouse.isDown(MouseButton.Left)) {
-        if (touch_input_base_point === null) {
-          touch_input_base_point = canvas_mouse_pos;
-        } else {
-          const delta = canvas_mouse_pos.sub(touch_input_base_point);
-          const dir = getDirFromDelta(delta);
-          if (dir !== null) {
-            input_queue.push(dir);
-            touch_input_base_point = canvas_mouse_pos;
-          }
-        }
-      } else {
-        touch_input_base_point = null;
-      }
-    } else {
-      if (input.mouse.wasPressed(MouseButton.Left)) {
-        if (canvas_mouse_pos.y < BOARD_SIZE.y * TILE_SIZE) {
-          // game_state = "pause_menu";
-        }
-      }
-    }
-
     if ([
       KeyCode.KeyW, KeyCode.ArrowUp,
       KeyCode.KeyA, KeyCode.ArrowLeft,
       KeyCode.KeyS, KeyCode.ArrowDown,
       KeyCode.KeyD, KeyCode.ArrowRight,
-    ].some(k => CONFIG.ALWAYS_SLOWDOWN ? input.keyboard.wasReleased(k) : input.keyboard.wasPressed(k))) {
+    ].some(k => input.keyboard.wasPressed(k))) {
       // if (game_state === "lost") {
       //   restart();
       // }
       function btnp(ks: KeyCode[]) {
-        return ks.some(k => CONFIG.ALWAYS_SLOWDOWN ? input.keyboard.wasReleased(k) : input.keyboard.wasPressed(k));
+        return ks.some(k => input.keyboard.wasPressed(k));
       }
       input_queue.push(new Vec2(
         (btnp([KeyCode.KeyD, KeyCode.ArrowRight]) ? 1 : 0)
@@ -1000,25 +850,7 @@ function every_frame(cur_timestamp: number) {
       ));
     }
 
-    bullet_time = false;
-    // bullet_time = input.keyboard.isDown(KeyCode.Space);
-    if (CONFIG.ALWAYS_SLOWDOWN) {
-      bullet_time = bullet_time || [
-        KeyCode.KeyW, KeyCode.ArrowUp,
-        KeyCode.KeyA, KeyCode.ArrowLeft,
-        KeyCode.KeyS, KeyCode.ArrowDown,
-        KeyCode.KeyD, KeyCode.ArrowRight,
-      ].some(k => input.keyboard.isDown(k));
-    }
-    let cur_turn_duration = CONFIG.TURN_DURATION;
-    if (bullet_time) {
-      cur_turn_duration *= CONFIG.SLOWDOWN;
-    }
-    if (CONFIG.TOTAL_SLOWDOWN && bullet_time) {
-      // no advance
-    } else {
-      turn_offset += delta_time / cur_turn_duration;
-    }
+    turn_offset += delta_time / CONFIG.TURN_DURATION;
 
     if (input.keyboard.wasPressed(KeyCode.Escape) || (input.mouse.wasPressed(MouseButton.Left) && settings_overlapped)) {
       game_state = "pause_menu";
@@ -1081,16 +913,7 @@ function every_frame(cur_timestamp: number) {
 
       if (cur_collectable instanceof Bomb) {
         const cur_bomb = cur_collectable;
-        if (cur_bomb.fuse_left <= 0) {
-          explodeBomb(k);
-        } else {
-          cur_bomb.pos = modVec2(cur_bomb.pos.add(delta), BOARD_SIZE);
-          cur_bomb.ticking = true;
-          if (snake_blocks_new.grid.getV(cur_bomb.pos).valid
-            || cur_collectables.some(({ pos }, other_k) => other_k !== k && cur_bomb.pos.equal(pos))) {
-            explodeBomb(k);
-          }
-        }
+        explodeBomb(k);
       } else if (cur_collectable instanceof Multiplier) {
         multiplier += 1;
         bounceText('multiplier');
@@ -1117,12 +940,7 @@ function every_frame(cur_timestamp: number) {
     for (let k = 0; k < cur_collectables.length; k++) {
       const cur_collectable = cur_collectables[k];
       if (cur_collectable instanceof Bomb) {
-        const cur_bomb = cur_collectable;
-        if (!cur_bomb.ticking) continue;
-        cur_bomb.fuse_left -= 1;
-        if (cur_bomb.fuse_left <= 0) {
-          explodeBomb(k);
-        }
+        // nothing
       } else if (cur_collectable instanceof Multiplier) {
         // nothing
       } else if (cur_collectable instanceof Clock) {
@@ -1239,7 +1057,6 @@ function songAuthor(track: number) {
 }
 
 function doMenu(canvas_mouse_pos: Vec2, raw_mouse_pos: Vec2, is_final_screen: boolean): boolean {
-  if (Math.abs(last_lost_timestamp - last_timestamp) < (1000 * CONFIG.SECONDS_OF_DISABLED_INPUT)) return false;
   let user_clicked_something = false;
   const menu_order = is_phone
     ? ["haptic", "speed", "music", "resume"] as const
@@ -1257,7 +1074,7 @@ function doMenu(canvas_mouse_pos: Vec2, raw_mouse_pos: Vec2, is_final_screen: bo
         console.log('used a fake key');
         return true;
       }
-      return ks.some(k => CONFIG.ALWAYS_SLOWDOWN ? input.keyboard.wasReleased(k) : input.keyboard.wasPressed(k));
+      return ks.some(k => input.keyboard.wasPressed(k));
     }
     let delta = new Vec2(
       (btnp([KeyCode.KeyD, KeyCode.ArrowRight, KeyCode.Space]) ? 1 : 0)
@@ -1359,31 +1176,17 @@ function draw(bullet_time: boolean, is_loading: boolean = false) {
   ctx.translate(cur_screen_shake.x, cur_screen_shake.y);
   // cur_screen_shake.actualMag = lerp(cur_screen_shake.actualMag, cur_screen_shake.targetMag, .1);
 
-  if (CONFIG.CHECKERED_BACKGROUND === "no") {
-    ctx.fillStyle = bullet_time ? (CONFIG.ALWAYS_SLOWDOWN ? "#191b2b" : "black") : COLORS.BACKGROUND;
-    ctx.fillRect(0, 0, canvas_ctx.width, canvas_ctx.height);
-  }
-  // ctx.fillRect(0, 0, BOARD_SIZE.x * TILE_SIZE, BOARD_SIZE.y * TILE_SIZE);
-
   ctx.translate(MARGIN * TILE_SIZE, (MARGIN + TOP_OFFSET) * TILE_SIZE);
 
-  if (CONFIG.CHECKERED_BACKGROUND !== "no") {
-    let fill: keyof typeof COLORS;
-    for (let i = 0; i < BOARD_SIZE.x; i++) {
-      for (let j = 0; j < BOARD_SIZE.y; j++) {
-        if (CONFIG.CHECKERED_BACKGROUND === "2") {
-          fill = mod(i + j, 2) === 0 ? "BACKGROUND" : "BACKGROUND_2";
-        } else if (CONFIG.CHECKERED_BACKGROUND === "3") {
-          fill = mod(i + j, 2) === 0 ? "BACKGROUND_3"
-            : mod(i, 2) === 0 ? "BACKGROUND" : "BACKGROUND_2";
-        } else if (CONFIG.CHECKERED_BACKGROUND === "3_v2") {
-          fill = mod(i + j, 2) === 0 ? "BACKGROUND_3"
-            : mod(i + j + 1, 4) === 0 ? "BACKGROUND" : "BACKGROUND_2";
-        } else {
-          throw new Error("unreachable");
-        }
-        fillTile(new Vec2(i, j), fill);
-      }
+  let fill: keyof typeof COLORS;
+  for (let i = 0; i < BOARD_SIZE.x; i++) {
+    for (let j = 0; j < BOARD_SIZE.y; j++) {
+      fill = mod(i + j, 2) === 0
+        ? "BACKGROUND_3"
+        : mod(i + j + 1, 4) === 0
+          ? "BACKGROUND"
+          : "BACKGROUND_2";
+      fillTile(new Vec2(i, j), fill);
     }
   }
 
@@ -1447,12 +1250,6 @@ function draw(bullet_time: boolean, is_loading: boolean = false) {
       if (cur_collectable instanceof Bomb) {
         const cur_bomb = cur_collectable;
         drawItem(cur_bomb.pos.add(Vec2.both(CONFIG.SHADOW_DIST)), 'bomb', true);
-        // ctx.fillStyle = COLORS.SHADOW;
-        // fillTile(cur_bomb.pos.add(Vec2.both(CONFIG.SHADOW_DIST)));
-        if (cur_bomb.ticking || CONFIG.FUSE_DURATION > 0) {
-          ctx.fillStyle = "black";
-          textTile(cur_bomb.fuse_left.toString(), cur_bomb.pos);
-        }
       } else if (cur_collectable instanceof Multiplier) {
         // ctx.fillStyle = COLORS.SHADOW;
         // fillTile(cur_collectable.pos.add(Vec2.both(CONFIG.SHADOW_DIST));
@@ -1642,12 +1439,6 @@ function draw(bullet_time: boolean, is_loading: boolean = false) {
     if (cur_collectable instanceof Bomb) {
       const cur_bomb = cur_collectable;
       drawItem(cur_bomb.pos, 'bomb');
-      // ctx.fillStyle = COLORS.BOMB;
-      // fillTile(cur_bomb.pos);
-      if (cur_bomb.ticking || CONFIG.FUSE_DURATION > 0) {
-        ctx.fillStyle = "black";
-        textTile(cur_bomb.fuse_left.toString(), cur_bomb.pos);
-      }
     } else if (cur_collectable instanceof Multiplier) {
       // ctx.fillStyle = COLORS.MULTIPLIER;
       // fillTile(cur_collectable.pos);
@@ -1908,11 +1699,6 @@ function drawMenuArrow(setting: "speed" | "music" | "haptic", left: boolean): vo
   drawImageCentered(left ? TEXTURES.menu_arrow.left : TEXTURES.menu_arrow.right, pos);
 }
 
-function menuArrowSize(): Vec2 {
-  // TODO
-  return new Vec2(1, 1).scale(TILE_SIZE);
-}
-
 function menuArrowPos(setting: "speed" | "music" | "haptic", left: boolean): Vec2 {
   return new Vec2(
     canvas_ctx.width / 2 + (left ? -1 : 1) * 3.25 * TILE_SIZE,
@@ -1948,26 +1734,6 @@ function fillText(text: string, pos: Vec2) {
   ctx.fillText(text, pos.x, pos.y);
 }
 
-function or(a: boolean, b: boolean) {
-  return a || b;
-}
-
-if (import.meta.hot) {
-  if (import.meta.hot.data.edges) {
-    // items = import.meta.hot.data.items;
-  }
-
-  // import.meta.hot.accept();
-
-  import.meta.hot.dispose((data) => {
-    input.mouse.dispose();
-    input.keyboard.dispose();
-    cancelAnimationFrame(animation_id);
-    gui.destroy();
-    // data.items = items;
-  })
-}
-
 let animation_id: number;
 const loading_screen_element = document.querySelector<HTMLDivElement>("#loading_screen")!;
 if (loading_screen_element) {
@@ -1978,20 +1744,6 @@ if (loading_screen_element) {
   }, { once: true });
 } else {
   animation_id = requestAnimationFrame(every_frame);
-}
-
-function getDirFromDelta(delta: Vec2): Vec2 | null {
-  if (delta.mag() < CONFIG.SWIPE_DIST * TILE_SIZE) return null;
-
-  if (Math.abs(delta.x) * CONFIG.SWIPE_MARGIN > Math.abs(delta.y)) {
-    return new Vec2(Math.sign(delta.x), 0);
-  }
-
-  if (Math.abs(delta.y) * CONFIG.SWIPE_MARGIN > Math.abs(delta.x)) {
-    return new Vec2(0, Math.sign(delta.y));
-  }
-
-  return null;
 }
 
 function roundToCardinalDirection(v: Vec2): Vec2 {
@@ -2129,14 +1881,6 @@ function drawCircleNoWrap(center: Vec2, radius: number) {
     radius * TILE_SIZE, 0, 2 * Math.PI);
 }
 
-function textTile(text: string, pos: Vec2) {
-  for (let i = -1; i <= 1; i++) {
-    for (let j = -1; j <= 1; j++) {
-      ctx.fillText(text, (pos.x + .5 + i * BOARD_SIZE.x) * TILE_SIZE, (pos.y + .8 + j * BOARD_SIZE.y) * TILE_SIZE);
-    }
-  }
-}
-
 function anyBlockAt(pos: Vec2): boolean {
   return snake_blocks_new.grid.getV(pos).valid;
 }
@@ -2195,12 +1939,6 @@ function fillJumpyText(id: string, text: string, x: number, y: number) {
 function blinking(period: number, cur_time: number, color1: string, color2: string): string {
   return (mod(cur_time / period, 1) < 0.5) ? color1 : color2;
 }
-
-// document.addEventListener("click", ev => {
-//   Howler.ctx.resume();
-//   music.play();
-//   console.log('asdf')
-// }, {once: true});
 
 window.addEventListener('beforeunload', function () {
   if (Howler.ctx) {
