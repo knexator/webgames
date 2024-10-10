@@ -537,14 +537,7 @@ function restartGame() {
   started_at_timestamp = last_timestamp;
   score = 0
   input_queue = [];
-  cur_collectables = [];
-  for (let k = cur_collectables.length; k < CONFIG.N_BOMBS; k++) {
-    cur_collectables.push(placeBomb());
-  }
-  for (let k = 0; k < CONFIG.N_MULTIPLIERS; k++) {
-    cur_collectables.push(placeMultiplier());
-  }
-  cur_collectables.push(new Clock());
+  cur_collectables = [new Bomb(BOARD_SIZE.sub(Vec2.both(2)))];
   turn_offset = 0.99; // always between 0..1
   exploding_cross_particles = [];
   collected_stuff_particles = [];
