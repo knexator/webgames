@@ -823,13 +823,13 @@ function every_frame(cur_timestamp: number) {
   } else if (game_state === "pause_menu") {
     // turn_offset += delta_time / CONFIG.TURN_DURATION;
 
-    doPauseMenu(canvas_mouse_pos, raw_mouse_pos, false);
+    doPauseMenu(canvas_mouse_pos, raw_mouse_pos);
 
     if (input.keyboard.wasPressed(KeyCode.Escape)) {
       game_state = 'playing';
     }
   } else if (game_state === "main_menu") {
-    doMainMenu(canvas_mouse_pos, raw_mouse_pos, false);
+    doMainMenu(canvas_mouse_pos, raw_mouse_pos);
     // @ts-ignore
     if (game_state === 'playing') {
       for (let k = cur_collectables.filter(x => x instanceof Bomb).length; k < CONFIG.N_BOMBS; k++) {
@@ -1101,11 +1101,11 @@ function generateShareMessage() {
   return randomChoice(intros) + randomChoice(messages) + ' Play at https://pinchazumos.itch.io/bombsnack';
 }
 
-function doMainMenu(canvas_mouse_pos: Vec2, raw_mouse_pos: Vec2, is_final_screen: boolean): boolean {
+function doMainMenu(canvas_mouse_pos: Vec2, raw_mouse_pos: Vec2): boolean {
   return doGenericMenu(main_menu, canvas_mouse_pos, raw_mouse_pos);
 }
 
-function doPauseMenu(canvas_mouse_pos: Vec2, raw_mouse_pos: Vec2, is_final_screen: boolean): boolean {
+function doPauseMenu(canvas_mouse_pos: Vec2, raw_mouse_pos: Vec2): boolean {
   return doGenericMenu(pause_menu, canvas_mouse_pos, raw_mouse_pos);
 }
 
