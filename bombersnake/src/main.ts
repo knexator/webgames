@@ -1628,27 +1628,15 @@ function real_y(y_coord: number) {
   return (TOP_OFFSET + MARGIN + BOARD_SIZE.y * y_coord) * TILE_SIZE;
 }
 
-function menuYCoordOf(setting: "resume" | "haptic" | "speed" | "music" | "start" | "logo" | "share"): number {
+function menuYCoordOf(setting: "start" | "logo" | "share"): number {
   let s = 0;
   switch (setting) {
     case "logo":
       s = .18;
       // s = .10 + Math.sin(last_timestamp * 1 / 1000) * .01;
       break;
-    case "haptic":
-      s = .36 - (.45 - .36);
-      break;
-    case "speed":
-      s = .36;
-      break;
-    case "music":
-      s = .45;
-      break;
     case "start":
       s = .85;
-      break;
-    case "resume":
-      s = .6;
       break;
     case "share":
       s = .5;
@@ -1656,7 +1644,7 @@ function menuYCoordOf(setting: "resume" | "haptic" | "speed" | "music" | "start"
     default:
       throw new Error("unhandled");
   }
-  return (TOP_OFFSET + MARGIN + BOARD_SIZE.y * s) * TILE_SIZE;
+  return real_y(s);
 }
 
 function posFromPerc(p: Vec2): Vec2 {
@@ -1694,18 +1682,6 @@ function drawMenuArrowNew(y_coord: number, left: boolean): void {
     canvas_ctx.width / 2 + (left ? -1 : 1) * 3.25 * TILE_SIZE,
     y_coord);
   drawImageCentered(left ? TEXTURES.menu_arrow.left : TEXTURES.menu_arrow.right, pos);
-}
-
-function drawMenuArrow(setting: "speed" | "music" | "haptic", left: boolean): void {
-  ctx.fillStyle = COLORS.TEXT;
-  const pos = menuArrowPos(setting, left);
-  drawImageCentered(left ? TEXTURES.menu_arrow.left : TEXTURES.menu_arrow.right, pos);
-}
-
-function menuArrowPos(setting: "speed" | "music" | "haptic", left: boolean): Vec2 {
-  return new Vec2(
-    canvas_ctx.width / 2 + (left ? -1 : 1) * 3.25 * TILE_SIZE,
-    menuYCoordOf(setting));
 }
 
 ////// library stuff
