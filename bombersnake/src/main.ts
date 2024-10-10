@@ -423,7 +423,7 @@ class SnakeBlocks {
   }
 }
 
-let game_state: "loading_menu" | "pause_menu" | "playing" | "lost";
+let game_state: "loading_menu" | "main_menu" | "pause_menu" | "playing" | "lost";
 let turn: number;
 let snake_blocks_new = new SnakeBlocks();
 let started_at_timestamp: number;
@@ -446,7 +446,7 @@ let settings_overlapped = false;
 
 function restartGame() {
   stopTickTockSound();
-  game_state = "playing";
+  game_state = "main_menu";
   if (CONFIG.START_ON_BORDER) {
     turn = 1;
     snake_blocks_new.setAll([
@@ -745,6 +745,20 @@ function every_frame(cur_timestamp: number) {
     // turn_offset += delta_time / CONFIG.TURN_DURATION;
 
     if (input.mouse.wasPressed(MouseButton.Left)) {
+      game_state = "main_menu";
+    }
+  } else if (game_state === "pause_menu") {
+    // turn_offset += delta_time / CONFIG.TURN_DURATION;
+
+    doMenu(canvas_mouse_pos, raw_mouse_pos, false);
+
+    if (input.keyboard.wasPressed(KeyCode.Escape)) {
+      game_state = 'playing';
+    }
+  } else if (game_state === "main_menu") {
+    doMainMenu(canvas_mouse_pos, raw_mouse_pos, false);
+    // @ts-ignore
+    if (game_state === 'playing') {
       for (let k = cur_collectables.filter(x => x instanceof Bomb).length; k < CONFIG.N_BOMBS; k++) {
         cur_collectables.push(placeBomb());
       }
@@ -766,15 +780,6 @@ function every_frame(cur_timestamp: number) {
       // setTimeout(() => SONGS[music_track].play(), 1500);
       // SONGS[music_track].play();
       // SONGS[music_track].fade(0, 1, 2000);
-      game_state = "playing";
-    }
-  } else if (game_state === "pause_menu") {
-    // turn_offset += delta_time / CONFIG.TURN_DURATION;
-
-    doMenu(canvas_mouse_pos, raw_mouse_pos, false);
-
-    if (input.keyboard.wasPressed(KeyCode.Escape)) {
-      game_state = 'playing';
     }
   } else if (game_state === "lost") {
     if (input.keyboard.wasPressed(KeyCode.KeyR)) {
@@ -850,6 +855,7 @@ function every_frame(cur_timestamp: number) {
       game_state = "pause_menu";
     }
   } else {
+    const _: never = game_state;
     throw new Error(`unhandled game state: ${game_state}`);
   }
 
@@ -1020,6 +1026,10 @@ function generateShareMessage() {
   }
 
   return randomChoice(intros) + randomChoice(messages) + ' Play at https://pinchazumos.itch.io/bombsnack';
+}
+
+function doMainMenu(canvas_mouse_pos: Vec2, raw_mouse_pos: Vec2, is_final_screen: boolean): boolean {
+  return doMenu(canvas_mouse_pos, raw_mouse_pos, is_final_screen);
 }
 
 function doMenu(canvas_mouse_pos: Vec2, raw_mouse_pos: Vec2, is_final_screen: boolean): boolean {
@@ -1476,6 +1486,32 @@ function draw(is_loading: boolean) {
     }
 
     drawCenteredShadowedText('By knexator & Pinchazumos', (MARGIN + TOP_OFFSET + BOARD_SIZE.y * 1.05) * TILE_SIZE);
+  } else if (game_state === "main_menu") {
+
+    drawImageCentered((mod(last_timestamp / 600, 1) > 0.5) ? TEXTURES.logo.frame1 : TEXTURES.logo.frame2,
+      new Vec2(canvas_ctx.width / 2, menuYCoordOf("logo")));
+
+    if (is_phone) {
+      drawCenteredShadowedTextWithColor(
+        (menu_focus === "haptic") ? COLORS.TEXT : COLORS.GRAY_TEXT,
+        `Haptic: ${haptic ? 'on' : 'off'}`, menuYCoordOf("haptic"));
+    }
+    drawCenteredShadowedText(`Speed: ${game_speed + 1}`, menuYCoordOf("speed"));
+    drawCenteredShadowedText(`Song: ${music_track === 0 ? 'None' : (SONGS[music_track] === null ? 'loading' : music_track)}`, menuYCoordOf("music"));
+
+    if (menu_focus !== "resume") {
+      drawMenuArrow(menu_focus, false);
+      drawMenuArrow(menu_focus, true);
+    }
+
+    drawCenteredShadowedTextWithColor(
+      (menu_focus === "resume") ? COLORS.TEXT : COLORS.GRAY_TEXT,
+      `Start!`,
+      menuYCoordOf("resume")
+    );
+
+    drawCenteredShadowedText('By knexator & Pinchazumos', (MARGIN + TOP_OFFSET + BOARD_SIZE.y * 1.05) * TILE_SIZE);
+
   } else if (game_state === "pause_menu") {
 
     drawImageCentered(TEXTURES.pause_text, new Vec2(canvas_ctx.width / 2, menuYCoordOf("logo") * 0.85));
@@ -1528,6 +1564,7 @@ function draw(is_loading: boolean) {
   } else if (game_state === "playing") {
     // nothing
   } else {
+    const _: never = game_state;
     throw new Error(`unhandled game state: ${game_state}`);
   }
 
