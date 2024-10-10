@@ -276,7 +276,6 @@ let CONFIG = {
   SHADOW_DIST: .2,
   SHADOW_TEXT: 3,
   SCARF: "full" as "no" | "half" | "full",
-  SCARF_BORDER_WIDTH: 0,
   HEAD_COLOR: true,
   START_ON_BORDER: true,
   EXPLOSION_CIRCLE: false,
@@ -1373,32 +1372,6 @@ function draw(is_loading: boolean) {
       ctx.restore();
     }
   });
-
-  if (CONFIG.SCARF !== "no") {
-    snake_blocks_new.grid.forEachV((_, cur_block) => {
-      if (!cur_block.valid) return;
-      if (turn - cur_block.t !== 1) return;
-      ctx.fillStyle = COLORS.SCARF_OUT;
-      // fillTile(cur_block.pos);
-      const center = cur_block.pos.addXY(.5, .5)
-      if (CONFIG.SCARF === "full") {
-        fillTileCenterSize(
-          center.add(cur_block.in_dir.scale(.5 - CONFIG.SCARF_BORDER_WIDTH / 2)),
-          new Vec2(
-            cur_block.in_dir.x == 0 ? 1 : CONFIG.SCARF_BORDER_WIDTH,
-            cur_block.in_dir.y == 0 ? 1 : CONFIG.SCARF_BORDER_WIDTH
-          ), "SCARF_OUT"
-        );
-      }
-      fillTileCenterSize(
-        center.add(cur_block.out_dir.scale(.5 - CONFIG.SCARF_BORDER_WIDTH / 2)),
-        new Vec2(
-          cur_block.out_dir.x == 0 ? 1 : CONFIG.SCARF_BORDER_WIDTH,
-          cur_block.out_dir.y == 0 ? 1 : CONFIG.SCARF_BORDER_WIDTH
-        ), "SCARF_OUT"
-      );
-    });
-  }
 
   // draw collectables
   for (let k = 0; k < cur_collectables.length; k++) {
