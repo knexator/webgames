@@ -477,6 +477,46 @@ const main_menu: { focus: number, buttons: MenuButton[] } = {
   ],
 };
 
+const pause_menu: { focus: number, buttons: MenuButton[] } = {
+  focus: 2,
+  buttons: [
+    ...(is_phone ? [{
+      multiple_choice: true,
+      get_text: () => `Haptic: ${haptic ? 'on' : 'off'}`,
+      y_coord: .36 - (.46 - .36),
+      callback: (dx: number) => {
+        haptic = !haptic;
+      }
+    }] : []),
+    {
+      multiple_choice: true,
+      get_text: () => `Speed: ${game_speed + 1}`,
+      y_coord: .36,
+      callback: (dx: number) => {
+        game_speed = mod(game_speed + dx, SPEEDS.length);
+        CONFIG.TURN_DURATION = SPEEDS[game_speed];
+      }
+    },
+    {
+      multiple_choice: true,
+      get_text: () => `Song: ${music_track === 0 ? 'None' : (SONGS[music_track] === null ? 'loading' : music_track)}`,
+      y_coord: .45,
+      callback: (dx: number) => {
+        music_track = mod(music_track + dx, SONGS.length);
+        updateSong();
+      }
+    },
+    {
+      multiple_choice: false,
+      get_text: () => `Resume`,
+      y_coord: .8,
+      callback: (dx: number) => {
+        game_state = 'playing';
+      }
+    },
+  ],
+};
+
 function restartGame() {
   stopTickTockSound();
   game_state = "main_menu";
@@ -783,7 +823,7 @@ function every_frame(cur_timestamp: number) {
   } else if (game_state === "pause_menu") {
     // turn_offset += delta_time / CONFIG.TURN_DURATION;
 
-    doMenu(canvas_mouse_pos, raw_mouse_pos, false);
+    doPauseMenu(canvas_mouse_pos, raw_mouse_pos, false);
 
     if (input.keyboard.wasPressed(KeyCode.Escape)) {
       game_state = 'playing';
@@ -1062,6 +1102,14 @@ function generateShareMessage() {
 }
 
 function doMainMenu(canvas_mouse_pos: Vec2, raw_mouse_pos: Vec2, is_final_screen: boolean): boolean {
+  return doGenericMenu(main_menu, canvas_mouse_pos, raw_mouse_pos);
+}
+
+function doPauseMenu(canvas_mouse_pos: Vec2, raw_mouse_pos: Vec2, is_final_screen: boolean): boolean {
+  return doGenericMenu(pause_menu, canvas_mouse_pos, raw_mouse_pos);
+}
+
+function doGenericMenu(menu: {focus: number, buttons: MenuButton[]}, canvas_mouse_pos: Vec2, raw_mouse_pos: Vec2): boolean {
   let user_clicked_something = false;
   if (menu_fake_key !== null || [
     KeyCode.KeyW, KeyCode.ArrowUp,
@@ -1086,10 +1134,10 @@ function doMainMenu(canvas_mouse_pos: Vec2, raw_mouse_pos: Vec2, is_final_screen
     );
     if (menu_fake_key !== null) console.log('delta was: ', delta.toString());
     if (delta.y != 0) {
-      main_menu.focus = mod(main_menu.focus + delta.y, main_menu.buttons.length);
+      menu.focus = mod(menu.focus + delta.y, menu.buttons.length);
     }
     if (delta.x !== 0) {
-      const button = main_menu.buttons[main_menu.focus];
+      const button = menu.buttons[menu.focus];
       if (button.multiple_choice) {
         SOUNDS.menu1.play();
       } else {
@@ -1103,135 +1151,24 @@ function doMainMenu(canvas_mouse_pos: Vec2, raw_mouse_pos: Vec2, is_final_screen
   // mouse moved
   if ((input.mouse.clientX !== input.mouse.prev_clientX || input.mouse.clientY !== input.mouse.prev_clientY)
     && canvas_mouse_pos.y < BOARD_SIZE.y * TILE_SIZE) {
-    main_menu.focus = argmin(main_menu.buttons.map(button => Math.abs(raw_mouse_pos.y - real_y(button.y_coord))));
+    menu.focus = argmin(menu.buttons.map(button => Math.abs(raw_mouse_pos.y - real_y(button.y_coord))));
+  }
+
+  if (settings_overlapped) {
+    menu.focus = menu.buttons.length - 1;
   }
 
   if (input.mouse.wasPressed(MouseButton.Left) && canvas_mouse_pos.y < BOARD_SIZE.y * TILE_SIZE) {
     const dx = canvas_mouse_pos.x / (BOARD_SIZE.x * TILE_SIZE) < 1 / 2 ? -1 : 1;
     user_clicked_something = true;
 
-    const button = main_menu.buttons[main_menu.focus];
+    const button = menu.buttons[menu.focus];
     if (button.multiple_choice) {
       SOUNDS.menu1.play();
     } else {
       SOUNDS.menu2.play();
     }
     button.callback(dx);
-  }
-
-  return user_clicked_something;
-}
-
-function doMenu(canvas_mouse_pos: Vec2, raw_mouse_pos: Vec2, is_final_screen: boolean): boolean {
-  let user_clicked_something = false;
-  const menu_order = is_phone
-    ? ["haptic", "speed", "music", "resume"] as const
-    : ["speed", "music", "resume"] as const;
-  if (menu_fake_key !== null || [
-    KeyCode.KeyW, KeyCode.ArrowUp,
-    KeyCode.KeyA, KeyCode.ArrowLeft,
-    KeyCode.KeyS, KeyCode.ArrowDown,
-    KeyCode.KeyD, KeyCode.ArrowRight,
-    KeyCode.Space
-  ].some(k => input.keyboard.wasPressed(k))) {
-    if (menu_fake_key !== null) console.log('had a fake key');
-    function btnp(ks: KeyCode[]) {
-      if (menu_fake_key !== null && ks.includes(menu_fake_key)) {
-        console.log('used a fake key');
-        return true;
-      }
-      return ks.some(k => input.keyboard.wasPressed(k));
-    }
-    let delta = new Vec2(
-      (btnp([KeyCode.KeyD, KeyCode.ArrowRight, KeyCode.Space]) ? 1 : 0)
-      - (btnp([KeyCode.KeyA, KeyCode.ArrowLeft]) ? 1 : 0),
-      (btnp([KeyCode.KeyS, KeyCode.ArrowDown]) ? 1 : 0)
-      - (btnp([KeyCode.KeyW, KeyCode.ArrowUp]) ? 1 : 0)
-    );
-    if (menu_fake_key !== null) console.log('delta was: ', delta.toString());
-    if (delta.y != 0) {
-      // @ts-expect-error
-      let cur_index = menu_order.indexOf(menu_focus);
-      if (cur_index === -1) {
-        cur_index = 0;
-      }
-      menu_focus = menu_order[mod(cur_index + delta.y, menu_order.length)];
-      if (is_final_screen && menu_focus === 'resume') {
-        menu_focus = delta.y > 0 ? menu_order[0] : menu_order[menu_order.length - 2];
-      }
-    }
-    if (delta.x !== 0) {
-      switch (menu_focus) {
-        case 'haptic':
-          if (!is_phone) break;
-          haptic = !haptic;
-          SOUNDS.menu1.play();
-          break;
-        case 'speed':
-          game_speed += delta.x;
-          game_speed = mod(game_speed, SPEEDS.length);
-          CONFIG.TURN_DURATION = SPEEDS[game_speed];
-          SOUNDS.menu1.play();
-          break;
-        case 'music':
-          music_track += delta.x;
-          music_track = mod(music_track, SONGS.length);
-          updateSong();
-          break;
-        case 'resume':
-          if (is_final_screen) break;
-          game_state = 'playing';
-          SOUNDS.menu2.play();
-          break;
-        default:
-          break;
-      }
-    }
-    menu_fake_key = null;
-  }
-
-  // mouse moved
-  if ((input.mouse.clientX !== input.mouse.prev_clientX || input.mouse.clientY !== input.mouse.prev_clientY)
-    && canvas_mouse_pos.y < BOARD_SIZE.y * TILE_SIZE) {
-    menu_focus = menu_order[argmin(menu_order.map(n => Math.abs(raw_mouse_pos.y - menuYCoordOf(n))))];
-  }
-
-  if (settings_overlapped) {
-    menu_focus = 'resume';
-  }
-  // (input.mouse.wasPressed(MouseButton.Left) && settings_overlapped)
-
-  if (input.mouse.wasPressed(MouseButton.Left) && canvas_mouse_pos.y < BOARD_SIZE.y * TILE_SIZE) {
-    const dx = canvas_mouse_pos.x / (BOARD_SIZE.x * TILE_SIZE) < 1 / 2 ? -1 : 1;
-    switch (menu_focus) {
-      case 'haptic':
-        if (!is_phone) break;
-        haptic = !haptic;
-        SOUNDS.menu1.play();
-        user_clicked_something = true;
-        break;
-      case 'speed':
-        game_speed += dx;
-        game_speed = mod(game_speed, SPEEDS.length);
-        CONFIG.TURN_DURATION = SPEEDS[game_speed];
-        SOUNDS.menu1.play();
-        user_clicked_something = true;
-        break;
-      case 'music':
-        music_track += dx;
-        music_track = mod(music_track, SONGS.length);
-        updateSong();
-        user_clicked_something = true;
-        break;
-      case 'resume':
-        if (is_final_screen) break;
-        game_state = 'playing';
-        SOUNDS.menu2.play();
-        user_clicked_something = true;
-        break;
-      default:
-        break;
-    }
   }
 
   return user_clicked_something;
@@ -1581,7 +1518,6 @@ function draw(is_loading: boolean) {
     drawImageCentered((mod(last_timestamp / 600, 1) > 0.5) ? TEXTURES.logo.frame1 : TEXTURES.logo.frame2,
       new Vec2(canvas_ctx.width / 2, menuYCoordOf("logo")));
 
-    drawCenteredShadowedText('test', .8);
     main_menu.buttons.forEach((button, k) => {
       const y_coord = real_y(button.y_coord);
       if (button.multiple_choice) {
@@ -1604,24 +1540,21 @@ function draw(is_loading: boolean) {
 
     drawImageCentered(TEXTURES.pause_text, new Vec2(canvas_ctx.width / 2, menuYCoordOf("logo") * 0.85));
 
-    if (is_phone) {
-      drawCenteredShadowedTextWithColor(
-        (menu_focus === "haptic") ? COLORS.TEXT : COLORS.GRAY_TEXT,
-        `Haptic: ${haptic ? 'on' : 'off'}`, menuYCoordOf("haptic"));
-    }
-    drawCenteredShadowedText(`Speed: ${game_speed + 1}`, menuYCoordOf("speed"));
-    drawCenteredShadowedText(`Song: ${music_track === 0 ? 'None' : (SONGS[music_track] === null ? 'loading' : music_track)}`, menuYCoordOf("music"));
-
-    if (menu_focus !== "resume") {
-      drawMenuArrow(menu_focus, false);
-      drawMenuArrow(menu_focus, true);
-    }
-
-    drawCenteredShadowedTextWithColor(
-      (menu_focus === "resume") ? COLORS.TEXT : COLORS.GRAY_TEXT,
-      `Resume`,
-      menuYCoordOf("resume")
-    );
+    pause_menu.buttons.forEach((button, k) => {
+      const y_coord = real_y(button.y_coord);
+      if (button.multiple_choice) {
+        drawCenteredShadowedText(button.get_text(), y_coord);
+        if (pause_menu.focus === k) {
+          drawMenuArrowNew(y_coord, false);
+          drawMenuArrowNew(y_coord, true);
+        }
+      } else {
+        drawCenteredShadowedTextWithColor(
+          (pause_menu.focus === k) ? COLORS.TEXT : COLORS.GRAY_TEXT,
+          button.get_text(), y_coord
+        );
+      }
+    });
   } else if (game_state === "lost") {
 
     // drawCenteredShadowedText(`Score: ${score}`, (TOP_OFFSET + MARGIN + BOARD_SIZE.y / 4) * TILE_SIZE);
