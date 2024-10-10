@@ -444,6 +444,39 @@ let share_button_state: { folded: boolean, hovered: null | 'vanilla' | 'twitter'
 let last_lost_timestamp = 0;
 let settings_overlapped = false;
 
+type MenuButton = { multiple_choice: boolean, get_text: () => string, y_coord: number, callback: (delta_x: number) => void };
+const main_menu: { focus: number, buttons: MenuButton[] } = {
+  focus: 2,
+  buttons: [
+    {
+      multiple_choice: true,
+      get_text: () => `Speed: ${game_speed + 1}`,
+      y_coord: .46,
+      callback: (dx: number) => {
+        game_speed = mod(game_speed + dx, SPEEDS.length);
+        CONFIG.TURN_DURATION = SPEEDS[game_speed];
+      }
+    },
+    {
+      multiple_choice: true,
+      get_text: () => `Song: ${music_track === 0 ? 'None' : (SONGS[music_track] === null ? 'loading' : music_track)}`,
+      y_coord: .55,
+      callback: (dx: number) => {
+        music_track = mod(music_track + dx, SONGS.length);
+        updateSong();
+      }
+    },
+    {
+      multiple_choice: false,
+      get_text: () => `Start!`,
+      y_coord: .8,
+      callback: (dx: number) => {
+        game_state = 'playing';
+      }
+    },
+  ],
+};
+
 function restartGame() {
   stopTickTockSound();
   game_state = "main_menu";
@@ -1029,7 +1062,64 @@ function generateShareMessage() {
 }
 
 function doMainMenu(canvas_mouse_pos: Vec2, raw_mouse_pos: Vec2, is_final_screen: boolean): boolean {
-  return doMenu(canvas_mouse_pos, raw_mouse_pos, is_final_screen);
+  let user_clicked_something = false;
+  if (menu_fake_key !== null || [
+    KeyCode.KeyW, KeyCode.ArrowUp,
+    KeyCode.KeyA, KeyCode.ArrowLeft,
+    KeyCode.KeyS, KeyCode.ArrowDown,
+    KeyCode.KeyD, KeyCode.ArrowRight,
+    KeyCode.Space
+  ].some(k => input.keyboard.wasPressed(k))) {
+    if (menu_fake_key !== null) console.log('had a fake key');
+    function btnp(ks: KeyCode[]) {
+      if (menu_fake_key !== null && ks.includes(menu_fake_key)) {
+        console.log('used a fake key');
+        return true;
+      }
+      return ks.some(k => input.keyboard.wasPressed(k));
+    }
+    let delta = new Vec2(
+      (btnp([KeyCode.KeyD, KeyCode.ArrowRight, KeyCode.Space]) ? 1 : 0)
+      - (btnp([KeyCode.KeyA, KeyCode.ArrowLeft]) ? 1 : 0),
+      (btnp([KeyCode.KeyS, KeyCode.ArrowDown]) ? 1 : 0)
+      - (btnp([KeyCode.KeyW, KeyCode.ArrowUp]) ? 1 : 0)
+    );
+    if (menu_fake_key !== null) console.log('delta was: ', delta.toString());
+    if (delta.y != 0) {
+      main_menu.focus = mod(main_menu.focus + delta.y, main_menu.buttons.length);
+    }
+    if (delta.x !== 0) {
+      const button = main_menu.buttons[main_menu.focus];
+      if (button.multiple_choice) {
+        SOUNDS.menu1.play();
+      } else {
+        SOUNDS.menu2.play();
+      }
+      button.callback(delta.x);
+    }
+    menu_fake_key = null;
+  }
+
+  // mouse moved
+  if ((input.mouse.clientX !== input.mouse.prev_clientX || input.mouse.clientY !== input.mouse.prev_clientY)
+    && canvas_mouse_pos.y < BOARD_SIZE.y * TILE_SIZE) {
+    main_menu.focus = argmin(main_menu.buttons.map(button => Math.abs(raw_mouse_pos.y - real_y(button.y_coord))));
+  }
+
+  if (input.mouse.wasPressed(MouseButton.Left) && canvas_mouse_pos.y < BOARD_SIZE.y * TILE_SIZE) {
+    const dx = canvas_mouse_pos.x / (BOARD_SIZE.x * TILE_SIZE) < 1 / 2 ? -1 : 1;
+    user_clicked_something = true;
+
+    const button = main_menu.buttons[main_menu.focus];
+    if (button.multiple_choice) {
+      SOUNDS.menu1.play();
+    } else {
+      SOUNDS.menu2.play();
+    }
+    button.callback(dx);
+  }
+
+  return user_clicked_something;
 }
 
 function doMenu(canvas_mouse_pos: Vec2, raw_mouse_pos: Vec2, is_final_screen: boolean): boolean {
@@ -1491,24 +1581,22 @@ function draw(is_loading: boolean) {
     drawImageCentered((mod(last_timestamp / 600, 1) > 0.5) ? TEXTURES.logo.frame1 : TEXTURES.logo.frame2,
       new Vec2(canvas_ctx.width / 2, menuYCoordOf("logo")));
 
-    if (is_phone) {
-      drawCenteredShadowedTextWithColor(
-        (menu_focus === "haptic") ? COLORS.TEXT : COLORS.GRAY_TEXT,
-        `Haptic: ${haptic ? 'on' : 'off'}`, menuYCoordOf("haptic"));
-    }
-    drawCenteredShadowedText(`Speed: ${game_speed + 1}`, menuYCoordOf("speed"));
-    drawCenteredShadowedText(`Song: ${music_track === 0 ? 'None' : (SONGS[music_track] === null ? 'loading' : music_track)}`, menuYCoordOf("music"));
-
-    if (menu_focus !== "resume") {
-      drawMenuArrow(menu_focus, false);
-      drawMenuArrow(menu_focus, true);
-    }
-
-    drawCenteredShadowedTextWithColor(
-      (menu_focus === "resume") ? COLORS.TEXT : COLORS.GRAY_TEXT,
-      `Start!`,
-      menuYCoordOf("resume")
-    );
+    drawCenteredShadowedText('test', .8);
+    main_menu.buttons.forEach((button, k) => {
+      const y_coord = real_y(button.y_coord);
+      if (button.multiple_choice) {
+        drawCenteredShadowedText(button.get_text(), y_coord);
+        if (main_menu.focus === k) {
+          drawMenuArrowNew(y_coord, false);
+          drawMenuArrowNew(y_coord, true);
+        }
+      } else {
+        drawCenteredShadowedTextWithColor(
+          (main_menu.focus === k) ? COLORS.TEXT : COLORS.GRAY_TEXT,
+          button.get_text(), y_coord
+        );
+      }
+    });
 
     drawCenteredShadowedText('By knexator & Pinchazumos', (MARGIN + TOP_OFFSET + BOARD_SIZE.y * 1.05) * TILE_SIZE);
 
@@ -1585,7 +1673,7 @@ function draw(is_loading: boolean) {
   fillJumpyText('score', `Score: ${score}`, (5.9 - .25 * Math.floor(Math.log10(Math.max(1, score)))) * TILE_SIZE, 1.15 * TILE_SIZE);
   // ctx.drawImage(TEXTURES.multiplier, 12.5 * TILE_SIZE, 0, TILE_SIZE, TILE_SIZE);
 
-  if (game_state !== 'loading_menu') {
+  if (game_state !== 'loading_menu' && game_state !== 'main_menu') {
     drawImageCentered(TEXTURES.settings, new Vec2(-TILE_SIZE * 1.2, TILE_SIZE * .6), settings_overlapped ? .8 : .7);
     drawImageCentered(TEXTURES.speed, new Vec2(TILE_SIZE * .4, TILE_SIZE * .6));
     ctx.fillText((game_speed + 1).toString(), TILE_SIZE * .9, TILE_SIZE * 1.175);
@@ -1608,6 +1696,10 @@ function draw(is_loading: boolean) {
     drawRotatedTextureNoWrap(new Vec2(head_position.x, BOARD_SIZE.y).add(Vec2.both(.5)),
       anyBlockAt(new Vec2(head_position.x, 1)) ? TEXTURES.border_arrow.red : TEXTURES.border_arrow.white, Math.PI / 2, new Vec2(.5, 1));
   }
+}
+
+function real_y(y_coord: number) {
+  return (TOP_OFFSET + MARGIN + BOARD_SIZE.y * y_coord) * TILE_SIZE;
 }
 
 function menuYCoordOf(setting: "resume" | "haptic" | "speed" | "music" | "start" | "logo" | "share"): number {
@@ -1668,6 +1760,14 @@ function lose() {
   //   }
   // });
 
+}
+
+function drawMenuArrowNew(y_coord: number, left: boolean): void {
+  ctx.fillStyle = COLORS.TEXT;
+  const pos = new Vec2(
+    canvas_ctx.width / 2 + (left ? -1 : 1) * 3.25 * TILE_SIZE,
+    y_coord);
+  drawImageCentered(left ? TEXTURES.menu_arrow.left : TEXTURES.menu_arrow.right, pos);
 }
 
 function drawMenuArrow(setting: "speed" | "music" | "haptic", left: boolean): void {
