@@ -65,16 +65,19 @@ const TEXTURES = {
   clock: textures_async[2],
   heart: textures_async[4],
   multiplier: textures_async[6],
+  soup: textures_async[11],
   shadow: {
     bomb: textures_async[1],
     clock: textures_async[3],
     heart: textures_async[5],
     multiplier: textures_async[7],
+    soup: textures_async[11],
   },
   gray: {
     bomb: textures_async[18],
     clock: textures_async[19],
     multiplier: textures_async[20],
+    soup: textures_async[11],
   },
   eye: {
     open: textures_async[8],
@@ -262,6 +265,7 @@ let CONFIG = {
   CHEAT_INMORTAL: false,
   N_BOMBS: 3,
   N_MULTIPLIERS: 1,
+  N_SOUP: 1,
   CLOCK_VALUE: 4,
   CLOCK_DURATION: 25,
   CLOCK_FREQUENCY: 55,
@@ -291,6 +295,7 @@ const gui = new GUI();
   gui.add(CONFIG, "FUSE_DURATION", 0, 10, 1);
   gui.add(CONFIG, "N_BOMBS", 1, 6, 1);
   gui.add(CONFIG, "N_MULTIPLIERS", 1, 2, 1);
+  gui.add(CONFIG, "N_SOUP", 1, 4, 1);
   gui.add(CONFIG, "CLOCK_DURATION", 1, 100, 1);
   gui.add(CONFIG, "CLOCK_FREQUENCY", 1, 100, 1);
   gui.add(CONFIG, "TICKTOCK_SPEED", 300, 600);
@@ -572,7 +577,13 @@ class Clock {
   }
 }
 
-type Collectable = Bomb | Multiplier | Clock;
+class Soup {
+  constructor(
+    public pos: Vec2,
+  ) { }
+}
+
+type Collectable = Bomb | Multiplier | Clock | Soup;
 
 // Loading menu
 game_state = "loading_menu";
@@ -723,6 +734,10 @@ function placeMultiplier(): Multiplier {
   return new Multiplier(findSpotWithoutWall());
 }
 
+function placeSoup(): Soup {
+  return new Soup(findSpotWithoutWall());
+}
+
 function explodeBomb(k: number) {
   let cur_bomb = cur_collectables[k];
   snake_blocks_new.grid.forEachV((pos, b) => {
@@ -830,6 +845,9 @@ function every_frame(cur_timestamp: number) {
       }
       for (let k = cur_collectables.filter(x => x instanceof Multiplier).length; k < CONFIG.N_MULTIPLIERS; k++) {
         cur_collectables.push(placeMultiplier());
+      }
+      for (let k = cur_collectables.filter(x => x instanceof Soup).length; k < CONFIG.N_SOUP; k++) {
+        cur_collectables.push(placeSoup());
       }
       cur_collectables.push(new Clock());
       // setTimeout(() => {
@@ -997,7 +1015,12 @@ function every_frame(cur_timestamp: number) {
           SOUNDS.clock.play();
           stopTickTockSound();
         }
+      } else if (cur_collectable instanceof Soup) {
+        collected_stuff_particles.push({ center: cur_collectable.pos, text: 'soup', turn: turn });
+        cur_collectables[k] = placeSoup();
+        SOUNDS.menu2.play();
       } else {
+        const _: never = cur_collectable;
         throw new Error();
       }
     }
@@ -1008,6 +1031,8 @@ function every_frame(cur_timestamp: number) {
       if (cur_collectable instanceof Bomb) {
         // nothing
       } else if (cur_collectable instanceof Multiplier) {
+        // nothing
+      } else if (cur_collectable instanceof Soup) {
         // nothing
       } else if (cur_collectable instanceof Clock) {
         const clock = cur_collectable;
@@ -1026,6 +1051,7 @@ function every_frame(cur_timestamp: number) {
           }
         }
       } else {
+        const _: never = cur_collectable;
         throw new Error();
       }
     }
@@ -1255,7 +1281,11 @@ function draw(is_loading: boolean) {
         if (clock.active) {
           drawItem(clock.pos.add(Vec2.both(CONFIG.SHADOW_DIST)), 'clock', true);
         }
+      } else if (cur_collectable instanceof Soup) {
+        // nothing
+        // drawItem(cur_collectable.pos.add(Vec2.both(CONFIG.SHADOW_DIST)), 'soup', true);
       } else {
+        const _: never = cur_collectable;
         throw new Error();
       }
     }
@@ -1437,7 +1467,10 @@ function draw(is_loading: boolean) {
           }
         }
       }
+    } else if (cur_collectable instanceof Soup) {
+      drawItem(cur_collectable.pos, 'soup');
     } else {
+      const _: never = cur_collectable;
       throw new Error();
     }
   }
@@ -1745,7 +1778,7 @@ function rotQuarterB(value: Vec2): Vec2 {
   return new Vec2(-value.y, value.x);
 }
 
-function drawItem(top_left: Vec2, item: "bomb" | "multiplier" | "clock", is_shadow: boolean = false) {
+function drawItem(top_left: Vec2, item: "bomb" | "multiplier" | "clock" | "soup", is_shadow: boolean = false) {
   if (!CONFIG.WRAP_ITEMS) {
     ctx.drawImage(is_shadow ? TEXTURES.shadow[item] : TEXTURES[item], top_left.x * TILE_SIZE, top_left.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
   } else {
