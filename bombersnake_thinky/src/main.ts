@@ -59,22 +59,29 @@ const textures_async = await Promise.all(["bomb", "clock", "heart", "star"].flat
   .concat([loadImage("shareSG"), loadImage("shareSB")])
   .concat([loadImage("logoX"), loadImage("logoBSKY")])
   .concat([loadImage("settings"), loadImage("note"), loadImage("speed")])
+  .concat([loadImage("bomb_hor"), loadImage("bomb_ver")])
 );
 const TEXTURES = {
-  bomb: textures_async[0],
+  bomb_both: textures_async[0],
+  bomb_hor: textures_async[33],
+  bomb_ver: textures_async[34],
   clock: textures_async[2],
   heart: textures_async[4],
   multiplier: textures_async[6],
   soup: textures_async[11],
   shadow: {
-    bomb: textures_async[1],
+    bomb_both: textures_async[1],
+    bomb_hor: textures_async[33],
+    bomb_ver: textures_async[34],
     clock: textures_async[3],
     heart: textures_async[5],
     multiplier: textures_async[7],
     soup: textures_async[11],
   },
   gray: {
-    bomb: textures_async[18],
+    bomb_both: textures_async[18],
+    bomb_hor: textures_async[33],
+    bomb_ver: textures_async[34],
     clock: textures_async[19],
     multiplier: textures_async[20],
     soup: textures_async[11],
@@ -263,7 +270,9 @@ let CONFIG = {
   ANIM_PERC: 0.2,
   BORDER_ARROWS: false,
   CHEAT_INMORTAL: false,
-  N_BOMBS: 3,
+  N_BOMBS: 0,
+  N_BOMBS_HOR: 2,
+  N_BOMBS_VER: 2,
   N_MULTIPLIERS: 1,
   N_SOUP: 1,
   CLOCK_VALUE: 4,
@@ -293,7 +302,9 @@ const gui = new GUI();
   gui.add(CONFIG, "BORDER_ARROWS");
   gui.add(CONFIG, "CHEAT_INMORTAL");
   gui.add(CONFIG, "FUSE_DURATION", 0, 10, 1);
-  gui.add(CONFIG, "N_BOMBS", 1, 6, 1);
+  gui.add(CONFIG, "N_BOMBS", 0, 6, 1);
+  gui.add(CONFIG, "N_BOMBS_HOR", 0, 6, 1);
+  gui.add(CONFIG, "N_BOMBS_VER", 0, 6, 1);
   gui.add(CONFIG, "N_MULTIPLIERS", 1, 2, 1);
   gui.add(CONFIG, "N_SOUP", 1, 4, 1);
   gui.add(CONFIG, "CLOCK_DURATION", 1, 100, 1);
@@ -436,7 +447,7 @@ let score: number;
 let input_queue: Vec2[];
 let cur_collectables: Collectable[];
 let turn_offset: number; // always between 0..1
-let exploding_cross_particles: { center: Vec2, turn: number }[];
+let exploding_cross_particles: { center: Vec2, turn: number, dir: 'both' | 'hor' | 'ver' }[];
 let collected_stuff_particles: { center: Vec2, text: string, turn: number }[];
 let multiplier: number;
 let tick_or_tock: boolean;
@@ -542,7 +553,7 @@ function restartGame() {
   started_at_timestamp = last_timestamp;
   score = 0
   input_queue = [];
-  cur_collectables = [new Bomb(BOARD_SIZE.sub(Vec2.both(2)))];
+  cur_collectables = [];
   turn_offset = 0.99; // always between 0..1
   exploding_cross_particles = [];
   collected_stuff_particles = [];
@@ -556,6 +567,7 @@ function restartGame() {
 class Bomb {
   constructor(
     public pos: Vec2,
+    public dir: 'both' | 'hor' | 'ver',
   ) { }
 }
 
@@ -605,10 +617,10 @@ score = 0
 input_queue = [];
 cur_collectables = RECORDING_GIF ? [
   new Multiplier(new Vec2(11, 6)),
-  new Bomb(new Vec2(11, 14)),
-  new Bomb(new Vec2(12, 8)),
-  new Bomb(new Vec2(5, 6))
-] : [new Bomb(BOARD_SIZE.sub(Vec2.both(2)))];
+  new Bomb(new Vec2(11, 14), 'both'),
+  new Bomb(new Vec2(12, 8), 'both'),
+  new Bomb(new Vec2(5, 6), 'both')
+] : [];
 turn_offset = 0.99; // always between 0..1
 exploding_cross_particles = [];
 collected_stuff_particles = [];
@@ -714,7 +726,7 @@ function findSpotWithoutWall(): Vec2 {
   return pos;
 }
 
-function placeBomb(): Bomb {
+function placeBomb(dir: 'both' | 'hor' | 'ver'): Bomb {
   let candidates = fromCount(CONFIG.LUCK, _ => findSpotWithoutWall());
   let visible_walls_at_each_candidate = candidates.map(pos => {
     let count = 0;
@@ -727,7 +739,7 @@ function placeBomb(): Bomb {
   });
   let pos = candidates[argmax(visible_walls_at_each_candidate)];
 
-  return new Bomb(pos);
+  return new Bomb(pos, dir);
 }
 
 function placeMultiplier(): Multiplier {
@@ -739,21 +751,27 @@ function placeSoup(): Soup {
 }
 
 function explodeBomb(k: number) {
-  let cur_bomb = cur_collectables[k];
+  let cur_bomb = cur_collectables[k] as Bomb;
   snake_blocks_new.grid.forEachV((pos, b) => {
-    let affected = b.valid && (pos.x === cur_bomb.pos.x || pos.y === cur_bomb.pos.y);
+    let affected_hor = b.valid && pos.y === cur_bomb.pos.y;
+    let affected_ver = b.valid && pos.x === cur_bomb.pos.x;
+    let affected = cur_bomb.dir === 'both'
+      ? affected_hor || affected_ver
+      : cur_bomb.dir === 'hor'
+        ? affected_hor
+        : affected_ver;
     if (affected && b.t !== turn) {
       b.valid = false;
     }
   })
   cur_screen_shake.actualMag = 5.0;
-  cur_collectables[k] = placeBomb();
+  cur_collectables[k] = placeBomb(cur_bomb.dir);
   score += multiplier;
   bounceText('score');
   vibrateBomb();
   collected_stuff_particles.push({ center: cur_bomb.pos, text: '+' + multiplier.toString(), turn: turn });
   SOUNDS.bomb.play();
-  exploding_cross_particles.push({ center: cur_bomb.pos, turn: turn });
+  exploding_cross_particles.push({ center: cur_bomb.pos, turn: turn, dir: cur_bomb.dir });
 }
 
 function startTickTockSound(): void {
@@ -840,8 +858,14 @@ function every_frame(cur_timestamp: number) {
     doMainMenu(canvas_mouse_pos, raw_mouse_pos);
     // @ts-ignore
     if (game_state === 'playing') {
-      for (let k = cur_collectables.filter(x => x instanceof Bomb).length; k < CONFIG.N_BOMBS; k++) {
-        cur_collectables.push(placeBomb());
+      for (let k = cur_collectables.filter(x => x instanceof Bomb && x.dir === 'both').length; k < CONFIG.N_BOMBS; k++) {
+        cur_collectables.push(placeBomb('both'));
+      }
+      for (let k = cur_collectables.filter(x => x instanceof Bomb && x.dir === 'hor').length; k < CONFIG.N_BOMBS_HOR; k++) {
+        cur_collectables.push(placeBomb('hor'));
+      }
+      for (let k = cur_collectables.filter(x => x instanceof Bomb && x.dir === 'ver').length; k < CONFIG.N_BOMBS_VER; k++) {
+        cur_collectables.push(placeBomb('ver'));
       }
       for (let k = cur_collectables.filter(x => x instanceof Multiplier).length; k < CONFIG.N_MULTIPLIERS; k++) {
         cur_collectables.push(placeMultiplier());
@@ -1131,7 +1155,7 @@ function doPauseMenu(canvas_mouse_pos: Vec2, raw_mouse_pos: Vec2): boolean {
   return doGenericMenu(pause_menu, canvas_mouse_pos, raw_mouse_pos);
 }
 
-function doGenericMenu(menu: {focus: number, buttons: MenuButton[]}, canvas_mouse_pos: Vec2, raw_mouse_pos: Vec2): boolean {
+function doGenericMenu(menu: { focus: number, buttons: MenuButton[] }, canvas_mouse_pos: Vec2, raw_mouse_pos: Vec2): boolean {
   let user_clicked_something = false;
   if (menu_fake_key !== null || [
     KeyCode.KeyW, KeyCode.ArrowUp,
@@ -1274,7 +1298,9 @@ function draw(is_loading: boolean) {
       const cur_collectable = cur_collectables[k];
       if (cur_collectable instanceof Bomb) {
         const cur_bomb = cur_collectable;
-        drawItem(cur_bomb.pos.add(Vec2.both(CONFIG.SHADOW_DIST)), 'bomb', true);
+        if (cur_bomb.dir !== 'both') continue;
+        // @ts-ignore
+        drawItem(cur_bomb.pos.add(Vec2.both(CONFIG.SHADOW_DIST)), 'bomb_' + cur_bomb.dir, true);
       } else if (cur_collectable instanceof Multiplier) {
         // ctx.fillStyle = COLORS.SHADOW;
         // fillTile(cur_collectable.pos.add(Vec2.both(CONFIG.SHADOW_DIST));
@@ -1322,11 +1348,15 @@ function draw(is_loading: boolean) {
       ctx.stroke();
     }
 
-    for (let y = 0; y < BOARD_SIZE.y; y++) {
-      fillTile(new Vec2(particle.center.x, y), "EXPLOSION");
+    if (particle.dir === 'both' || particle.dir === 'ver') {
+      for (let y = 0; y < BOARD_SIZE.y; y++) {
+        fillTile(new Vec2(particle.center.x, y), "EXPLOSION");
+      }
     }
-    for (let x = 0; x < BOARD_SIZE.y; x++) {
-      fillTile(new Vec2(x, particle.center.y), "EXPLOSION");
+    if (particle.dir === 'both' || particle.dir === 'hor') {
+      for (let x = 0; x < BOARD_SIZE.y; x++) {
+        fillTile(new Vec2(x, particle.center.y), "EXPLOSION");
+      }
     }
     return true;
   });
@@ -1441,7 +1471,8 @@ function draw(is_loading: boolean) {
     const cur_collectable = cur_collectables[k];
     if (cur_collectable instanceof Bomb) {
       const cur_bomb = cur_collectable;
-      drawItem(cur_bomb.pos, 'bomb');
+      // @ts-ignore
+      drawItem(cur_bomb.pos, 'bomb_' + cur_bomb.dir);
     } else if (cur_collectable instanceof Multiplier) {
       // ctx.fillStyle = COLORS.MULTIPLIER;
       // fillTile(cur_collectable.pos);
@@ -1781,7 +1812,7 @@ function rotQuarterB(value: Vec2): Vec2 {
   return new Vec2(-value.y, value.x);
 }
 
-function drawItem(top_left: Vec2, item: "bomb" | "multiplier" | "clock" | "soup", is_shadow: boolean = false) {
+function drawItem(top_left: Vec2, item: "bomb_both" | "bomb_hor" | "bomb_ver" | "multiplier" | "clock" | "soup", is_shadow: boolean = false) {
   if (!CONFIG.WRAP_ITEMS) {
     ctx.drawImage(is_shadow ? TEXTURES.shadow[item] : TEXTURES[item], top_left.x * TILE_SIZE, top_left.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
   } else {
