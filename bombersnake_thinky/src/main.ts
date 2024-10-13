@@ -943,7 +943,10 @@ function every_frame(cur_timestamp: number) {
     throw new Error(`unhandled game state: ${game_state}`);
   }
 
-  while (Math.abs(turn_offset) >= 1) {
+  turn_offset = Math.min(1, turn_offset);
+  console.log(turn_offset);
+
+  while (turn_offset >= 1 && input_queue.length > 0) {
     turn_offset -= 1
     turn += 1
     //SOUNDS.step.play();
