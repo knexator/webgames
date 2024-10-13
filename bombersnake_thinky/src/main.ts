@@ -968,22 +968,16 @@ function every_frame(cur_timestamp: number) {
   }
 
   turn_offset = Math.min(1, turn_offset);
-  console.log(turn_offset);
 
   while (turn_offset >= 1 && input_queue.length > 0) {
-    turn_offset -= 1
-    turn += 1
-    //SOUNDS.step.play();
-
     // do turn
     let last_block = snake_blocks_new.getHead();
     let next_input: Vec2 | null = null;
     while (input_queue.length > 0) {
       let maybe_next_input = input_queue.shift()!;
       if (Math.abs(maybe_next_input.x) + Math.abs(maybe_next_input.y) !== 1
-        || maybe_next_input.equal(last_block.in_dir)
-        || maybe_next_input.equal(last_block.in_dir.scale(-1))) {
-        // ignore input
+        || maybe_next_input.equal(last_block.in_dir)) {
+        break;
       } else {
         next_input = maybe_next_input;
         break;
@@ -995,8 +989,13 @@ function every_frame(cur_timestamp: number) {
       delta = next_input;
       // randomChoice([SOUNDS.move1, SOUNDS.move2]).play();
     } else {
-      delta = last_block.in_dir.scale(-1);
+      continue;
     }
+
+    turn_offset -= 1
+    turn += 1
+    //SOUNDS.step.play();
+
     // assert: turn == last_block.t + time_direction
     if (turn == 1) {
       last_block.in_dir = delta.scale(-1);
