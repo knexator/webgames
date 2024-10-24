@@ -49,6 +49,8 @@ ld54_post
 meta_simple
 sokoban
 sokoban_raw_webgl
+shadertree
+treeditor
 
 # other git repositories, don't include them
 Shaku
