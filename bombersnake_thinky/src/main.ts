@@ -297,7 +297,7 @@ let CONFIG = {
 
 const gui = new GUI();
 {
-  gui.add(CONFIG, "SOPA", 2, 10, 6);
+  gui.add(CONFIG, "SOPA", 2, 10, 1);
   gui.add(CONFIG, "PAUSED");
   gui.add(CONFIG, "TURN_DURATION", .05, 1);
   gui.add(CONFIG, "ANIM_PERC", 0, 1);
