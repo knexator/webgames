@@ -263,6 +263,7 @@ if (is_phone) {
 
 let CONFIG = {
   SOPA: 6,
+  SOPA_PER_BOMB: 0,
   HEAD_BOUNCE: 0,
   EYE_BOUNCE: 0,
   SHARE_BUTTON_SCALE: 1.5,
@@ -298,6 +299,7 @@ let CONFIG = {
 const gui = new GUI();
 {
   gui.add(CONFIG, "SOPA", 2, 10, 1);
+  gui.add(CONFIG, "SOPA_PER_BOMB", 0, 1, 1);
   gui.add(CONFIG, "PAUSED");
   gui.add(CONFIG, "TURN_DURATION", .05, 1);
   gui.add(CONFIG, "ANIM_PERC", 0, 1);
@@ -773,6 +775,7 @@ function explodeBomb(k: number) {
   })
   cur_screen_shake.actualMag = 5.0;
   cur_collectables[k] = placeBomb(cur_bomb.dir);
+  remaining_sopa += CONFIG.SOPA_PER_BOMB;
   score += multiplier;
   bounceText('score');
   vibrateBomb();
