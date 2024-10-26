@@ -262,6 +262,7 @@ if (is_phone) {
 }
 
 let CONFIG = {
+  SOPA: 6,
   HEAD_BOUNCE: 0,
   EYE_BOUNCE: 0,
   SHARE_BUTTON_SCALE: 1.5,
@@ -296,6 +297,7 @@ let CONFIG = {
 
 const gui = new GUI();
 {
+  gui.add(CONFIG, "SOPA", 2, 10, 6);
   gui.add(CONFIG, "PAUSED");
   gui.add(CONFIG, "TURN_DURATION", .05, 1);
   gui.add(CONFIG, "ANIM_PERC", 0, 1);
@@ -444,6 +446,7 @@ let turn: number;
 let snake_blocks_new = new SnakeBlocks();
 let started_at_timestamp: number;
 let score: number;
+let remaining_sopa: number;
 let input_queue: Vec2[];
 let cur_collectables: Collectable[];
 let turn_offset: number; // always between 0..1
@@ -453,7 +456,7 @@ let multiplier: number;
 let tick_or_tock: boolean;
 let touch_input_base_point: Vec2 | null;
 let haptic: boolean;
-let game_speed: number;
+let game_speed: number; // TODO: delete
 let music_track: number;
 let menu_focus: "speed" | "music" | "resume" | "haptic";
 let share_button_state: { folded: boolean, hovered: null | 'vanilla' | 'twitter' | 'bsky' };
@@ -551,7 +554,8 @@ function restartGame() {
     ]);
   }
   started_at_timestamp = last_timestamp;
-  score = 0
+  score = 0;
+  remaining_sopa = CONFIG.SOPA;
   input_queue = [];
   cur_collectables = [];
   turn_offset = 0.99; // always between 0..1
@@ -595,6 +599,8 @@ class Soup {
   ) { }
 }
 
+Howler.mute(true);
+
 type Collectable = Bomb | Multiplier | Clock | Soup;
 
 // Loading menu
@@ -614,6 +620,7 @@ if (CONFIG.START_ON_BORDER) {
   ]);
 }
 score = 0
+remaining_sopa = CONFIG.SOPA;
 input_queue = [];
 cur_collectables = RECORDING_GIF ? [
   new Multiplier(new Vec2(11, 6)),
@@ -992,6 +999,12 @@ function every_frame(cur_timestamp: number) {
       continue;
     }
 
+    console.log(last_block.in_dir);
+    console.log(delta);
+    if (!delta.equal(last_block.in_dir.scale(-1))) {
+      remaining_sopa -= 1;
+    }
+
     turn_offset -= 1
     turn += 1
     //SOUNDS.step.play();
@@ -1042,6 +1055,7 @@ function every_frame(cur_timestamp: number) {
           stopTickTockSound();
         }
       } else if (cur_collectable instanceof Soup) {
+        remaining_sopa = CONFIG.SOPA;
         collected_stuff_particles.push({ center: cur_collectable.pos, text: 'soup', turn: turn });
         cur_collectables[k] = placeSoup();
         SOUNDS.menu2.play();
@@ -1668,7 +1682,7 @@ function draw(is_loading: boolean) {
   if (game_state !== 'loading_menu' && game_state !== 'main_menu') {
     drawImageCentered(TEXTURES.settings, new Vec2(-TILE_SIZE * 1.2, TILE_SIZE * .6), settings_overlapped ? .8 : .7);
     drawImageCentered(TEXTURES.speed, new Vec2(TILE_SIZE * .4, TILE_SIZE * .6));
-    ctx.fillText((game_speed + 1).toString(), TILE_SIZE * .9, TILE_SIZE * 1.175);
+    ctx.fillText((remaining_sopa).toString(), TILE_SIZE * .9, TILE_SIZE * 1.175);
     drawImageCentered(TEXTURES.note, new Vec2(TILE_SIZE * 2.3, TILE_SIZE * .6), .9);
     ctx.fillText(music_track.toString(), TILE_SIZE * 2.6, TILE_SIZE * 1.175);
   }
