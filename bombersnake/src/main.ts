@@ -254,6 +254,7 @@ if (is_phone) {
 }
 
 let CONFIG = {
+  SPOOKY_V2: true,
   PUMPKIN_DURATION: 35,
   PUMPKIN_MIN: 100,
   HEAD_BOUNCE: 0,
@@ -1498,21 +1499,38 @@ function draw(is_loading: boolean) {
     return true;
   });
 
-  const region = new Path2D();
-  region.rect(-MARGIN * TILE_SIZE, -MARGIN * TILE_SIZE, TILE_SIZE * (BOARD_SIZE.x + MARGIN * 2), TILE_SIZE * (BOARD_SIZE.y + MARGIN * 2));
-  for (let i = -1; i <= 1; i++) {
-    for (let j = -1; j <= 1; j++) {
-      const asdf = head_pos.add(BOARD_SIZE.mul(new Vec2(i, j))).scale(TILE_SIZE);
-      region.moveTo(asdf.x, asdf.y);
-      region.arc(asdf.x, asdf.y, lerp(250, CONFIG.PUMPKIN_MIN, spookyness), 0, 2 * Math.PI);
+  if (CONFIG.SPOOKY_V2) {
+    const region = new Path2D();
+    region.rect(-MARGIN * TILE_SIZE, -MARGIN * TILE_SIZE, TILE_SIZE * (BOARD_SIZE.x + MARGIN * 2), TILE_SIZE * (BOARD_SIZE.y + MARGIN * 2));
+    for (let i = -1; i <= 1; i++) {
+      for (let j = -1; j <= 1; j++) {
+        const asdf = head_pos.add(BOARD_SIZE.mul(new Vec2(i, j))).scale(TILE_SIZE);
+        region.moveTo(asdf.x, asdf.y);
+        region.arc(asdf.x, asdf.y, 125, 0, 2 * Math.PI);
+        // region.arc(asdf.x, asdf.y, lerp(250, CONFIG.PUMPKIN_MIN, spookyness), 0, 2 * Math.PI);
+      }
     }
+    // region.arc(TILE_SIZE * head_pos.x, TILE_SIZE * head_pos.y, 300, 0, 2 * Math.PI);
+    // region.arc(TILE_SIZE * head_pos.x, TILE_SIZE * head_pos.y, lerp(1000, 100, spookyness / 10), 0, 2 * Math.PI);
+    ctx.fillStyle = 'black';
+    ctx.globalAlpha = spookyness;
+    ctx.fill(region, "evenodd");
+    ctx.globalAlpha = 1;
+  } else {
+    const region = new Path2D();
+    region.rect(-MARGIN * TILE_SIZE, -MARGIN * TILE_SIZE, TILE_SIZE * (BOARD_SIZE.x + MARGIN * 2), TILE_SIZE * (BOARD_SIZE.y + MARGIN * 2));
+    for (let i = -1; i <= 1; i++) {
+      for (let j = -1; j <= 1; j++) {
+        const asdf = head_pos.add(BOARD_SIZE.mul(new Vec2(i, j))).scale(TILE_SIZE);
+        region.moveTo(asdf.x, asdf.y);
+        region.arc(asdf.x, asdf.y, lerp(250, CONFIG.PUMPKIN_MIN, spookyness), 0, 2 * Math.PI);
+      }
+    }
+    // region.arc(TILE_SIZE * head_pos.x, TILE_SIZE * head_pos.y, 300, 0, 2 * Math.PI);
+    // region.arc(TILE_SIZE * head_pos.x, TILE_SIZE * head_pos.y, lerp(1000, 100, spookyness / 10), 0, 2 * Math.PI);
+    ctx.fillStyle = 'black';
+    ctx.fill(region, "evenodd");
   }
-  // region.arc(TILE_SIZE * head_pos.x, TILE_SIZE * head_pos.y, 300, 0, 2 * Math.PI);
-  // region.arc(TILE_SIZE * head_pos.x, TILE_SIZE * head_pos.y, lerp(1000, 100, spookyness / 10), 0, 2 * Math.PI);
-  ctx.fillStyle = 'black';
-  // ctx.globalAlpha = .99;
-  ctx.fill(region, "evenodd");
-  // ctx.globalAlpha = 1;
 
   cur_collectables.forEach(c => {
     if (!(c instanceof Pumpkin)) return;
