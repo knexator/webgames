@@ -682,8 +682,8 @@ function updateSong() {
   }
 }
 
-// Howler.volume(1);
-Howler.volume(0);
+Howler.volume(1);
+// Howler.volume(0);
 
 const INITIAL_VOLUME = objectMap(SOUNDS, x => x.volume());
 
