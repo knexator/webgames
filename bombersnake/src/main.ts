@@ -59,23 +59,24 @@ const textures_async = await Promise.all(["bomb", "clock", "heart", "star"].flat
   .concat([loadImage("shareSG"), loadImage("shareSB")])
   .concat([loadImage("logoX"), loadImage("logoBSKY")])
   .concat([loadImage("settings"), loadImage("note"), loadImage("speed")])
+  .concat([loadImage("pumpkin_strip4")])
 );
 const TEXTURES = {
   bomb: textures_async[0],
   clock: textures_async[2],
-  pumpkin: textures_async[4],
+  pumpkin: textures_async[33],
   multiplier: textures_async[6],
   shadow: {
     bomb: textures_async[1],
     clock: textures_async[3],
-    pumpkin: textures_async[5],
+    pumpkin: textures_async[33],
     multiplier: textures_async[7],
   },
   gray: {
     bomb: textures_async[18],
     clock: textures_async[19],
     multiplier: textures_async[20],
-    pumpkin: textures_async[18],
+    pumpkin: textures_async[33],
   },
   eye: {
     open: textures_async[8],
@@ -1513,6 +1514,19 @@ function draw(is_loading: boolean) {
   ctx.fill(region, "evenodd");
   // ctx.globalAlpha = 1;
 
+  cur_collectables.forEach(c => {
+    if (!(c instanceof Pumpkin)) return;
+    const extra = .3;
+    for (let i = -1; i <= 1; i++) {
+      for (let j = -1; j <= 1; j++) {
+        ctx.drawImage(TEXTURES.pumpkin,
+          48 * (Math.floor(last_timestamp * .01) % 4), 0, 48, 48,
+          (c.pos.x + i * BOARD_SIZE.x - extra) * TILE_SIZE, (c.pos.y + j * BOARD_SIZE.y - extra + .15) * TILE_SIZE, TILE_SIZE * (1 + 2 * extra), TILE_SIZE * (1 + 2 * extra),
+        );
+      }
+    }
+  })
+
   ctx.resetTransform();
 
   // draw borders to hide stuff
@@ -1801,6 +1815,9 @@ function rotQuarterB(value: Vec2): Vec2 {
 }
 
 function drawItem(top_left: Vec2, item: "bomb" | "multiplier" | "clock" | "pumpkin", is_shadow: boolean = false) {
+  if (item === 'pumpkin') {
+    return;
+  }
   if (!CONFIG.WRAP_ITEMS) {
     ctx.drawImage(is_shadow ? TEXTURES.shadow[item] : TEXTURES[item], top_left.x * TILE_SIZE, top_left.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
   } else {
