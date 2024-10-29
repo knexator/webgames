@@ -447,7 +447,7 @@ let input_queue: Vec2[];
 let cur_collectables: Collectable[];
 let turn_offset: number; // always between 0..1
 let exploding_cross_particles: { center: Vec2, turn: number }[];
-let collected_stuff_particles: { center: Vec2, text: string, turn: number }[];
+let collected_stuff_particles: { center: Vec2, text: string, turn: number, bad?: boolean }[];
 let multiplier: number;
 let tick_or_tock: boolean;
 let touch_input_base_point: Vec2 | null;
@@ -1021,7 +1021,8 @@ function every_frame(cur_timestamp: number) {
         SOUNDS.star.play();
       } else if (cur_collectable instanceof Pumpkin) {
         spookyness = 0;
-        // collected_stuff_particles.push({ center: cur_collectable.pos, text: 'light', turn: turn });
+        multiplier = towards(multiplier, 1, 1);
+        collected_stuff_particles.push({ center: cur_collectable.pos, text: 'x' + multiplier.toString(), turn: turn, bad: true });
         cur_collectables[k] = placePumpkin();
         SOUNDS.pumpkin.play();
       } else if (cur_collectable instanceof Clock) {
@@ -1501,6 +1502,9 @@ function draw(is_loading: boolean) {
     // ctx.strokeStyle = "black";
     // ctx.strokeText(particle.text, (particle.center.x + dx) * TILE_SIZE, (particle.center.y + 1 - t * 1.5) * TILE_SIZE);
     // text shadow
+    if (particle.bad === true) {
+      t = -t;
+    }
     ctx.fillStyle = "black";
     ctx.fillText(particle.text, (particle.center.x + dx + CONFIG.SHADOW_DIST * 0.5) * TILE_SIZE, (particle.center.y + 1 - t * 1.5 + CONFIG.SHADOW_DIST * 0.5) * TILE_SIZE);
     // the text itself
