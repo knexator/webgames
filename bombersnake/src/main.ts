@@ -1516,8 +1516,8 @@ function draw(is_loading: boolean) {
       if (button.multiple_choice) {
         drawCenteredShadowedText(button.get_text(), y_coord);
         if (main_menu.focus === k) {
-          drawMenuArrowNew(y_coord, false);
-          drawMenuArrowNew(y_coord, true);
+          drawMenuArrowNew(y_coord, false, button.get_text().length);
+          drawMenuArrowNew(y_coord, true, button.get_text().length);
         }
       } else {
         drawCenteredShadowedTextWithColor(
@@ -1538,8 +1538,8 @@ function draw(is_loading: boolean) {
       if (button.multiple_choice) {
         drawCenteredShadowedText(button.get_text(), y_coord);
         if (pause_menu.focus === k) {
-          drawMenuArrowNew(y_coord, false);
-          drawMenuArrowNew(y_coord, true);
+          drawMenuArrowNew(y_coord, false, button.get_text().length);
+          drawMenuArrowNew(y_coord, true, button.get_text().length);
         }
       } else {
         drawCenteredShadowedTextWithColor(
@@ -1679,10 +1679,10 @@ function lose() {
 
 }
 
-function drawMenuArrowNew(y_coord: number, left: boolean): void {
+function drawMenuArrowNew(y_coord: number, left: boolean, text_len: number): void {
   ctx.fillStyle = COLORS.TEXT;
   const pos = new Vec2(
-    canvas_ctx.width / 2 + (left ? -1 : 1) * 3.25 * TILE_SIZE,
+    canvas_ctx.width / 2 + (left ? -1 : 1) * (text_len * 3 / 8) * TILE_SIZE,
     y_coord);
   drawImageCentered(left ? TEXTURES.menu_arrow.left : TEXTURES.menu_arrow.right, pos);
 }
