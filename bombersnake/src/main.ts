@@ -254,9 +254,12 @@ if (is_phone) {
 }
 
 let CONFIG = {
+  MIN_DARKNESS: .00,
+  MAX_DARKNESS: .95,
+  SMOOTH_LAMP: false,
   SPOOKY_V2: true,
   PUMPKIN_DURATION: 35,
-  PUMPKIN_MIN: 100,
+  PUMPKIN_MIN: 125,
   HEAD_BOUNCE: 0,
   EYE_BOUNCE: 0,
   SHARE_BUTTON_SCALE: 1.5,
@@ -288,6 +291,12 @@ let CONFIG = {
 
 const gui = new GUI();
 {
+  gui.add(CONFIG, "MIN_DARKNESS", 0, 1);
+  gui.add(CONFIG, "MAX_DARKNESS", 0, 1);
+  gui.add(CONFIG, "SMOOTH_LAMP");
+  gui.add(CONFIG, "SPOOKY_V2");
+  gui.add(CONFIG, "PUMPKIN_DURATION", 1, 100);
+  gui.add(CONFIG, "PUMPKIN_MIN", 0, 300);
   gui.add(CONFIG, "PAUSED");
   gui.add(CONFIG, "TURN_DURATION", .05, 1);
   gui.add(CONFIG, "ANIM_PERC", 0, 1);
@@ -1501,6 +1510,10 @@ function draw(is_loading: boolean) {
     return true;
   });
 
+  if (CONFIG.SMOOTH_LAMP) {
+    const head = snake_blocks_new.getHead();
+    head_pos = head.pos.add(head.in_dir).add(head.in_dir.scale(-turn_offset)).addXY(.5, .5);
+  }
   if (CONFIG.SPOOKY_V2) {
     const region = new Path2D();
     region.rect(-MARGIN * TILE_SIZE, -MARGIN * TILE_SIZE, TILE_SIZE * (BOARD_SIZE.x + MARGIN * 2), TILE_SIZE * (BOARD_SIZE.y + MARGIN * 2));
@@ -1508,14 +1521,14 @@ function draw(is_loading: boolean) {
       for (let j = -1; j <= 1; j++) {
         const asdf = head_pos.add(BOARD_SIZE.mul(new Vec2(i, j))).scale(TILE_SIZE);
         region.moveTo(asdf.x, asdf.y);
-        region.arc(asdf.x, asdf.y, 125, 0, 2 * Math.PI);
+        region.arc(asdf.x, asdf.y, CONFIG.PUMPKIN_MIN, 0, 2 * Math.PI);
         // region.arc(asdf.x, asdf.y, lerp(250, CONFIG.PUMPKIN_MIN, spookyness), 0, 2 * Math.PI);
       }
     }
     // region.arc(TILE_SIZE * head_pos.x, TILE_SIZE * head_pos.y, 300, 0, 2 * Math.PI);
     // region.arc(TILE_SIZE * head_pos.x, TILE_SIZE * head_pos.y, lerp(1000, 100, spookyness / 10), 0, 2 * Math.PI);
     ctx.fillStyle = 'black';
-    ctx.globalAlpha = spookyness;
+    ctx.globalAlpha = lerp(CONFIG.MIN_DARKNESS, CONFIG.MAX_DARKNESS, spookyness);
     ctx.fill(region, "evenodd");
     ctx.globalAlpha = 1;
   } else {
