@@ -428,6 +428,7 @@ let turn: number;
 let snake_blocks_new = new SnakeBlocks();
 let started_at_timestamp: number;
 let score: number;
+let spookyness: number;
 let input_queue: Vec2[];
 let cur_collectables: Collectable[];
 let turn_offset: number; // always between 0..1
@@ -536,6 +537,7 @@ function restartGame() {
   }
   started_at_timestamp = last_timestamp;
   score = 0
+  spookyness = 0;
   input_queue = [];
   cur_collectables = [new Bomb(BOARD_SIZE.sub(Vec2.both(2)))];
   turn_offset = 0.99; // always between 0..1
@@ -549,6 +551,12 @@ function restartGame() {
 }
 
 class Bomb {
+  constructor(
+    public pos: Vec2,
+  ) { }
+}
+
+class Pumpkin {
   constructor(
     public pos: Vec2,
   ) { }
@@ -572,7 +580,7 @@ class Clock {
   }
 }
 
-type Collectable = Bomb | Multiplier | Clock;
+type Collectable = Bomb | Multiplier | Clock | Pumpkin;
 
 // Loading menu
 game_state = "loading_menu";
@@ -591,6 +599,7 @@ if (CONFIG.START_ON_BORDER) {
   ]);
 }
 score = 0
+spookyness = 0;
 input_queue = [];
 cur_collectables = RECORDING_GIF ? [
   new Multiplier(new Vec2(11, 6)),
@@ -811,6 +820,7 @@ function every_frame(cur_timestamp: number) {
     // turn_offset += delta_time / CONFIG.TURN_DURATION;
 
     if (input.mouse.wasPressed(MouseButton.Left)) {
+      SOUNDS.waffel.play();
       game_state = "main_menu";
     }
   } else if (game_state === "pause_menu") {
@@ -835,7 +845,6 @@ function every_frame(cur_timestamp: number) {
       // setTimeout(() => {
       //   SOUNDS.waffel.play();
       // }, 400);
-      SOUNDS.waffel.play();
       const initial_song = SONGS[music_track]!;
       // SONGS[music_track].play()
       // setTimeout(() => {
@@ -997,6 +1006,8 @@ function every_frame(cur_timestamp: number) {
           SOUNDS.clock.play();
           stopTickTockSound();
         }
+      } else if (cur_collectable instanceof Pumpkin) {
+        spookyness = 0;
       } else {
         throw new Error();
       }
@@ -1102,7 +1113,7 @@ function doPauseMenu(canvas_mouse_pos: Vec2, raw_mouse_pos: Vec2): boolean {
   return doGenericMenu(pause_menu, canvas_mouse_pos, raw_mouse_pos);
 }
 
-function doGenericMenu(menu: {focus: number, buttons: MenuButton[]}, canvas_mouse_pos: Vec2, raw_mouse_pos: Vec2): boolean {
+function doGenericMenu(menu: { focus: number, buttons: MenuButton[] }, canvas_mouse_pos: Vec2, raw_mouse_pos: Vec2): boolean {
   let user_clicked_something = false;
   if (menu_fake_key !== null || [
     KeyCode.KeyW, KeyCode.ArrowUp,
