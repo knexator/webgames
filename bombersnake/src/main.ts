@@ -2,7 +2,7 @@ import * as twgl from "twgl.js"
 import GUI from "lil-gui";
 import { Input, KeyCode, Mouse, MouseButton } from "./kommon/input";
 import { DefaultMap, deepcopy, fromCount, fromRange, objectMap, repeat, zip2 } from "./kommon/kommon";
-import { mod, towards as approach, lerp, inRange, clamp, argmax, argmin, max, remap, clamp01, randomInt, randomFloat, randomChoice, doSegmentsIntersect, closestPointOnSegment, roundTo } from "./kommon/math";
+import { mod, towards as approach, lerp, inRange, clamp, argmax, argmin, max, remap, clamp01, randomInt, randomFloat, randomChoice, doSegmentsIntersect, closestPointOnSegment, roundTo, towards } from "./kommon/math";
 import { Howl } from "howler"
 import { Vec2 } from "./kommon/vec2"
 import * as noise from './kommon/noise';
@@ -63,18 +63,19 @@ const textures_async = await Promise.all(["bomb", "clock", "heart", "star"].flat
 const TEXTURES = {
   bomb: textures_async[0],
   clock: textures_async[2],
-  heart: textures_async[4],
+  pumpkin: textures_async[4],
   multiplier: textures_async[6],
   shadow: {
     bomb: textures_async[1],
     clock: textures_async[3],
-    heart: textures_async[5],
+    pumpkin: textures_async[5],
     multiplier: textures_async[7],
   },
   gray: {
     bomb: textures_async[18],
     clock: textures_async[19],
     multiplier: textures_async[20],
+    pumpkin: textures_async[18],
   },
   eye: {
     open: textures_async[8],
@@ -252,6 +253,8 @@ if (is_phone) {
 }
 
 let CONFIG = {
+  PUMPKIN_DURATION: 35,
+  PUMPKIN_MIN: 100,
   HEAD_BOUNCE: 0,
   EYE_BOUNCE: 0,
   SHARE_BUTTON_SCALE: 1.5,
@@ -674,6 +677,7 @@ const SOUNDS = {
   move2: sounds_async[4],
   crash: sounds_async[5],
   star: sounds_async[6],
+  pumpkin: sounds_async[6],
   clock: sounds_async[7],
   tick: sounds_async[8],
   tock: sounds_async[9],
@@ -726,6 +730,10 @@ function placeBomb(): Bomb {
   let pos = candidates[argmax(visible_walls_at_each_candidate)];
 
   return new Bomb(pos);
+}
+
+function placePumpkin(): Pumpkin {
+  return new Pumpkin(findSpotWithoutWall());
 }
 
 function placeMultiplier(): Multiplier {
@@ -840,6 +848,9 @@ function every_frame(cur_timestamp: number) {
       }
       for (let k = cur_collectables.filter(x => x instanceof Multiplier).length; k < CONFIG.N_MULTIPLIERS; k++) {
         cur_collectables.push(placeMultiplier());
+      }
+      for (let k = cur_collectables.filter(x => x instanceof Pumpkin).length; k < 1; k++) {
+        cur_collectables.push(placePumpkin());
       }
       cur_collectables.push(new Clock());
       // setTimeout(() => {
@@ -995,6 +1006,11 @@ function every_frame(cur_timestamp: number) {
         collected_stuff_particles.push({ center: cur_collectable.pos, text: 'x' + multiplier.toString(), turn: turn });
         cur_collectables[k] = placeMultiplier();
         SOUNDS.star.play();
+      } else if (cur_collectable instanceof Pumpkin) {
+        spookyness = 0;
+        // collected_stuff_particles.push({ center: cur_collectable.pos, text: 'light', turn: turn });
+        cur_collectables[k] = placePumpkin();
+        SOUNDS.pumpkin.play();
       } else if (cur_collectable instanceof Clock) {
         const clock = cur_collectable;
         if (clock.active) {
@@ -1006,8 +1022,6 @@ function every_frame(cur_timestamp: number) {
           SOUNDS.clock.play();
           stopTickTockSound();
         }
-      } else if (cur_collectable instanceof Pumpkin) {
-        spookyness = 0;
       } else {
         throw new Error();
       }
@@ -1019,6 +1033,8 @@ function every_frame(cur_timestamp: number) {
       if (cur_collectable instanceof Bomb) {
         // nothing
       } else if (cur_collectable instanceof Multiplier) {
+        // nothing
+      } else if (cur_collectable instanceof Pumpkin) {
         // nothing
       } else if (cur_collectable instanceof Clock) {
         const clock = cur_collectable;
@@ -1040,6 +1056,8 @@ function every_frame(cur_timestamp: number) {
         throw new Error();
       }
     }
+
+    spookyness = towards(spookyness, 1, 1 / CONFIG.PUMPKIN_DURATION);
   }
 
   let cur_shake_mag = cur_screen_shake.actualMag * (1 + Math.cos(last_timestamp * .25) * .25)
@@ -1261,6 +1279,8 @@ function draw(is_loading: boolean) {
         // ctx.fillStyle = COLORS.SHADOW;
         // fillTile(cur_collectable.pos.add(Vec2.both(CONFIG.SHADOW_DIST));
         drawItem(cur_collectable.pos.add(Vec2.both(CONFIG.SHADOW_DIST)), 'multiplier', true);
+      } else if (cur_collectable instanceof Pumpkin) {
+        drawItem(cur_collectable.pos.add(Vec2.both(CONFIG.SHADOW_DIST)), 'pumpkin', true);
       } else if (cur_collectable instanceof Clock) {
         const clock = cur_collectable;
         if (clock.active) {
@@ -1309,6 +1329,7 @@ function draw(is_loading: boolean) {
     return true;
   });
 
+  let head_pos = Vec2.zero;
   // snake body
   snake_blocks_new.grid.forEachV((_, cur_block) => {
     if (!cur_block.valid) return;
@@ -1337,6 +1358,8 @@ function draw(is_loading: boolean) {
       if (turn_offset < CONFIG.ANIM_PERC) {
         center = center.add(cur_block.in_dir.scale(1 - turn_offset / CONFIG.ANIM_PERC));
       }
+
+      head_pos = center;
 
       const real_center = center.scale(TILE_SIZE);
       ctx.translate(real_center.x, real_center.y);
@@ -1424,6 +1447,8 @@ function draw(is_loading: boolean) {
       // ctx.fillStyle = COLORS.MULTIPLIER;
       // fillTile(cur_collectable.pos);
       drawItem(cur_collectable.pos, 'multiplier');
+    } else if (cur_collectable instanceof Pumpkin) {
+      drawItem(cur_collectable.pos, 'pumpkin');
     } else if (cur_collectable instanceof Clock) {
       const clock = cur_collectable;
       if (clock.active) {
@@ -1471,6 +1496,22 @@ function draw(is_loading: boolean) {
     ctx.fillText(particle.text, (particle.center.x + dx) * TILE_SIZE, (particle.center.y + 1 - t * 1.5) * TILE_SIZE);
     return true;
   });
+
+  const region = new Path2D();
+  region.rect(-MARGIN * TILE_SIZE, -MARGIN * TILE_SIZE, TILE_SIZE * (BOARD_SIZE.x + MARGIN * 2), TILE_SIZE * (BOARD_SIZE.y + MARGIN * 2));
+  for (let i = -1; i <= 1; i++) {
+    for (let j = -1; j <= 1; j++) {
+      const asdf = head_pos.add(BOARD_SIZE.mul(new Vec2(i, j))).scale(TILE_SIZE);
+      region.moveTo(asdf.x, asdf.y);
+      region.arc(asdf.x, asdf.y, lerp(250, CONFIG.PUMPKIN_MIN, spookyness), 0, 2 * Math.PI);
+    }
+  }
+  // region.arc(TILE_SIZE * head_pos.x, TILE_SIZE * head_pos.y, 300, 0, 2 * Math.PI);
+  // region.arc(TILE_SIZE * head_pos.x, TILE_SIZE * head_pos.y, lerp(1000, 100, spookyness / 10), 0, 2 * Math.PI);
+  ctx.fillStyle = 'black';
+  // ctx.globalAlpha = .99;
+  ctx.fill(region, "evenodd");
+  // ctx.globalAlpha = 1;
 
   ctx.resetTransform();
 
@@ -1759,7 +1800,7 @@ function rotQuarterB(value: Vec2): Vec2 {
   return new Vec2(-value.y, value.x);
 }
 
-function drawItem(top_left: Vec2, item: "bomb" | "multiplier" | "clock", is_shadow: boolean = false) {
+function drawItem(top_left: Vec2, item: "bomb" | "multiplier" | "clock" | "pumpkin", is_shadow: boolean = false) {
   if (!CONFIG.WRAP_ITEMS) {
     ctx.drawImage(is_shadow ? TEXTURES.shadow[item] : TEXTURES[item], top_left.x * TILE_SIZE, top_left.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
   } else {
