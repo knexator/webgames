@@ -682,8 +682,8 @@ function updateSong() {
   }
 }
 
-Howler.volume(1);
-// Howler.volume(0);
+// Howler.volume(1);
+Howler.volume(0);
 
 const INITIAL_VOLUME = objectMap(SOUNDS, x => x.volume());
 
@@ -1601,6 +1601,9 @@ function draw(is_loading: boolean) {
 
   if (game_state !== 'loading_menu' && game_state !== 'main_menu') {
     drawImageCentered(TEXTURES.settings, new Vec2(-TILE_SIZE * 1.2, TILE_SIZE * .6), settings_overlapped ? .8 : .7);
+  }
+
+  if (game_state !== 'loading_menu') {
     drawImageCentered(TEXTURES.speed, new Vec2(TILE_SIZE * .4, TILE_SIZE * .6));
     ctx.fillText((game_speed + 1).toString(), TILE_SIZE * .9, TILE_SIZE * 1.175);
     drawImageCentered(TEXTURES.note, new Vec2(TILE_SIZE * 2.3, TILE_SIZE * .6), .9);
