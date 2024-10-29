@@ -297,7 +297,7 @@ const gui = new GUI();
   gui.add(CONFIG, "MIN_DARKNESS", 0, 1);
   gui.add(CONFIG, "MAX_DARKNESS", 0, 1);
   gui.add(CONFIG, "SMOOTH_LAMP");
-  gui.add(CONFIG, "SPOOKY_V2");
+  gui.add(CONFIG, "FIXED_LAMP_SIZE");
   gui.add(CONFIG, "PUMPKIN_DURATION", 1, 100);
   gui.add(CONFIG, "LAMP_RADIUS", 0, 300);
   gui.add(CONFIG, "PAUSED");
