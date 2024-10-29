@@ -257,8 +257,8 @@ let CONFIG = {
   BLOCKY_LAMP: false,
   BLOCKY_MIN: 3,
   BLOCKY_MAX: 5,
-  MIN_DARKNESS: .00,
-  MAX_DARKNESS: .95,
+  MIN_DARKNESS: 0.00,
+  MAX_DARKNESS: 1.00,
   SMOOTH_LAMP: false,
   SPOOKY_V2: true,
   PUMPKIN_DURATION: 35,
@@ -299,7 +299,7 @@ const gui = new GUI();
   gui.add(CONFIG, "SMOOTH_LAMP");
   gui.add(CONFIG, "SPOOKY_V2");
   gui.add(CONFIG, "PUMPKIN_DURATION", 1, 100);
-  gui.add(CONFIG, "PUMPKIN_MIN", 0, 300);
+  gui.add(CONFIG, "LAMP_RADIUS", 0, 300);
   gui.add(CONFIG, "PAUSED");
   gui.add(CONFIG, "TURN_DURATION", .05, 1);
   gui.add(CONFIG, "ANIM_PERC", 0, 1);
