@@ -2,7 +2,7 @@ import * as twgl from "twgl.js"
 import GUI from "lil-gui";
 import { Input, KeyCode, Mouse, MouseButton } from "./kommon/input";
 import { DefaultMap, deepcopy, fromCount, fromRange, objectMap, repeat, zip2 } from "./kommon/kommon";
-import { mod, towards as approach, lerp, inRange, clamp, argmax, argmin, max, remap, clamp01, randomInt, randomFloat, randomChoice, doSegmentsIntersect, closestPointOnSegment, roundTo, towards } from "./kommon/math";
+import { mod, towards as approach, lerp, inRange, clamp, argmax, argmin, max, remap, clamp01, randomInt, randomFloat, randomChoice, doSegmentsIntersect, closestPointOnSegment, roundTo, towards, inverseLerp } from "./kommon/math";
 import { Howl } from "howler"
 import { Vec2 } from "./kommon/vec2"
 import * as noise from './kommon/noise';
@@ -254,6 +254,9 @@ if (is_phone) {
 }
 
 let CONFIG = {
+  BLOCKY_LAMP: false,
+  BLOCKY_MIN: 3,
+  BLOCKY_MAX: 5,
   MIN_DARKNESS: .00,
   MAX_DARKNESS: .95,
   SMOOTH_LAMP: false,
@@ -1518,7 +1521,31 @@ function draw(is_loading: boolean) {
     const head = snake_blocks_new.getHead();
     head_pos = head.pos.add(head.in_dir).add(head.in_dir.scale(-turn_offset)).addXY(.5, .5);
   }
-  if (CONFIG.SPOOKY_V2) {
+  if (CONFIG.BLOCKY_LAMP) {
+    ctx.fillStyle = "black";
+    head_pos = snake_blocks_new.head_pos;
+    for (let i = 0; i < BOARD_SIZE.x; i++) {
+      for (let j = 0; j < BOARD_SIZE.y; j++) {
+        const dx = Math.min(
+          Math.abs(head_pos.x - i),
+          Math.abs(head_pos.x + BOARD_SIZE.x - i),
+          Math.abs(head_pos.x - BOARD_SIZE.x - i),
+        );
+        const dy = Math.min(
+          Math.abs(head_pos.y - j),
+          Math.abs(head_pos.y + BOARD_SIZE.y - j),
+          Math.abs(head_pos.y - BOARD_SIZE.y - j),
+        );
+        ctx.beginPath();
+        ctx.globalAlpha = lerp(
+          CONFIG.MIN_DARKNESS, CONFIG.MAX_DARKNESS, spookyness * clamp01(
+            inverseLerp(CONFIG.BLOCKY_MIN, CONFIG.BLOCKY_MAX, dx + dy)));
+        rectTile(new Vec2(i, j));
+        ctx.fill();
+      }
+    }
+    ctx.globalAlpha = 1;
+  } else if (CONFIG.SPOOKY_V2) {
     const region = new Path2D();
     region.rect(-MARGIN * TILE_SIZE, -MARGIN * TILE_SIZE, TILE_SIZE * (BOARD_SIZE.x + MARGIN * 2), TILE_SIZE * (BOARD_SIZE.y + MARGIN * 2));
     for (let i = -1; i <= 1; i++) {
@@ -1921,6 +1948,14 @@ function fillTile(pos: Vec2, type: keyof typeof COLORS) {
     for (let j = -1; j <= 1; j++) {
       setFill(i === 0 && j === 0, type);
       ctx.fillRect((pos.x + i * BOARD_SIZE.x) * TILE_SIZE, (pos.y + j * BOARD_SIZE.y) * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+    }
+  }
+}
+
+function rectTile(pos: Vec2) {
+  for (let i = -1; i <= 1; i++) {
+    for (let j = -1; j <= 1; j++) {
+      ctx.rect((pos.x + i * BOARD_SIZE.x) * TILE_SIZE, (pos.y + j * BOARD_SIZE.y) * TILE_SIZE, TILE_SIZE, TILE_SIZE);
     }
   }
 }
