@@ -258,9 +258,9 @@ let CONFIG = {
   BLOCKY_MIN: 3,
   BLOCKY_MAX: 5,
   MIN_DARKNESS: 0.00,
-  MAX_DARKNESS: 1.00,
+  MAX_DARKNESS: .50,
   SMOOTH_LAMP: false,
-  SPOOKY_V2: true,
+  FIXED_LAMP_SIZE: false,
   PUMPKIN_DURATION: 35,
   LAMP_RADIUS: 125,
   HEAD_BOUNCE: 0,
@@ -1545,7 +1545,7 @@ function draw(is_loading: boolean) {
       }
     }
     ctx.globalAlpha = 1;
-  } else if (CONFIG.SPOOKY_V2) {
+  } else if (CONFIG.FIXED_LAMP_SIZE) {
     const region = new Path2D();
     region.rect(-MARGIN * TILE_SIZE, -MARGIN * TILE_SIZE, TILE_SIZE * (BOARD_SIZE.x + MARGIN * 2), TILE_SIZE * (BOARD_SIZE.y + MARGIN * 2));
     for (let i = -1; i <= 1; i++) {
@@ -1575,7 +1575,9 @@ function draw(is_loading: boolean) {
     // region.arc(TILE_SIZE * head_pos.x, TILE_SIZE * head_pos.y, 300, 0, 2 * Math.PI);
     // region.arc(TILE_SIZE * head_pos.x, TILE_SIZE * head_pos.y, lerp(1000, 100, spookyness / 10), 0, 2 * Math.PI);
     ctx.fillStyle = 'black';
+    ctx.globalAlpha = lerp(CONFIG.MIN_DARKNESS, CONFIG.MAX_DARKNESS, spookyness);
     ctx.fill(region, "evenodd");
+    ctx.globalAlpha = 1;
   }
 
   cur_collectables.forEach(c => {
