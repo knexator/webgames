@@ -638,7 +638,7 @@ const sounds_async = await Promise.all([
   loadSoundAsync(mp3Url("tock"), 1),
   loadSoundAsync(wavUrl("menu1"), .25),
   loadSoundAsync(wavUrl("menu2"), .25),
-  loadSoundAsync(wavUrl("waffel"), 1.1),
+  loadSoundAsync(mp3Url("voice_halloween"), 1.1),
 ]);
 
 const async_songs = [
