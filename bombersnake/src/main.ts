@@ -1036,8 +1036,9 @@ function every_frame(cur_timestamp: number) {
         spooky_radius_grow = { turn: turn, old: spookyness };
         spookyness = 0;
         // multiplier = towards(multiplier, 1, 1);
-        score = towards(score, 0, multiplier * 2);
-        collected_stuff_particles.push({ center: cur_collectable.pos, text: '-' + (multiplier * 4).toString(), turn: turn, bad: true });
+        const loss = multiplier * 2;
+        score = towards(score, 0, loss);
+        collected_stuff_particles.push({ center: cur_collectable.pos, text: '-' + loss.toString(), turn: turn, bad: true });
         cur_collectables[k] = placePumpkin();
         SOUNDS.pumpkin.play();
       } else if (cur_collectable instanceof Clock) {
