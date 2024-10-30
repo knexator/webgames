@@ -371,9 +371,9 @@ const GRAYSCALE = {
 const COLORS = {
   WEB_BG: "#417e62",
   BORDER: "#8ccbf2",
-  BACKGROUND: "#323232",
-  BACKGROUND_2: "#363636",
-  BACKGROUND_3: "#292929",
+  BACKGROUND: "#36224a",
+  BACKGROUND_2: "#33255a",
+  BACKGROUND_3: "#241630",
   BOMB: "#dd4646",
   TEXT: "#f4f4f4",
   GRAY_TEXT: "#b4b4b4",
