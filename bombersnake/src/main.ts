@@ -845,6 +845,21 @@ function every_frame(cur_timestamp: number) {
 
     if (input.mouse.wasPressed(MouseButton.Left)) {
       SOUNDS.waffel.play();
+      // setTimeout(() => {
+      //   SOUNDS.waffel.play();
+      // }, 400);
+      const initial_song = SONGS[music_track];
+      if (initial_song !== null && !initial_song.playing()) {
+        // SONGS[music_track].play()
+        // setTimeout(() => {
+        const original_volume = initial_song.volume()
+        if (!initial_song.playing()) initial_song.play()
+        initial_song.fade(0, original_volume, 1200);
+        // }, 200);
+        // setTimeout(() => SONGS[music_track].play(), 1500);
+        // SONGS[music_track].play();
+        // SONGS[music_track].fade(0, 1, 2000);
+      }
       game_state = "main_menu";
     }
   } else if (game_state === "pause_menu") {
@@ -869,21 +884,6 @@ function every_frame(cur_timestamp: number) {
         cur_collectables.push(placePumpkin());
       }
       cur_collectables.push(new Clock());
-      // setTimeout(() => {
-      //   SOUNDS.waffel.play();
-      // }, 400);
-      const initial_song = SONGS[music_track];
-      if (initial_song !== null && !initial_song.playing()) {
-        // SONGS[music_track].play()
-        // setTimeout(() => {
-        const original_volume = initial_song.volume()
-        if (!initial_song.playing()) initial_song.play()
-        initial_song.fade(0, original_volume, 1200);
-        // }, 200);
-        // setTimeout(() => SONGS[music_track].play(), 1500);
-        // SONGS[music_track].play();
-        // SONGS[music_track].fade(0, 1, 2000);
-      }
     }
   } else if (game_state === "lost") {
     if (input.keyboard.wasPressed(KeyCode.KeyR)) {
