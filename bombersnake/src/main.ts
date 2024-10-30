@@ -256,7 +256,7 @@ if (is_phone) {
 }
 
 let CONFIG = {
-  PUMPKIN_RESTORE_ANIM_DURATION: 1.25,
+  PUMPKIN_RESTORE_ANIM_DURATION: .1,
   BLOCKY_LAMP: false,
   BLOCKY_MIN: 3,
   BLOCKY_MAX: 5,
@@ -275,7 +275,7 @@ let CONFIG = {
   ANIM_PERC: 0.2,
   BORDER_ARROWS: false,
   CHEAT_INMORTAL: false,
-  N_BOMBS: 3,
+  N_BOMBS: 4,
   N_MULTIPLIERS: 1,
   CLOCK_VALUE: 4,
   CLOCK_DURATION: 25,
@@ -642,7 +642,7 @@ collected_stuff_particles = [];
 multiplier = 1;
 tick_or_tock = false;
 touch_input_base_point = null;
-game_speed = is_phone ? 0 : 1;
+game_speed = 0;
 haptic = true;
 music_track = 1;
 menu_focus = "resume";
@@ -1036,7 +1036,7 @@ function every_frame(cur_timestamp: number) {
         spooky_radius_grow = { turn: turn, old: spookyness };
         spookyness = 0;
         // multiplier = towards(multiplier, 1, 1);
-        score = towards(score, 0, multiplier * 4);
+        score = towards(score, 0, multiplier * 2);
         collected_stuff_particles.push({ center: cur_collectable.pos, text: '-' + (multiplier * 4).toString(), turn: turn, bad: true });
         cur_collectables[k] = placePumpkin();
         SOUNDS.pumpkin.play();
