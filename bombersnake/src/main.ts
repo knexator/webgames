@@ -366,13 +366,14 @@ const GRAYSCALE = {
   SCARF_OUT: "#545454",
   SCARF_IN: "#545454",
   HEAD: "#848484",
+  NORMAL_BAR: 'cyan',
   HIGHLIGHT_BAR: 'cyan',
   TEXT_WIN_SCORE: 'black',
   TEXT_WIN_SCORE_2: "gray",
 };
 
 const COLORS = {
-  WEB_BG: "#AF6F00",
+  WEB_BG: "black",
   BORDER: "#8ccbf2",
   BACKGROUND: "#36224a",
   BACKGROUND_2: "#33255a",
@@ -389,7 +390,8 @@ const COLORS = {
   SCARF_OUT: "#2d3ba4",
   SCARF_IN: "#547e2a",
   HEAD: "#85ce36",
-  HIGHLIGHT_BAR: "black",
+  NORMAL_BAR: "#7A4D00",
+  HIGHLIGHT_BAR: "#7A4D00",
   TEXT_WIN_SCORE: "white",
   TEXT_WIN_SCORE_2: "grey",
 };
@@ -1745,7 +1747,7 @@ function draw(is_loading: boolean) {
   // draw UI bar
   ctx.font = `bold ${Math.floor(30 * TILE_SIZE / 32)}px sans-serif`;
   ctx.translate(MARGIN * TILE_SIZE, (TOP_OFFSET + MARGIN - CONFIG.DRAW_WRAP - 1 - .4) * TILE_SIZE);
-  ctx.fillStyle = game_state === 'lost' ? COLORS.HIGHLIGHT_BAR : "black";
+  ctx.fillStyle = game_state === 'lost' ? COLORS.HIGHLIGHT_BAR : COLORS.NORMAL_BAR;
   ctx.fillRect(-CONFIG.DRAW_WRAP * TILE_SIZE, 0, (BOARD_SIZE.x + CONFIG.DRAW_WRAP * 2) * TILE_SIZE, TILE_SIZE * 1.2);
   ctx.fillStyle = "white";
   ctx.textAlign = "left";
