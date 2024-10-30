@@ -448,6 +448,7 @@ let snake_blocks_new = new SnakeBlocks();
 let started_at_timestamp: number;
 let score: number;
 let spookyness: number;
+let spooky_radius_grow: { turn: number, old: number } | null;
 let input_queue: Vec2[];
 let cur_collectables: Collectable[];
 let turn_offset: number; // always between 0..1
@@ -557,6 +558,7 @@ function restartGame() {
   started_at_timestamp = last_timestamp;
   score = 0
   spookyness = 0;
+  spooky_radius_grow = null;
   input_queue = [];
   cur_collectables = [new Bomb(BOARD_SIZE.sub(Vec2.both(2)))];
   turn_offset = 0.99; // always between 0..1
@@ -619,6 +621,7 @@ if (CONFIG.START_ON_BORDER) {
 }
 score = 0
 spookyness = 0;
+spooky_radius_grow = null;
 input_queue = [];
 cur_collectables = RECORDING_GIF ? [
   new Multiplier(new Vec2(11, 6)),
@@ -1019,9 +1022,11 @@ function every_frame(cur_timestamp: number) {
         cur_collectables[k] = placeMultiplier();
         SOUNDS.star.play();
       } else if (cur_collectable instanceof Pumpkin) {
+        spooky_radius_grow = { turn: turn, old: spookyness };
         spookyness = 0;
-        multiplier = towards(multiplier, 1, 1);
-        collected_stuff_particles.push({ center: cur_collectable.pos, text: 'x' + multiplier.toString(), turn: turn, bad: true });
+        // multiplier = towards(multiplier, 1, 1);
+        score = towards(score, 0, multiplier * 4);
+        collected_stuff_particles.push({ center: cur_collectable.pos, text: '-' + (multiplier * 4).toString(), turn: turn, bad: true });
         cur_collectables[k] = placePumpkin();
         SOUNDS.pumpkin.play();
       } else if (cur_collectable instanceof Clock) {
@@ -1070,7 +1075,9 @@ function every_frame(cur_timestamp: number) {
       }
     }
 
-    spookyness = towards(spookyness, 1, 1 / CONFIG.PUMPKIN_DURATION);
+    if (spooky_radius_grow === null) {
+      spookyness = towards(spookyness, 1, 1 / CONFIG.PUMPKIN_DURATION);
+    }
   }
 
   let cur_shake_mag = cur_screen_shake.actualMag * (1 + Math.cos(last_timestamp * .25) * .25)
@@ -1507,7 +1514,7 @@ function draw(is_loading: boolean) {
     ctx.fillStyle = "black";
     ctx.fillText(particle.text, (particle.center.x + dx + CONFIG.SHADOW_DIST * 0.5) * TILE_SIZE, (particle.center.y + 1 - t * 1.5 + CONFIG.SHADOW_DIST * 0.5) * TILE_SIZE);
     // the text itself
-    ctx.fillStyle = COLORS.TEXT;
+    ctx.fillStyle = particle.bad ? "orange" : COLORS.TEXT;
 
     ctx.fillText(particle.text, (particle.center.x + dx) * TILE_SIZE, (particle.center.y + 1 - t * 1.5) * TILE_SIZE);
     return true;
@@ -1544,20 +1551,36 @@ function draw(is_loading: boolean) {
   } else if (CONFIG.FIXED_LAMP_SIZE) {
     const region = new Path2D();
     region.rect(-MARGIN * TILE_SIZE, -MARGIN * TILE_SIZE, TILE_SIZE * (BOARD_SIZE.x + MARGIN * 2), TILE_SIZE * (BOARD_SIZE.y + MARGIN * 2));
-    for (let i = -1; i <= 1; i++) {
-      for (let j = -1; j <= 1; j++) {
-        const asdf = head_pos.add(BOARD_SIZE.mul(new Vec2(i, j))).scale(TILE_SIZE);
-        region.moveTo(asdf.x, asdf.y);
-        region.arc(asdf.x, asdf.y, CONFIG.END_LAMP_RADIUS, 0, 2 * Math.PI);
-        // region.arc(asdf.x, asdf.y, lerp(250, CONFIG.PUMPKIN_MIN, spookyness), 0, 2 * Math.PI);
+    if (spooky_radius_grow !== null) {
+      const t = (turn + turn_offset - spooky_radius_grow.turn) / 2;
+      console.log(spooky_radius_grow.turn, turn, t);
+      const asdf = head_pos.add(BOARD_SIZE.mul(new Vec2(0, 0))).scale(TILE_SIZE);
+      region.moveTo(asdf.x, asdf.y);
+      region.arc(asdf.x, asdf.y, lerp(CONFIG.END_LAMP_RADIUS, TILE_SIZE * (BOARD_SIZE.x * 1.5), t), 0, 2 * Math.PI);
+      // region.arc(asdf.x, asdf.y, lerp(spooky_radius_grow.old, 400, 1 - t), 0, 2 * Math.PI);
+      ctx.fillStyle = 'black';
+      ctx.globalAlpha = lerp(CONFIG.MIN_DARKNESS, CONFIG.MAX_DARKNESS, spooky_radius_grow.old);
+      ctx.fill(region, "evenodd");
+      ctx.globalAlpha = 1;
+      if (t >= 1) {
+        spooky_radius_grow = null;
       }
+    } else {
+      for (let i = -1; i <= 1; i++) {
+        for (let j = -1; j <= 1; j++) {
+          const asdf = head_pos.add(BOARD_SIZE.mul(new Vec2(i, j))).scale(TILE_SIZE);
+          region.moveTo(asdf.x, asdf.y);
+          region.arc(asdf.x, asdf.y, CONFIG.END_LAMP_RADIUS, 0, 2 * Math.PI);
+          // region.arc(asdf.x, asdf.y, lerp(250, CONFIG.PUMPKIN_MIN, spookyness), 0, 2 * Math.PI);
+        }
+      }
+      // region.arc(TILE_SIZE * head_pos.x, TILE_SIZE * head_pos.y, 300, 0, 2 * Math.PI);
+      // region.arc(TILE_SIZE * head_pos.x, TILE_SIZE * head_pos.y, lerp(1000, 100, spookyness / 10), 0, 2 * Math.PI);
+      ctx.fillStyle = 'black';
+      ctx.globalAlpha = lerp(CONFIG.MIN_DARKNESS, CONFIG.MAX_DARKNESS, spookyness);
+      ctx.fill(region, "evenodd");
+      ctx.globalAlpha = 1;
     }
-    // region.arc(TILE_SIZE * head_pos.x, TILE_SIZE * head_pos.y, 300, 0, 2 * Math.PI);
-    // region.arc(TILE_SIZE * head_pos.x, TILE_SIZE * head_pos.y, lerp(1000, 100, spookyness / 10), 0, 2 * Math.PI);
-    ctx.fillStyle = 'black';
-    ctx.globalAlpha = lerp(CONFIG.MIN_DARKNESS, CONFIG.MAX_DARKNESS, spookyness);
-    ctx.fill(region, "evenodd");
-    ctx.globalAlpha = 1;
   } else {
     const region = new Path2D();
     region.rect(-MARGIN * TILE_SIZE, -MARGIN * TILE_SIZE, TILE_SIZE * (BOARD_SIZE.x + MARGIN * 2), TILE_SIZE * (BOARD_SIZE.y + MARGIN * 2));
