@@ -1715,7 +1715,7 @@ function draw(is_loading: boolean) {
     drawCenteredShadowedText(is_phone ? 'Tap here to Restart' : `R to Restart`, (TOP_OFFSET + MARGIN + BOARD_SIZE.y * 3 / 4) * TILE_SIZE);
 
     if (!hide_end_text) {
-      drawCenteredShadowedTextMultiline(['We suck at PR, please help us', 'bring the game to more people.'], menuYCoordOf("share") - TILE_SIZE * 4.5, 1);
+      drawCenteredShadowedTextMultiline(['ONLINE LEADERBOARD', 'in the next update :)', "Don't miss it!"], menuYCoordOf("share") - TILE_SIZE * 4.5, 1);
     }
     const share_button_scale = CONFIG.SHARE_BUTTON_SCALE;
     if (share_button_state.folded) {
