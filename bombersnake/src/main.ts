@@ -262,7 +262,8 @@ let CONFIG = {
   SMOOTH_LAMP: false,
   FIXED_LAMP_SIZE: true,
   PUMPKIN_DURATION: 80,
-  LAMP_RADIUS: 75,
+  START_LAMP_RADIUS: 250,
+  END_LAMP_RADIUS: 75,
   HEAD_BOUNCE: 0,
   EYE_BOUNCE: 0,
   SHARE_BUTTON_SCALE: 1.5,
@@ -299,7 +300,8 @@ const gui = new GUI();
   gui.add(CONFIG, "SMOOTH_LAMP");
   gui.add(CONFIG, "FIXED_LAMP_SIZE");
   gui.add(CONFIG, "PUMPKIN_DURATION", 1, 100);
-  gui.add(CONFIG, "LAMP_RADIUS", 0, 300);
+  gui.add(CONFIG, "START_LAMP_RADIUS", 0, 325);
+  gui.add(CONFIG, "END_LAMP_RADIUS", 0, 250);
   gui.add(CONFIG, "PAUSED");
   gui.add(CONFIG, "TURN_DURATION", .05, 1);
   gui.add(CONFIG, "ANIM_PERC", 0, 1);
@@ -1546,7 +1548,7 @@ function draw(is_loading: boolean) {
       for (let j = -1; j <= 1; j++) {
         const asdf = head_pos.add(BOARD_SIZE.mul(new Vec2(i, j))).scale(TILE_SIZE);
         region.moveTo(asdf.x, asdf.y);
-        region.arc(asdf.x, asdf.y, CONFIG.LAMP_RADIUS, 0, 2 * Math.PI);
+        region.arc(asdf.x, asdf.y, CONFIG.END_LAMP_RADIUS, 0, 2 * Math.PI);
         // region.arc(asdf.x, asdf.y, lerp(250, CONFIG.PUMPKIN_MIN, spookyness), 0, 2 * Math.PI);
       }
     }
@@ -1563,7 +1565,7 @@ function draw(is_loading: boolean) {
       for (let j = -1; j <= 1; j++) {
         const asdf = head_pos.add(BOARD_SIZE.mul(new Vec2(i, j))).scale(TILE_SIZE);
         region.moveTo(asdf.x, asdf.y);
-        region.arc(asdf.x, asdf.y, lerp(250, CONFIG.LAMP_RADIUS, spookyness), 0, 2 * Math.PI);
+        region.arc(asdf.x, asdf.y, lerp(CONFIG.START_LAMP_RADIUS, CONFIG.END_LAMP_RADIUS, spookyness), 0, 2 * Math.PI);
       }
     }
     // region.arc(TILE_SIZE * head_pos.x, TILE_SIZE * head_pos.y, 300, 0, 2 * Math.PI);
