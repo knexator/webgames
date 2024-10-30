@@ -666,6 +666,7 @@ const sounds_async = await Promise.all([
   loadSoundAsync(wavUrl("menu1"), .25),
   loadSoundAsync(wavUrl("menu2"), .25),
   loadSoundAsync(mp3Url("voice_halloween"), 1.1),
+  loadSoundAsync(mp3Url("LAUGH"), 1),
 ]);
 
 const async_songs = [
@@ -695,7 +696,7 @@ const SOUNDS = {
   move2: sounds_async[4],
   crash: sounds_async[5],
   star: sounds_async[6],
-  pumpkin: sounds_async[6],
+  pumpkin: sounds_async[13],
   clock: sounds_async[7],
   tick: sounds_async[8],
   tock: sounds_async[9],
@@ -782,6 +783,7 @@ function startTickTockSound(): void {
   SONGS.forEach((music, k) => music?.fade(music.volume(), CONFIG.MUSIC_DURING_TICKTOCK * INITIAL_VOLUME_SONGS[k]!, .3));
   SOUNDS.bomb.fade(SOUNDS.bomb.volume(), CONFIG.MUSIC_DURING_TICKTOCK * INITIAL_VOLUME.bomb, .3);
   SOUNDS.star.fade(SOUNDS.star.volume(), CONFIG.MUSIC_DURING_TICKTOCK * INITIAL_VOLUME.star, .3);
+  SOUNDS.pumpkin.fade(SOUNDS.pumpkin.volume(), CONFIG.MUSIC_DURING_TICKTOCK * INITIAL_VOLUME.pumpkin, .3);
   tick_tock_interval_id = setInterval(() => {
     (tick_or_tock ? SOUNDS.tick : SOUNDS.tock).play();
     tick_or_tock = !tick_or_tock;
@@ -792,6 +794,7 @@ function stopTickTockSound(): void {
     SONGS.forEach((music, k) => music?.fade(music.volume(), INITIAL_VOLUME_SONGS[k]!, .3));
     SOUNDS.bomb.fade(SOUNDS.bomb.volume(), INITIAL_VOLUME.bomb, .3);
     SOUNDS.star.fade(SOUNDS.star.volume(), INITIAL_VOLUME.star, .3);
+    SOUNDS.pumpkin.fade(SOUNDS.pumpkin.volume(), INITIAL_VOLUME.pumpkin, .3);
     clearInterval(tick_tock_interval_id);
     tick_tock_interval_id = null;
   }
@@ -1027,6 +1030,7 @@ function every_frame(cur_timestamp: number) {
         cur_collectables[k] = placeMultiplier();
         SOUNDS.star.play();
       } else if (cur_collectable instanceof Pumpkin) {
+        SOUNDS.pumpkin.play();
         spooky_radius_grow = { turn: turn, old: spookyness };
         spookyness = 0;
         // multiplier = towards(multiplier, 1, 1);
