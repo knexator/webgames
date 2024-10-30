@@ -256,6 +256,7 @@ if (is_phone) {
 }
 
 let CONFIG = {
+  PUMPKIN_RESTORE_ANIM_DURATION: 1.25,
   BLOCKY_LAMP: false,
   BLOCKY_MIN: 3,
   BLOCKY_MAX: 5,
@@ -1554,7 +1555,7 @@ function draw(is_loading: boolean) {
     const region = new Path2D();
     region.rect(-MARGIN * TILE_SIZE, -MARGIN * TILE_SIZE, TILE_SIZE * (BOARD_SIZE.x + MARGIN * 2), TILE_SIZE * (BOARD_SIZE.y + MARGIN * 2));
     if (spooky_radius_grow !== null) {
-      const t = (turn + turn_offset - spooky_radius_grow.turn) / 2;
+      const t = (turn + turn_offset - spooky_radius_grow.turn) / CONFIG.PUMPKIN_RESTORE_ANIM_DURATION;
       console.log(spooky_radius_grow.turn, turn, t);
       const asdf = head_pos.add(BOARD_SIZE.mul(new Vec2(0, 0))).scale(TILE_SIZE);
       region.moveTo(asdf.x, asdf.y);
