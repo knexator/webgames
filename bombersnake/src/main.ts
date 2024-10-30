@@ -355,6 +355,7 @@ const GRAYSCALE = {
   BACKGROUND_3: "#292929",
   BOMB: "#555555",
   TEXT: "#f4f4f4",
+  TEXT_BAR: "black",
   GRAY_TEXT: "#b4b4b4",
   SNAKE_HEAD: '#848484',
   SNAKE_WALL: '#666666',
@@ -379,6 +380,7 @@ const COLORS = {
   BACKGROUND_2: "#33255a",
   BACKGROUND_3: "#241630",
   BOMB: "#dd4646",
+  TEXT_BAR: "black",
   TEXT: "#f4f4f4",
   GRAY_TEXT: "#b4b4b4",
   SNAKE_HEAD: '#80c535',
@@ -1756,11 +1758,14 @@ function draw(is_loading: boolean) {
   ctx.fillStyle = "white";
   ctx.textAlign = "left";
   ctx.textBaseline = "bottom";
+  ctx.fillStyle = game_state === 'lost'
+    ? blinking(1000, last_timestamp, COLORS.TEXT_WIN_SCORE, COLORS.TEXT_WIN_SCORE_2)
+    : COLORS.TEXT_BAR;
   fillJumpyText('multiplier', `x${multiplier}`, (16.5 - .5 * Math.floor(Math.log10(multiplier))) * TILE_SIZE, 1.15 * TILE_SIZE);
 
   ctx.fillStyle = game_state === 'lost'
     ? blinking(1000, last_timestamp, COLORS.TEXT_WIN_SCORE, COLORS.TEXT_WIN_SCORE_2)
-    : COLORS.TEXT;
+    : COLORS.TEXT_BAR;
   fillJumpyText('score', `Score: ${score}`, (5.9 - .25 * Math.floor(Math.log10(Math.max(1, score)))) * TILE_SIZE, 1.15 * TILE_SIZE);
   // ctx.drawImage(TEXTURES.multiplier, 12.5 * TILE_SIZE, 0, TILE_SIZE, TILE_SIZE);
 
