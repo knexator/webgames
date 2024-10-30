@@ -59,7 +59,7 @@ const textures_async = await Promise.all(["bomb", "clock", "heart", "star"].flat
   .concat([loadImage("shareSG"), loadImage("shareSB")])
   .concat([loadImage("logoX"), loadImage("logoBSKY")])
   .concat([loadImage("settings"), loadImage("note"), loadImage("speed")])
-  .concat([loadImage("pumpkin_strip4")])
+  .concat([loadImage("pumpkin_strip4"), loadImage("pumpkin_strip4_G")])
 );
 const TEXTURES = {
   bomb: textures_async[0],
@@ -76,7 +76,7 @@ const TEXTURES = {
     bomb: textures_async[18],
     clock: textures_async[19],
     multiplier: textures_async[20],
-    pumpkin: textures_async[33],
+    pumpkin: textures_async[34],
   },
   eye: {
     open: textures_async[8],
@@ -1604,7 +1604,10 @@ function draw(is_loading: boolean) {
     const extra = .3;
     for (let i = -1; i <= 1; i++) {
       for (let j = -1; j <= 1; j++) {
-        ctx.drawImage(TEXTURES.pumpkin,
+        ctx.drawImage(
+          (i === 0 && j === 0)
+            ? TEXTURES.pumpkin
+            : TEXTURES.gray.pumpkin,
           48 * (Math.floor(last_timestamp * .01) % 4), 0, 48, 48,
           (c.pos.x + i * BOARD_SIZE.x - extra) * TILE_SIZE, (c.pos.y + j * BOARD_SIZE.y - extra + .15) * TILE_SIZE, TILE_SIZE * (1 + 2 * extra), TILE_SIZE * (1 + 2 * extra),
         );
