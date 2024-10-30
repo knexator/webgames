@@ -261,7 +261,7 @@ let CONFIG = {
   MAX_DARKNESS: 1,
   SMOOTH_LAMP: false,
   FIXED_LAMP_SIZE: true,
-  PUMPKIN_DURATION: 35,
+  PUMPKIN_DURATION: 80,
   START_LAMP_RADIUS: 250,
   END_LAMP_RADIUS: 75,
   HEAD_BOUNCE: 0,
@@ -1024,8 +1024,9 @@ function every_frame(cur_timestamp: number) {
       } else if (cur_collectable instanceof Pumpkin) {
         spooky_radius_grow = { turn: turn, old: spookyness };
         spookyness = 0;
-        multiplier = towards(multiplier, 1, 1);
-        collected_stuff_particles.push({ center: cur_collectable.pos, text: 'x' + multiplier.toString(), turn: turn, bad: true });
+        // multiplier = towards(multiplier, 1, 1);
+        score = towards(score, 0, multiplier * 4);
+        collected_stuff_particles.push({ center: cur_collectable.pos, text: '-' + (multiplier * 4).toString(), turn: turn, bad: true });
         cur_collectables[k] = placePumpkin();
         SOUNDS.pumpkin.play();
       } else if (cur_collectable instanceof Clock) {
@@ -1513,7 +1514,7 @@ function draw(is_loading: boolean) {
     ctx.fillStyle = "black";
     ctx.fillText(particle.text, (particle.center.x + dx + CONFIG.SHADOW_DIST * 0.5) * TILE_SIZE, (particle.center.y + 1 - t * 1.5 + CONFIG.SHADOW_DIST * 0.5) * TILE_SIZE);
     // the text itself
-    ctx.fillStyle = COLORS.TEXT;
+    ctx.fillStyle = particle.bad ? "orange" : COLORS.TEXT;
 
     ctx.fillText(particle.text, (particle.center.x + dx) * TILE_SIZE, (particle.center.y + 1 - t * 1.5) * TILE_SIZE);
     return true;
