@@ -60,8 +60,10 @@ const textures_async = await Promise.all(["bomb", "clock", "heart", "star"].flat
   .concat([loadImage("logoX"), loadImage("logoBSKY")])
   .concat([loadImage("settings"), loadImage("note"), loadImage("speed")])
   .concat([loadImage("pumpkin_strip4"), loadImage("pumpkin_strip4_G")])
+  .concat([loadImage("spiderweb")])
 );
 const TEXTURES = {
+  web: textures_async[35],
   bomb: textures_async[0],
   clock: textures_async[2],
   pumpkin: textures_async[33],
@@ -1679,6 +1681,8 @@ function draw(is_loading: boolean) {
         );
       }
     });
+
+    ctx.drawImage(TEXTURES.web, 5, 5 + TOP_OFFSET * TILE_SIZE);
   } else if (game_state === "lost") {
 
     // drawCenteredShadowedText(`Score: ${score}`, (TOP_OFFSET + MARGIN + BOARD_SIZE.y / 4) * TILE_SIZE);
