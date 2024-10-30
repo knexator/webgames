@@ -659,22 +659,16 @@ const sounds_async = await Promise.all([
 ]);
 
 const async_songs = [
-  loadSoundAsync(mp3Url("Song2"), 0.35, true),
-  loadSoundAsync(mp3Url("Song3"), 0.35, true),
-  loadSoundAsync(mp3Url("Song4"), 0.35, true),
-  loadSoundAsync(mp3Url("Song5"), 0.40, true),
-  loadSoundAsync(mp3Url("Song6"), 0.40, true),
-  loadSoundAsync(mp3Url("Song7"), 0.35, true),
+  loadSoundAsync(mp3Url("Song2"), 0.5, true),
+  loadSoundAsync(mp3Url("Song3"), 0.5, true),
+  loadSoundAsync(mp3Url("Song4"), 0.5, true),
 ];
 
 const INITIAL_VOLUME_SONGS = [
-  0, 1,
-  0.35,
-  0.35,
-  0.35,
-  0.40,
-  0.40,
-  0.35,
+  0, 0.5,
+  0.5,
+  0.5,
+  0.5,
 ];
 
 const SONGS = [null, sounds_async[0], ...async_songs.map(_ => null)];
