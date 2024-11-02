@@ -61,8 +61,10 @@ const textures_async = await Promise.all(["bomb", "clock", "heart", "star"].flat
   .concat([loadImage("settings"), loadImage("note"), loadImage("speed")])
   .concat([loadImage("pumpkin_strip4"), loadImage("pumpkin_strip4_G")])
   .concat([loadImage("spiderweb")])
+  .concat([loadImage("black_circle")])
 );
 const TEXTURES = {
+  black_circle: textures_async[36],
   web: textures_async[35],
   bomb: textures_async[0],
   clock: textures_async[2],
@@ -1578,19 +1580,14 @@ function draw(is_loading: boolean) {
         spooky_radius_grow = null;
       }
     } else {
-      for (let i = -1; i <= 1; i++) {
-        for (let j = -1; j <= 1; j++) {
-          const asdf = head_pos.add(BOARD_SIZE.mul(new Vec2(i, j))).scale(TILE_SIZE);
-          region.moveTo(asdf.x, asdf.y);
-          region.arc(asdf.x, asdf.y, CONFIG.END_LAMP_RADIUS, 0, 2 * Math.PI);
-          // region.arc(asdf.x, asdf.y, lerp(250, CONFIG.PUMPKIN_MIN, spookyness), 0, 2 * Math.PI);
-        }
-      }
-      // region.arc(TILE_SIZE * head_pos.x, TILE_SIZE * head_pos.y, 300, 0, 2 * Math.PI);
-      // region.arc(TILE_SIZE * head_pos.x, TILE_SIZE * head_pos.y, lerp(1000, 100, spookyness / 10), 0, 2 * Math.PI);
       ctx.fillStyle = 'black';
       ctx.globalAlpha = lerp(CONFIG.MIN_DARKNESS, CONFIG.MAX_DARKNESS, spookyness);
-      ctx.fill(region, "evenodd");
+      for (let i = -1; i <= 1; i++) {
+        for (let j = -1; j <= 1; j++) {
+          const asdf = head_pos.add(BOARD_SIZE.mul(new Vec2(i, j))).sub(new Vec2(2.5, 2.5)).scale(TILE_SIZE);
+          ctx.drawImage(TEXTURES.black_circle, asdf.x, asdf.y);
+        }
+      }
       ctx.globalAlpha = 1;
     }
   } else {
