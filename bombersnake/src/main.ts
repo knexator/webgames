@@ -7,6 +7,7 @@ import { Howl } from "howler"
 import { Vec2 } from "./kommon/vec2"
 import * as noise from './kommon/noise';
 import { Grid2D } from "./kommon/grid2D";
+import JSON5 from 'json5';
 
 
 // TODO: animated scarf not rounded right after corner
@@ -17,6 +18,7 @@ import { Grid2D } from "./kommon/grid2D";
 // TODO: only have 2 buttons on tap
 
 const RECORDING_GIF = false;
+const DEBUG_CORS = false;
 
 const input = new Input();
 const canvas_ctx = document.querySelector<HTMLCanvasElement>("#ctx_canvas")!;
@@ -440,10 +442,56 @@ let touch_input_base_point: Vec2 | null;
 let haptic: boolean;
 let game_speed: number;
 let music_track: number;
-let menu_focus: "speed" | "music" | "resume" | "haptic";
 let share_button_state: { folded: boolean, hovered: null | 'vanilla' | 'twitter' | 'bsky' };
 let last_lost_timestamp = 0;
 let settings_overlapped = false;
+
+class LeaderboardData {
+  public scores: 'loading' | 'error' | { name: string | null, score: number }[];
+  public submit_status: 'none' | 'submitting' | 'submitted' = 'none';
+
+  constructor(center: number) {
+    this.scores = 'loading';
+    this.fetchAndUpdate(score);
+  }
+
+  async fetchAndUpdate(center: number) {
+    const corsProxy = 'https://cors-anywhere.herokuapp.com/';
+    const url = `https://php.droqen.com/storescore/bombsnack/do_get_nearby.php?score=${center}`;
+    const true_url = DEBUG_CORS ? `${corsProxy}${url}` : url;
+    const response = await fetch(true_url);
+    const asdf = await response.text();
+    const data = JSON5.parse(asdf);
+    if (data.err !== 0) {
+      this.scores = 'error';
+    } else {
+      this.scores = data.scores;
+      if (typeof this.scores === 'string') throw new Error("unreachable");
+      this.scores.push({ name: null, score: center });
+      this.scores = this.scores.sort((a, b) => b.score - a.score);
+    }
+  }
+
+  submit() {
+    if (this.submit_status !== 'none') return;
+    this.submit_status = 'submitting';
+    const name = prompt('your name for the leaderboard:')
+    if (name === null) {
+      this.submit_status = 'none';
+      return
+    }
+    const corsProxy = 'https://cors-anywhere.herokuapp.com/';
+    const url = `https://php.droqen.com/storescore/bombsnack/do_new_score.php?name=${name}&score=${score}`;
+    const true_url = DEBUG_CORS ? `${corsProxy}${url}` : url;
+    const response = fetch(true_url);
+    const asdf = this;
+    response.then(x => {
+      asdf.submit_status = 'submitted';
+    })
+  }
+}
+
+let leaderboard_data: LeaderboardData | null = null;
 
 type MenuButton = { multiple_choice: boolean, get_text: () => string, y_coord: number, callback: (delta_x: number) => void };
 const main_menu: { focus: number, buttons: MenuButton[] } = {
@@ -518,6 +566,39 @@ const pause_menu: { focus: number, buttons: MenuButton[] } = {
   ],
 };
 
+const lost_menu: { focus: number, buttons: MenuButton[] } = {
+  focus: 1,
+  buttons: [
+    {
+      multiple_choice: false,
+      get_text: () => {
+        if (leaderboard_data === null) return 'bug! call knexator';
+        switch (leaderboard_data.submit_status) {
+          case 'none':
+            return 'Submit score'
+          case "submitting":
+            return 'Submitting...'
+          case "submitted":
+            return 'Score submited!'
+        }
+      },
+      y_coord: .9,
+      callback: (dx: number) => {
+        leaderboard_data!.submit();
+        // restartGame();
+      }
+    },
+    {
+      multiple_choice: false,
+      get_text: () => is_phone ? 'Tap here to Restart' : `R to Restart`,
+      y_coord: 1,
+      callback: (dx: number) => {
+        restartGame();
+      }
+    },
+  ],
+};
+
 function restartGame() {
   stopTickTockSound();
   game_state = "main_menu";
@@ -537,6 +618,7 @@ function restartGame() {
   }
   started_at_timestamp = last_timestamp;
   score = 0
+  leaderboard_data = null;
   spookyness = 0;
   input_queue = [];
   cur_collectables = [new Bomb(BOARD_SIZE.sub(Vec2.both(2)))];
@@ -546,7 +628,6 @@ function restartGame() {
   multiplier = 1;
   tick_or_tock = false;
   touch_input_base_point = null;
-  menu_focus = "resume";
   share_button_state = { hovered: null, folded: true };
 }
 
@@ -599,6 +680,7 @@ if (CONFIG.START_ON_BORDER) {
   ]);
 }
 score = 0
+leaderboard_data = null;
 spookyness = 0;
 input_queue = [];
 cur_collectables = RECORDING_GIF ? [
@@ -616,12 +698,10 @@ touch_input_base_point = null;
 game_speed = is_phone ? 0 : 1;
 haptic = true;
 music_track = 1;
-menu_focus = "resume";
 share_button_state = { folded: true, hovered: null };
 
 let last_timestamp = 0;
 const bouncyTexts = new Map<string, number>();
-let hide_end_text = false;
 
 draw(true);
 
@@ -691,8 +771,8 @@ function updateSong() {
   }
 }
 
-Howler.volume(1);
-// Howler.volume(0);
+// Howler.volume(1);
+Howler.volume(0);
 
 const INITIAL_VOLUME = objectMap(SOUNDS, x => x.volume());
 
@@ -794,9 +874,6 @@ function every_frame(cur_timestamp: number) {
   if (input.keyboard.wasPressed(KeyCode.KeyK)) {
     gui.show(gui._hidden);
   }
-  if (input.keyboard.wasPressed(KeyCode.KeyH)) {
-    hide_end_text = true;
-  }
 
   // if (input.keyboard.wasPressed(KeyCode.KeyM)) {
   //   // SONGS[music_track].mute(!SONGS[music_track].mute());
@@ -859,52 +936,28 @@ function every_frame(cur_timestamp: number) {
       }
     }
   } else if (game_state === "lost") {
-    if (input.keyboard.wasPressed(KeyCode.KeyR)) {
+    doGenericMenu(lost_menu, canvas_mouse_pos, raw_mouse_pos);
+
+    if (input.keyboard.wasPressed(KeyCode.Escape) || (input.mouse.wasPressed(MouseButton.Left) && settings_overlapped)) {
       restartGame();
-    }
-    else if (input.keyboard.wasPressed(KeyCode.Escape) || (input.mouse.wasPressed(MouseButton.Left) && settings_overlapped)) {
-      restartGame();
+      // TODO: bug here
       game_state = "pause_menu";
     }
 
-    let pressed_some_menu_button = false;
-    if (share_button_state.folded) {
-      const share_vanilla = new Vec2(percX(.5), menuYCoordOf('share'));
-      share_button_state.hovered = (share_vanilla.sub(raw_mouse_pos).mag() < TILE_SIZE * CONFIG.SHARE_BUTTON_SCALE) ? "vanilla" : null;
-      if (input.mouse.wasPressed(MouseButton.Left) && share_button_state.hovered === 'vanilla') {
-        share_button_state.folded = false;
-        share_button_state.hovered = null;
-        pressed_some_menu_button = true;
-        SOUNDS.waffel.play();
-      }
-    } else {
-      const share_vanilla = new Vec2(percX(.5), menuYCoordOf('share'));
-      const pos_twitter = share_vanilla.addX(-TILE_SIZE * 2);
-      const pos_bsky = share_vanilla.addX(TILE_SIZE * 2);
-      share_button_state.hovered = (pos_twitter.sub(raw_mouse_pos).mag() < TILE_SIZE * CONFIG.SHARE_BUTTON_SCALE)
-        ? "twitter"
-        : (pos_bsky.sub(raw_mouse_pos).mag() < TILE_SIZE * CONFIG.SHARE_BUTTON_SCALE)
-          ? 'bsky'
-          : null;
-      if (input.mouse.wasPressed(MouseButton.Left) && share_button_state.hovered !== null) {
-        const message = generateShareMessage()
-        if (share_button_state.hovered === 'twitter') {
-          const tweet = encodeURIComponent(message);
-          const twitterUrl = `https://twitter.com/intent/tweet?text=${tweet}`;
-          window.open(twitterUrl, '_blank');
-        } else if (share_button_state.hovered === 'bsky') {
-          const post = encodeURIComponent(message);
-          const blueskyUrl = `https://bsky.app/intent/compose?text=${post}`;
-          window.open(blueskyUrl, '_blank');
-        }
-        pressed_some_menu_button = true;
-        share_button_state.hovered = null;
-      }
-    }
+    // if (input.keyboard.wasPressed(KeyCode.KeyR)) {
+    //   restartGame();
+    // }
+    // else if (input.keyboard.wasPressed(KeyCode.Escape) || (input.mouse.wasPressed(MouseButton.Left) && settings_overlapped)) {
+    //   restartGame();
+    //   game_state = "pause_menu";
+    // }
+    // else if (input.mouse.wasPressed(MouseButton.Left)) {
+    //   leaderboard_data!.submit();
+    // }
 
-    if (!pressed_some_menu_button && input.mouse.wasPressed(MouseButton.Left) && canvas_mouse_pos.y < BOARD_SIZE.y * TILE_SIZE) {
-      restartGame();
-    }
+    // if (!pressed_some_menu_button && input.mouse.wasPressed(MouseButton.Left) && canvas_mouse_pos.y < BOARD_SIZE.y * TILE_SIZE) {
+    //   restartGame();
+    // }
   } else if (game_state === "playing") {
     if ([
       KeyCode.KeyW, KeyCode.ArrowUp,
@@ -1563,31 +1616,44 @@ function draw(is_loading: boolean) {
     });
   } else if (game_state === "lost") {
 
-    // drawCenteredShadowedText(`Score: ${score}`, (TOP_OFFSET + MARGIN + BOARD_SIZE.y / 4) * TILE_SIZE);
-    drawCenteredShadowedText(is_phone ? 'Tap here to Restart' : `R to Restart`, (TOP_OFFSET + MARGIN + BOARD_SIZE.y * 3 / 4) * TILE_SIZE);
-
-    if (!hide_end_text) {
-      drawCenteredShadowedTextMultiline(['We suck at PR, please help us', 'bring the game to more people.'], menuYCoordOf("share") - TILE_SIZE * 4.5, 1);
-    }
-    const share_button_scale = CONFIG.SHARE_BUTTON_SCALE;
-    if (share_button_state.folded) {
-      const pos = new Vec2(canvas_ctx.width / 2, menuYCoordOf("share"));
-      drawImageCentered(TEXTURES.share.vanilla_shadow, pos.add(Vec2.both(CONFIG.SHADOW_TEXT)), share_button_scale);
-      if (share_button_state.hovered === 'vanilla') {
-        drawImageCentered(TEXTURES.share.vanilla, pos.sub(Vec2.both(CONFIG.SHADOW_TEXT / 2)), share_button_scale);
-      }
-      else {
-        drawImageCentered(TEXTURES.share.vanilla, pos, share_button_scale);
-      }
+    if (leaderboard_data === null) throw new Error("unreachable");
+    let k = 0;
+    if (leaderboard_data.scores === 'loading') {
+      drawCenteredShadowedText('Loading leaderboard...', real_y(.5));
+    } else if (leaderboard_data.scores === 'error') {
+      drawCenteredShadowedText('Could not load leaderboard', real_y(.5));
     } else {
-      const center = new Vec2(canvas_ctx.width / 2, menuYCoordOf("share"));
-      drawImageCentered(TEXTURES.share.twitter, center.addX(-TILE_SIZE * 2)
-        .sub(share_button_state.hovered === 'twitter' ? Vec2.both(CONFIG.SHADOW_TEXT / 2) : Vec2.zero), share_button_scale);
-      drawImageCentered(TEXTURES.share.bsky, center.addX(TILE_SIZE * 2)
-        .sub(share_button_state.hovered === 'bsky' ? Vec2.both(CONFIG.SHADOW_TEXT / 2) : Vec2.zero), share_button_scale);
+      for (const { name, score } of leaderboard_data.scores) {
+        const y = 4 * TILE_SIZE + k * (TILE_SIZE + 1.8);
+        ctx.textAlign = 'left';
+        const color = name === null ? 'red' : COLORS.TEXT;
+        fillTextWithShadow(new Vec2((MARGIN + 1) * TILE_SIZE, y),
+          color, name === null ? 'YOU' : name)
+        ctx.textAlign = 'right';
+        fillTextWithShadow(new Vec2((MARGIN - 1 + BOARD_SIZE.x) * TILE_SIZE, y),
+          color, score.toString());
+        k += 1;
+      }
+      ctx.textAlign = "center";
     }
 
-    // ctx.fillText("", canvas.width / 2, canvas.height / 2);
+    lost_menu.buttons.forEach((button, k) => {
+      const y_coord = real_y(button.y_coord);
+      if (button.multiple_choice) {
+        drawCenteredShadowedText(button.get_text(), y_coord);
+        if (lost_menu.focus === k) {
+          drawMenuArrowNew(y_coord, false, button.get_text().length);
+          drawMenuArrowNew(y_coord, true, button.get_text().length);
+        }
+      } else {
+        drawCenteredShadowedTextWithColor(
+          (lost_menu.focus === k) ? COLORS.TEXT : COLORS.GRAY_TEXT,
+          button.get_text(), y_coord
+        );
+      }
+    });
+
+    // drawCenteredShadowedText(is_phone ? 'Tap here to Restart' : `R to Restart`, real_y(1));
   } else if (game_state === "playing") {
     // nothing
   } else {
@@ -1677,8 +1743,8 @@ function percX(x: number): number {
 function lose() {
   stopTickTockSound();
   game_state = "lost";
-  menu_focus = 'music';
   last_lost_timestamp = last_timestamp;
+  leaderboard_data = new LeaderboardData(score);
 
   // draw(false);
   // canvas_ctx.toBlob(async (blob) => {
@@ -1894,6 +1960,14 @@ function drawCenteredShadowedTextWithColor(color: string, text: string, yCoord: 
   ctx.fillText(text, canvas_ctx.width / 2 + CONFIG.SHADOW_TEXT, yCoord + CONFIG.SHADOW_TEXT);
   ctx.fillStyle = color;
   ctx.fillText(text, canvas_ctx.width / 2, yCoord);
+}
+
+function fillTextWithShadow(pos: Vec2, color: string, text: string, scale: number = 1) {
+  ctx.font = `bold ${Math.floor(scale * 30 * TILE_SIZE / 32)}px sans-serif`;
+  ctx.fillStyle = "black";
+  ctx.fillText(text, pos.x + CONFIG.SHADOW_TEXT, pos.y + CONFIG.SHADOW_TEXT);
+  ctx.fillStyle = color;
+  ctx.fillText(text, pos.x, pos.y);
 }
 
 function drawImageCentered(image: HTMLImageElement, center: Vec2, scale: number = 1) {
