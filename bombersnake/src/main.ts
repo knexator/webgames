@@ -447,12 +447,15 @@ let last_lost_timestamp = 0;
 let settings_overlapped = false;
 
 class LeaderboardData {
-  public scores: 'loading' | 'error' | { name: string | null, score: number }[];
+  public around_scores: 'loading' | 'error' | { name: string | null, score: number }[];
+  public top_scores: 'loading' | 'error' | { name: string, score: number }[];
   public submit_status: 'none' | 'submitting' | 'submitted' = 'none';
 
   constructor(center: number) {
-    this.scores = 'loading';
-    this.fetchAndUpdate(score);
+    this.around_scores = 'loading';
+    this.top_scores = 'loading';
+    this.fetchAndUpdate(center);
+    this.fetchAndUpdateTopScores();
   }
 
   async fetchAndUpdate(center: number) {
@@ -465,21 +468,40 @@ class LeaderboardData {
       console.log(asdf);
       const data = JSON5.parse(asdf);
       if (data.err !== 0) {
-        this.scores = 'error';
+        this.around_scores = 'error';
       } else {
-        this.scores = data.scores;
-        if (typeof this.scores === 'string') throw new Error("unreachable");
-        this.scores.push({ name: null, score: center });
-        this.scores = this.scores.sort((a, b) => b.score - a.score);
+        this.around_scores = data.scores;
+        if (typeof this.around_scores === 'string') throw new Error("unreachable");
+        this.around_scores.push({ name: null, score: center });
+        this.around_scores = this.around_scores.sort((a, b) => b.score - a.score);
       }
     } catch (error) {
-      this.scores = 'error';
+      this.around_scores = 'error';
+    }
+  }
+
+  async fetchAndUpdateTopScores() {
+    const corsProxy = 'https://cors-anywhere.herokuapp.com/';
+    const url = `https://php.droqen.com/storescore/bombsnack/do_get_top10.php`;
+    const true_url = DEBUG_CORS ? `${corsProxy}${url}` : url;
+    try {
+      const response = await fetch(true_url);
+      const asdf = await response.text();
+      console.log(asdf);
+      const data = JSON5.parse(asdf);
+      if (data.err !== 0) {
+        this.top_scores = 'error';
+      } else {
+        this.top_scores = data.scores.slice(0, 3);
+      }
+    } catch (error) {
+      this.top_scores = 'error';
     }
   }
 
   submit() {
     if (this.submit_status !== 'none') return;
-    if (this.scores === 'error') return;
+    if (this.around_scores === 'error') return;
     this.submit_status = 'submitting';
     const name = prompt('your name for the leaderboard:')
     if (name === null) {
@@ -1624,20 +1646,20 @@ function draw(is_loading: boolean) {
 
     if (leaderboard_data === null) throw new Error("unreachable");
     let k = 0;
-    if (leaderboard_data.scores === 'loading') {
-      drawCenteredShadowedText('Loading leaderboard...', real_y(.5));
-    } else if (leaderboard_data.scores === 'error') {
+    if (leaderboard_data.around_scores === 'error' || leaderboard_data.top_scores === 'error') {
       drawCenteredShadowedText('Could not load leaderboard', real_y(.5));
+    } else if (leaderboard_data.around_scores === 'loading' || leaderboard_data.top_scores === 'loading') {
+      drawCenteredShadowedText('Loading leaderboard...', real_y(.5));
     } else {
-      for (const { name, score } of leaderboard_data.scores) {
-        const y = 4 * TILE_SIZE + k * (TILE_SIZE + 1.8);
-        ctx.textAlign = 'left';
-        const color = name === null ? COLORS.HEAD : COLORS.TEXT;
-        fillTextWithShadow(new Vec2((MARGIN + 1) * TILE_SIZE, y),
-          color, name === null ? 'YOU' : name)
-        ctx.textAlign = 'right';
-        fillTextWithShadow(new Vec2((MARGIN - 1 + BOARD_SIZE.x) * TILE_SIZE, y),
-          color, score.toString());
+      for (const { name, score } of leaderboard_data.top_scores) {
+        drawScore(name, score, k);
+        k += 1;
+      }
+
+      drawSeparator(k);
+      k += 1;
+      for (const { name, score } of leaderboard_data.around_scores) {
+        drawScore(name, score, k);
         k += 1;
       }
       ctx.textAlign = "center";
@@ -2013,6 +2035,25 @@ function fillJumpyText(id: string, text: string, x: number, y: number) {
 
 function blinking(period: number, cur_time: number, color1: string, color2: string): string {
   return (mod(cur_time / period, 1) < 0.5) ? color1 : color2;
+}
+
+function drawScore(name: string | null, score: number, row: number) {
+  const y = 4 * TILE_SIZE + row * (TILE_SIZE + 1.8);
+  ctx.textAlign = 'left';
+  const color = name === null ? COLORS.HEAD : COLORS.TEXT;
+  fillTextWithShadow(new Vec2((MARGIN + 1) * TILE_SIZE, y),
+    color, name === null ? 'YOU' : name)
+  ctx.textAlign = 'right';
+  fillTextWithShadow(new Vec2((MARGIN - 1 + BOARD_SIZE.x) * TILE_SIZE, y),
+    color, score.toString());
+}
+
+function drawSeparator(row: number) {
+  const y = 4 * TILE_SIZE + row * (TILE_SIZE + 1.8);
+  ctx.textAlign = 'center';
+  const color = COLORS.TEXT;
+  fillTextWithShadow(new Vec2((MARGIN + BOARD_SIZE.x / 2) * TILE_SIZE, y),
+    color, '------------------------------------------------');
 }
 
 window.addEventListener('beforeunload', function () {
