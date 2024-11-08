@@ -1632,7 +1632,7 @@ function draw(is_loading: boolean) {
       for (const { name, score } of leaderboard_data.scores) {
         const y = 4 * TILE_SIZE + k * (TILE_SIZE + 1.8);
         ctx.textAlign = 'left';
-        const color = name === null ? 'red' : COLORS.TEXT;
+        const color = name === null ? COLORS.HEAD : COLORS.TEXT;
         fillTextWithShadow(new Vec2((MARGIN + 1) * TILE_SIZE, y),
           color, name === null ? 'YOU' : name)
         ctx.textAlign = 'right';
@@ -1841,7 +1841,7 @@ function drawItem(top_left: Vec2, item: "bomb" | "multiplier" | "clock", is_shad
       for (let j = -1; j <= 1; j++) {
         ctx.drawImage(is_shadow
           ? TEXTURES.shadow[item]
-          : (CONFIG.WRAP_GRAY && (i !== 0 || j !== 0))
+          : (CONFIG.WRAP_GRAY && (i !== 0 || j !== 0 || game_state === 'lost'))
             ? TEXTURES.gray[item]
             : TEXTURES[item],
           (top_left.x + i * BOARD_SIZE.x) * TILE_SIZE, (top_left.y + j * BOARD_SIZE.y) * TILE_SIZE, TILE_SIZE, TILE_SIZE);
