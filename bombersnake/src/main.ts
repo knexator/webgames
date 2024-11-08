@@ -459,21 +459,27 @@ class LeaderboardData {
     const corsProxy = 'https://cors-anywhere.herokuapp.com/';
     const url = `https://php.droqen.com/storescore/bombsnack/do_get_nearby.php?score=${center}`;
     const true_url = DEBUG_CORS ? `${corsProxy}${url}` : url;
-    const response = await fetch(true_url);
-    const asdf = await response.text();
-    const data = JSON5.parse(asdf);
-    if (data.err !== 0) {
+    try {
+      const response = await fetch(true_url);
+      const asdf = await response.text();
+      console.log(asdf);
+      const data = JSON5.parse(asdf);
+      if (data.err !== 0) {
+        this.scores = 'error';
+      } else {
+        this.scores = data.scores;
+        if (typeof this.scores === 'string') throw new Error("unreachable");
+        this.scores.push({ name: null, score: center });
+        this.scores = this.scores.sort((a, b) => b.score - a.score);
+      }
+    } catch (error) {
       this.scores = 'error';
-    } else {
-      this.scores = data.scores;
-      if (typeof this.scores === 'string') throw new Error("unreachable");
-      this.scores.push({ name: null, score: center });
-      this.scores = this.scores.sort((a, b) => b.score - a.score);
     }
   }
 
   submit() {
     if (this.submit_status !== 'none') return;
+    if (this.scores === 'error') return;
     this.submit_status = 'submitting';
     const name = prompt('your name for the leaderboard:')
     if (name === null) {
