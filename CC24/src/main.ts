@@ -42,6 +42,8 @@ const gui = new GUI();
 // gui.addColor(COLORS, 'bar');
 gui.hide();
 
+type Direction = 'up' | 'down' | 'left' | 'right';
+
 type BoardTile = number | 'bad';
 class BoardState {
   constructor(
@@ -88,7 +90,22 @@ class BoardState {
     })[0]?.pos ?? null;
   }
 
-  next(dir: 'up' | 'down' | 'left' | 'right'): BoardState | null {
+  isWon(): boolean {
+    const visible = Grid2D.initV(this.state_hor.size, p => {
+      if ((p.x + p.y) % 2 === 0) {
+        return this.state_hor.getV(p);
+      } else {
+        return this.state_ver.getV(p);
+      }
+    })
+    return this.boat_pos.equal(new Vec2(3, 3))
+      && visible.getV(new Vec2(0, 0)) === 0
+      && visible.getV(new Vec2(1, 0)) === 1
+      && oneOf(visible.getV(new Vec2(3, 0)), [3, 30]);
+      // TODO: more stuff
+  }
+
+  next(dir: Direction): BoardState | null {
     const boat_on_hor = (this.boat_pos.x + this.boat_pos.y) % 2 === 0;
     if (dir === 'up' || dir === 'down') {
       if (boat_on_hor) return null;
@@ -178,23 +195,27 @@ function every_frame(cur_timestamp: number) {
   animation_id = requestAnimationFrame(every_frame);
 }
 
-function dirFromKeyboard(keyboard: Keyboard): 'up' | 'down' | 'left' | 'right' | null {
-  if (input.keyboard.wasPressed(KeyCode.ArrowUp) || input.keyboard.wasPressed(KeyCode.KeyW)) {
+function dirFromKeyboard(keyboard: Keyboard): Direction | null {
+  if (keyboard.wasPressed(KeyCode.ArrowUp) || keyboard.wasPressed(KeyCode.KeyW)) {
     return 'up';
   }
-  else if (input.keyboard.wasPressed(KeyCode.ArrowDown) || input.keyboard.wasPressed(KeyCode.KeyS)) {
+  else if (keyboard.wasPressed(KeyCode.ArrowDown) || keyboard.wasPressed(KeyCode.KeyS)) {
     return 'down';
   }
-  else if (input.keyboard.wasPressed(KeyCode.ArrowRight) || input.keyboard.wasPressed(KeyCode.KeyD)) {
+  else if (keyboard.wasPressed(KeyCode.ArrowRight) || keyboard.wasPressed(KeyCode.KeyD)) {
     return 'right';
   }
-  else if (input.keyboard.wasPressed(KeyCode.ArrowLeft) || input.keyboard.wasPressed(KeyCode.KeyA)) {
+  else if (keyboard.wasPressed(KeyCode.ArrowLeft) || keyboard.wasPressed(KeyCode.KeyA)) {
     return 'left';
   }
   return null;
 }
 
 ////// library stuff
+
+function oneOf<T>(v: T, arr: T[]): boolean {
+  return arr.includes(v);
+}
 
 function single<T>(arr: T[]): T {
   if (arr.length === 0) {
