@@ -1,7 +1,7 @@
 import * as twgl from "twgl.js"
 import GUI from "lil-gui";
 import { Grid2D } from "./kommon/grid2D";
-import { Input, KeyCode, Mouse, MouseButton } from "./kommon/input";
+import { Input, Keyboard, KeyCode, Mouse, MouseButton } from "./kommon/input";
 import { DefaultMap, fromCount, fromRange, objectMap, repeat, zip2 } from "./kommon/kommon";
 import { mod, towards as approach, lerp, inRange, clamp, argmax, argmin, max, remap, clamp01, randomInt, randomFloat, randomChoice, doSegmentsIntersect, closestPointOnSegment, roundTo, wrap, towards, inverseLerp } from "./kommon/math";
 import { canvasFromAscii } from "./kommon/spritePS";
@@ -24,12 +24,92 @@ const CONFIG = {
 };
 
 const COLORS = {
+  PALETTE: [
+    '#dda963',
+    '#c9814b',
+    '#25272a',
+    '#dbc1af',
+    '#cf6a4f',
+    '#e0b94a',
+    '#b2af5c',
+    '#a7a79e',
+    '#9b6970',
+  ],
 };
 
 const gui = new GUI();
 // gui.add(CONFIG, 'foo', 1, 10);
 // gui.addColor(COLORS, 'bar');
 gui.hide();
+
+type BoardTile = number;
+class BoardState {
+  constructor(
+    public state_hor: Grid2D<BoardTile>,
+    public state_ver: Grid2D<BoardTile>,
+  ) {
+    if (!state_hor.size.equal(state_ver.size)) throw new Error('bad size');
+  }
+
+  draw_and_get_hovered_pos(screen_size: Vec2, mouse_pos: Vec2): Vec2 | null {
+    const TILE_SIDE = Math.min(
+      screen_size.x / this.state_hor.size.x,
+      screen_size.y / this.state_hor.size.y,
+    );
+
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = `${(TILE_SIDE * .75).toString()}px arial`;
+    this.state_ver.forEachV((p, v) => {
+      const is_hor = (p.x + p.y) % 2 === 0;
+      if (is_hor) {
+        v = this.state_hor.getV(p);
+      }
+      ctx.beginPath();
+      smallerRect(p.scale(TILE_SIDE), Vec2.both(TILE_SIDE), .9);
+      ctx.fillStyle = COLORS.PALETTE[v];
+      ctx.fill();
+      ctx.fillStyle = is_hor ? 'white' : 'black';
+      fillText(v.toString(), p.scale(TILE_SIDE).add(Vec2.both(TILE_SIDE / 2)));
+    });
+
+    return this.state_hor.find((p, _v) => {
+      const delta = mouse_pos.sub(p.scale(TILE_SIDE));
+      return inRange(delta.x, 0, TILE_SIDE) && inRange(delta.y, 0, TILE_SIDE);
+    })[0]?.pos ?? null;
+  }
+
+  next(hovered_tile: Vec2, keyboard: Keyboard): BoardState {
+    const down = keyboard.wasPressed(KeyCode.ArrowDown);
+    const up = keyboard.wasPressed(KeyCode.ArrowUp);
+    if (down || up) {
+      const old_ver = this.state_ver;
+      return new BoardState(this.state_hor, this.state_ver.map((p, v) => {
+        if (p.x !== hovered_tile.x) return v;
+        const dy = up ? 1 : -1;
+        return old_ver.getV(new Vec2(p.x, mod(p.y + dy, old_ver.size.y)));
+      }));
+    }
+
+    const right = keyboard.wasPressed(KeyCode.ArrowRight);
+    const left = keyboard.wasPressed(KeyCode.ArrowLeft);
+    if (right || left) {
+      const old_hor = this.state_hor;
+      return new BoardState(this.state_hor.map((p, v) => {
+        if (p.y !== hovered_tile.y) return v;
+        const dx = left ? 1 : -1;
+        return old_hor.getV(new Vec2(mod(p.x + dx, old_hor.size.x), p.y));
+      }), this.state_ver);
+    }
+
+    return this;
+  }
+}
+
+let cur_state = new BoardState(
+  new Grid2D(Vec2.both(3), fromCount(3 * 3, k => k)),
+  new Grid2D(Vec2.both(3), fromCount(3 * 3, k => k)),
+);
 
 let last_timestamp: number | null = null;
 // main loop; game logic lives here
@@ -54,12 +134,17 @@ function every_frame(cur_timestamp: number) {
   const screen_mouse_pos = new Vec2(input.mouse.clientX - rect.left, input.mouse.clientY - rect.top);
   const canvas_size = new Vec2(canvas_ctx.width, canvas_ctx.height);
 
+  const hovered_tile = cur_state.draw_and_get_hovered_pos(canvas_size, screen_mouse_pos);
+  if (hovered_tile !== null) {
+    cur_state = cur_state.next(hovered_tile, input.keyboard);
+  }
+
   animation_id = requestAnimationFrame(every_frame);
 }
 
 ////// library stuff
 
-function single<T>(arr: T[]) {
+function single<T>(arr: T[]): T {
   if (arr.length === 0) {
     throw new Error("the array was empty");
   } else if (arr.length > 1) {
@@ -74,21 +159,33 @@ function at<T>(arr: T[], index: number): T {
   return arr[mod(index, arr.length)];
 }
 
-function drawCircle(center: Vec2, radius: number) {
+function drawCircle(center: Vec2, radius: number): void {
   ctx.moveTo(center.x + radius, center.y);
   ctx.arc(center.x, center.y, radius, 0, 2 * Math.PI);
 }
 
-function moveTo(pos: Vec2) {
+function moveTo(pos: Vec2): void {
   ctx.moveTo(pos.x, pos.y);
 }
 
-function lineTo(pos: Vec2) {
+function lineTo(pos: Vec2): void {
   ctx.lineTo(pos.x, pos.y);
 }
 
-function fillText(text: string, pos: Vec2) {
+function fillText(text: string, pos: Vec2): void {
   ctx.fillText(text, pos.x, pos.y);
+}
+
+function rect(top_left: Vec2, size: Vec2): void {
+  ctx.rect(top_left.x, top_left.y, size.x, size.y);
+}
+
+function smallerRect(top_left: Vec2, size: Vec2, fill_perc: number): void {
+  centeredRect(top_left.add(size.scale(.5)), size.scale(fill_perc));
+}
+
+function centeredRect(center: Vec2, size: Vec2): void {
+  ctx.rect(center.x - size.x / 2, center.y - size.y / 2, size.x, size.y);
 }
 
 function or(a: boolean, b: boolean) {
