@@ -102,7 +102,7 @@ class BoardState {
       && visible.getV(new Vec2(0, 0)) === 0
       && visible.getV(new Vec2(1, 0)) === 1
       && oneOf(visible.getV(new Vec2(3, 0)), [3, 30]);
-      // TODO: more stuff
+    // TODO: more stuff
   }
 
   next(dir: Direction): BoardState | null {
@@ -154,6 +154,22 @@ let cur_state = new BoardState(
   }),
   null,
 );
+
+canvas_ctx.addEventListener('pointerdown', event => {
+  const relative = new Vec2(event.offsetX / canvas_ctx.clientWidth, event.offsetY / canvas_ctx.clientHeight).sub(Vec2.both(.5));
+  const dir = dirFromRelative(relative);
+  if (dir !== null) {
+    cur_state = cur_state.next(dir) ?? cur_state;
+  }
+
+  function dirFromRelative(v: Vec2): Direction {
+    if (Math.abs(v.x) > Math.abs(v.y)) {
+      return v.x > 0 ? 'right' : 'left';
+    } else {
+      return v.y > 0 ? 'down' : 'up';
+    }
+  }
+})
 
 let last_timestamp: number | null = null;
 // main loop; game logic lives here
