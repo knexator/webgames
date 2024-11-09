@@ -42,7 +42,7 @@ const gui = new GUI();
 // gui.addColor(COLORS, 'bar');
 gui.hide();
 
-type BoardTile = number;
+type BoardTile = number | 'bad';
 class BoardState {
   constructor(
     public state_hor: Grid2D<BoardTile>,
@@ -66,11 +66,11 @@ class BoardState {
         v = this.state_hor.getV(p);
       }
       ctx.beginPath();
-      smallerRect(p.scale(TILE_SIDE), Vec2.both(TILE_SIDE), .9);
-      ctx.fillStyle = COLORS.PALETTE[v];
+      smallerRect(p.scale(TILE_SIDE), Vec2.both(TILE_SIDE), is_hor ? new Vec2(1.08, .9) : new Vec2(.9, 1.08));
+      ctx.fillStyle = v === 'bad' ? COLORS.PALETTE[4] : COLORS.PALETTE[0];
       ctx.fill();
       ctx.fillStyle = is_hor ? 'white' : 'black';
-      fillText(v.toString(), p.scale(TILE_SIDE).add(Vec2.both(TILE_SIDE / 2)));
+      fillText(v === 'bad' ? 'x' : v.toString(), p.scale(TILE_SIDE).add(Vec2.both(TILE_SIDE / 2)));
     });
 
     return this.state_hor.find((p, _v) => {
@@ -107,8 +107,15 @@ class BoardState {
 }
 
 let cur_state = new BoardState(
-  new Grid2D(Vec2.both(3), fromCount(3 * 3, k => k)),
-  new Grid2D(Vec2.both(3), fromCount(3 * 3, k => k)),
+  Grid2D.initV(Vec2.both(3), p => {
+    if ((p.x + p.y) % 2 !== 0) return 'bad';
+    return p.x + p.y * 3;
+  }),
+  Grid2D.initV(Vec2.both(3), p => {
+    if ((p.x + p.y) % 2 === 0) return 'bad';
+    return p.x + p.y * 3;
+  }),
+  // new Grid2D(Vec2.both(3), fromCount(3 * 3, k => k)),
 );
 
 let last_timestamp: number | null = null;
@@ -180,8 +187,8 @@ function rect(top_left: Vec2, size: Vec2): void {
   ctx.rect(top_left.x, top_left.y, size.x, size.y);
 }
 
-function smallerRect(top_left: Vec2, size: Vec2, fill_perc: number): void {
-  centeredRect(top_left.add(size.scale(.5)), size.scale(fill_perc));
+function smallerRect(top_left: Vec2, size: Vec2, fill_perc: Vec2): void {
+  centeredRect(top_left.add(size.scale(.5)), size.mul(fill_perc));
 }
 
 function centeredRect(center: Vec2, size: Vec2): void {
