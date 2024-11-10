@@ -7,12 +7,6 @@ import { mod, towards as approach, lerp, inRange, clamp, argmax, argmin, max, re
 import { canvasFromAscii } from "./kommon/spritePS";
 import { initGL2, IVec, Vec2, Color, GenericDrawer, StatefulDrawer, CircleDrawer, m3, CustomSpriteDrawer, Transform, IRect, IColor, IVec2, FullscreenShader, DefaultSpriteData, DefaultGlobalData } from "kanvas2d"
 
-// import anteater_url from "./images/anteater.png?url";
-
-const TEXTURES = {
-  // anteater: await imageFromUrl(anteater_url),
-};
-
 const input = new Input();
 const canvas_ctx = document.querySelector<HTMLCanvasElement>("#ctx_canvas")!;
 const ctx = canvas_ctx.getContext("2d")!;
@@ -20,6 +14,9 @@ const canvas_gl = document.querySelector<HTMLCanvasElement>("#gl_canvas")!;
 const gl = initGL2(canvas_gl)!;
 gl.clearColor(.5, .5, .5, 1);
 
+const TEXTURES = {
+  tile_border: twgl.createTexture(gl, { src: await loadImage('tile_border') }),
+} 
 const MAP_IMAGES = {
   cols: twgl.createTexture(gl, { src: await loadImage('0102_1002_' + 'cols') }),
   rows: twgl.createTexture(gl, { src: await loadImage('0102_1002_' + 'rows') }),
@@ -102,6 +99,31 @@ class BoardState {
               Vec2.zero,
               0
             ), uvs: new Transform(
+              new Vec2(i / 4, this.asdfThingCol(i, j, anim_t) / 4),
+              Vec2.both(1 / 4),
+              Vec2.zero,
+              0
+            )
+          });
+          vanillaSprites.end({ resolution: [canvas_gl.clientWidth, canvas_gl.clientHeight], u_texture: MAP_IMAGES.cols });
+
+          vanillaSprites.add({
+            transform: new Transform(
+              new Vec2(i, j).scale(TILE_SIDE).add(Vec2.both(TILE_SIDE / 2)),
+              Vec2.both(TILE_SIDE),
+              Vec2.zero,
+              0
+            ), uvs: Transform.identity
+          });
+          vanillaSprites.end({ resolution: [canvas_gl.clientWidth, canvas_gl.clientHeight], u_texture: TEXTURES.tile_border });
+
+          vanillaSprites.add({
+            transform: new Transform(
+              new Vec2(i, j).scale(TILE_SIDE).add(Vec2.both(TILE_SIDE / 2)),
+              Vec2.both(TILE_SIDE),
+              Vec2.zero,
+              0
+            ), uvs: new Transform(
               new Vec2(this.asdfThingRow(i, j, anim_t) / 4, j / 4),
               Vec2.both(1 / 4),
               Vec2.zero,
@@ -111,6 +133,31 @@ class BoardState {
           vanillaSprites.end({ resolution: [canvas_gl.clientWidth, canvas_gl.clientHeight], u_texture: MAP_IMAGES.rows });
         }
         else {
+          vanillaSprites.add({
+            transform: new Transform(
+              new Vec2(i, j).scale(TILE_SIDE).add(Vec2.both(TILE_SIDE / 2)),
+              Vec2.both(TILE_SIDE),
+              Vec2.zero,
+              0
+            ), uvs: new Transform(
+              new Vec2(this.asdfThingRow(i, j, anim_t) / 4, j / 4),
+              Vec2.both(1 / 4),
+              Vec2.zero,
+              0
+            )
+          });
+          vanillaSprites.end({ resolution: [canvas_gl.clientWidth, canvas_gl.clientHeight], u_texture: MAP_IMAGES.rows });
+
+          vanillaSprites.add({
+            transform: new Transform(
+              new Vec2(i, j).scale(TILE_SIDE).add(Vec2.both(TILE_SIDE / 2)),
+              Vec2.both(TILE_SIDE),
+              Vec2.zero,
+              0
+            ), uvs: new Transform(Vec2.half, Vec2.one, Vec2.half, Math.PI / 2),
+          });
+          vanillaSprites.end({ resolution: [canvas_gl.clientWidth, canvas_gl.clientHeight], u_texture: TEXTURES.tile_border });
+
           vanillaSprites.add({
             transform: new Transform(
               new Vec2(i, j).scale(TILE_SIDE).add(Vec2.both(TILE_SIDE / 2)),
@@ -213,7 +260,7 @@ let cur_state = new BoardState(
   null,
 );
 
-// cur_state = SOLUTION;
+cur_state = SOLUTION;
 
 canvas_ctx.addEventListener('pointerdown', event => {
   const relative = new Vec2(event.offsetX / canvas_ctx.clientWidth, event.offsetY / canvas_ctx.clientHeight).sub(Vec2.both(.5));
