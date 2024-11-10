@@ -5,7 +5,7 @@ import { Input, Keyboard, KeyCode, Mouse, MouseButton } from "./kommon/input";
 import { mapSingle, DefaultMap, fromCount, fromRange, objectMap, repeat, zip2 } from "./kommon/kommon";
 import { mod, towards as approach, lerp, inRange, clamp, argmax, argmin, max, remap, clamp01, randomInt, randomFloat, randomChoice, doSegmentsIntersect, closestPointOnSegment, roundTo, wrap, towards, inverseLerp } from "./kommon/math";
 import { canvasFromAscii } from "./kommon/spritePS";
-import { initGL2, IVec, Vec2, Color, GenericDrawer, StatefulDrawer, CircleDrawer, m3, CustomSpriteDrawer, Transform, IRect, IColor, IVec2, FullscreenShader } from "kanvas2d"
+import { initGL2, IVec, Vec2, Color, GenericDrawer, StatefulDrawer, CircleDrawer, m3, CustomSpriteDrawer, Transform, IRect, IColor, IVec2, FullscreenShader, DefaultSpriteData, DefaultGlobalData } from "kanvas2d"
 
 // import anteater_url from "./images/anteater.png?url";
 
@@ -19,6 +19,28 @@ const ctx = canvas_ctx.getContext("2d")!;
 const canvas_gl = document.querySelector<HTMLCanvasElement>("#gl_canvas")!;
 const gl = initGL2(canvas_gl)!;
 gl.clearColor(.5, .5, .5, 1);
+
+const MAP_IMAGES = {
+  cols: twgl.createTexture(gl, { src: await loadImage('0102_1002_' + 'cols') }),
+  rows: twgl.createTexture(gl, { src: await loadImage('0102_1002_' + 'rows') }),
+  back: twgl.createTexture(gl, { src: await loadImage('0102_1002_' + 'back') }),
+}
+
+const vanillaSprites = new CustomSpriteDrawer<DefaultSpriteData, DefaultGlobalData & {
+  u_texture: WebGLTexture,
+}>(gl, `#version 300 es
+  precision highp float;
+  in vec2 v_uv;
+  in vec4 v_color;
+
+  uniform sampler2D u_texture;
+
+  out vec4 out_color;
+  void main() {
+    // Assume texture is premultiplied
+    vec4 texture = texture(u_texture, v_uv);
+    out_color = texture;
+  }`);
 
 const CONFIG = {
 };
@@ -52,38 +74,101 @@ class BoardState {
     public parent: BoardState | null,
   ) { }
 
-  draw(screen_size: Vec2): void {
-    const TILE_SIDE = Math.min(
-      screen_size.x / 4,
-      screen_size.y / 4,
-    );
+  draw(screen_size: Vec2, anim_t: number): void {
+    // const TILE_SIDE = Math.min(
+    //   screen_size.x / 5,
+    //   screen_size.y / 5,
+    // );
+    const TILE_SIDE = 640 / 5;
 
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.font = `${(TILE_SIDE * .75).toString()}px arial`;
+    // ctx.drawImage(MAP_IMAGES.back, 0, 0, TILE_SIDE * 5, TILE_SIDE * 5);
+    vanillaSprites.add({
+      transform: new Transform(Vec2.zero, Vec2.both(640), Vec2.zero, 0),
+      uvs: Transform.identity,
+    });
+    vanillaSprites.end({ resolution: [canvas_gl.clientWidth, canvas_gl.clientHeight], 
+      u_texture: MAP_IMAGES.back });
+
+    ctx.translate(TILE_SIDE / 2, TILE_SIDE / 2);
+
     for (let j = 0; j < 4; j++) {
       for (let i = 0; i < 4; i++) {
         const is_hor = (i + j) % 2 === 0;
-        const good = is_hor
-          // ? (this.rows[j] === 0 || this.rows[j] === SOLUTION.rows[j])
-          // : (this.cols[i] === 0 || this.cols[i] === SOLUTION.cols[i]);
-          ? (this.rows[j] === SOLUTION.rows[j])
-          : (this.cols[i] === SOLUTION.cols[i]);
-        ctx.beginPath();
-        smallerRect(new Vec2(i, j).scale(TILE_SIDE), Vec2.both(TILE_SIDE), is_hor ? new Vec2(1.08, .9) : new Vec2(.9, 1.08));
-        ctx.fillStyle = good ? COLORS.PALETTE[6] : COLORS.PALETTE[4];
-        ctx.fill();
-        // ctx.fillStyle = is_hor ? 'white' : 'black';
-        // fillText(v === 'bad' ? 'x' : v.toString(), p.scale(TILE_SIDE).add(Vec2.both(TILE_SIDE / 2)));
+        if (is_hor) {
+          vanillaSprites.add({
+            transform: new Transform(
+              new Vec2(i, j).scale(TILE_SIDE).add(Vec2.both(TILE_SIDE / 2)),
+              Vec2.both(TILE_SIDE),
+              Vec2.zero,
+              0
+            ), uvs: new Transform(
+              new Vec2(this.asdfThingRow(i, j, anim_t) / 4, j / 4),
+              Vec2.both(1 / 4),
+              Vec2.zero,
+              0
+            )
+          });
+          vanillaSprites.end({ resolution: [canvas_gl.clientWidth, canvas_gl.clientHeight], u_texture: MAP_IMAGES.rows });
+        }
+        else {
+          vanillaSprites.add({
+            transform: new Transform(
+              new Vec2(i, j).scale(TILE_SIDE).add(Vec2.both(TILE_SIDE / 2)),
+              Vec2.both(TILE_SIDE),
+              Vec2.zero,
+              0
+            ), uvs: new Transform(
+              new Vec2(i / 4, this.asdfThingCol(i, j, anim_t) / 4),
+              Vec2.both(1 / 4),
+              Vec2.zero,
+              0
+            )
+          });
+          vanillaSprites.end({ resolution: [canvas_gl.clientWidth, canvas_gl.clientHeight], u_texture: MAP_IMAGES.cols });
+        }
+        // smallerRect(new Vec2(i, j).scale(TILE_SIDE), Vec2.both(TILE_SIDE), is_hor ? new Vec2(1.06, .9) : new Vec2(.9, 1.06));
+        // ctx.fillStyle = true ? COLORS.PALETTE[6] : COLORS.PALETTE[4];
+        // ctx.fill();
       }
     }
 
     ctx.lineWidth = TILE_SIDE / 20;
     ctx.strokeStyle = COLORS.PALETTE[8];
     ctx.beginPath();
-    circle(this.boat_pos.add(Vec2.both(.5)).scale(TILE_SIDE), TILE_SIDE / 3);
+    circle(Vec2.lerp(this.parent?.boat_pos ?? this.boat_pos, this.boat_pos, anim_t).add(Vec2.both(.5)).scale(TILE_SIDE), TILE_SIDE / 3);
     ctx.stroke();
+
+    ctx.resetTransform();
   }
+
+  // magic
+  private asdfThingRow(i: number, j: number, anim_t: number) {
+    if (this.parent === null || anim_t >= 1) return i - this.rows[j];
+    if (this.parent.rows[j] === 3 && this.rows[j] === 0) {
+      return i - this.rows[j] - anim_t + 1;
+    }
+    else if (this.parent.rows[j] === 0 && this.rows[j] === 3) {
+      return i - this.rows[j] + anim_t - 1;
+    }
+    else {
+      return i - lerp(this.parent.rows[j], this.rows[j], anim_t);
+    }
+  }
+
+  // magic
+  private asdfThingCol(i: number, j: number, anim_t: number) {
+    if (this.parent === null || anim_t >= 1) return j - this.cols[i];
+    if (this.parent.cols[i] === 3 && this.cols[i] === 0) {
+      return j - this.cols[i] - anim_t + 1;
+    }
+    else if (this.parent.cols[i] === 0 && this.cols[i] === 3) {
+      return j - this.cols[i] + anim_t - 1;
+    }
+    else {
+      return j - lerp(this.parent.cols[i], this.cols[i], anim_t);
+    }
+  }
+
 
   isWon(): boolean {
     if (!this.boat_pos.equal(new Vec2(3, 3))) return false;
@@ -113,7 +198,9 @@ class BoardState {
   }
 }
 
-const SOLUTION = new BoardState(new Vec2(3, 3), [0, 2, 1, 0], [2, 1, 0, 0], null);
+// rows: { 0, 1, 0, 2 }, cols: { 1, 0, 0, 2 }, len: 30
+// const SOLUTION = new BoardState(new Vec2(3, 3), [0, 2, 1, 0], [2, 1, 0, 0], null);
+const SOLUTION = new BoardState(new Vec2(3, 3), [0, 1, 0, 2], [1, 0, 0, 2], null);
 
 // old solution: rows: { 0, 2, 1, 0 }, cols: { 0, 2, 0, 1 }
 // later: rows: { 0, 0, 2, 1 }, cols: { 2, 0, 1, 0 }, len: 30
@@ -126,11 +213,17 @@ let cur_state = new BoardState(
   null,
 );
 
+// cur_state = SOLUTION;
+
 canvas_ctx.addEventListener('pointerdown', event => {
   const relative = new Vec2(event.offsetX / canvas_ctx.clientWidth, event.offsetY / canvas_ctx.clientHeight).sub(Vec2.both(.5));
   const dir = dirFromRelative(relative);
   if (dir !== null) {
-    cur_state = cur_state.next(dir) ?? cur_state;
+    const new_state = cur_state.next(dir);
+    if (new_state !== null) {
+      cur_state = new_state;
+      anim_t = 0;
+    }
   }
 
   function dirFromRelative(v: Vec2): Direction {
@@ -141,6 +234,8 @@ canvas_ctx.addEventListener('pointerdown', event => {
     }
   }
 })
+
+let anim_t = 1;
 
 let last_timestamp: number | null = null;
 // main loop; game logic lives here
@@ -165,10 +260,19 @@ function every_frame(cur_timestamp: number) {
   const screen_mouse_pos = new Vec2(input.mouse.clientX - rect.left, input.mouse.clientY - rect.top);
   const canvas_size = new Vec2(canvas_ctx.width, canvas_ctx.height);
 
-  cur_state.draw(canvas_size);
-  const dir = dirFromKeyboard(input.keyboard);
-  if (dir !== null) {
-    cur_state = cur_state.next(dir) ?? cur_state;
+  cur_state.draw(canvas_size, anim_t);
+  if (anim_t >= 1) {
+    const dir = dirFromKeyboard(input.keyboard);
+    if (dir !== null) {
+      const new_state = cur_state.next(dir)
+      if (new_state !== null) {
+        cur_state = new_state;
+        anim_t = 0;
+      }
+    }
+  } else {
+    anim_t += delta_time / .2;
+    anim_t = clamp01(anim_t);
   }
   if (input.keyboard.wasPressed(KeyCode.KeyZ)) {
     if (cur_state.parent !== null) {
@@ -310,17 +414,13 @@ function wrapPos(pos: Vec2): Vec2 {
   );
 }
 
-function imageFromUrl(url: string): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
+function loadImage(name: string): Promise<HTMLImageElement> {
+  return new Promise(resolve => {
     const img = new Image();
-    img.crossOrigin = 'Anonymous'; // to avoid CORS if used with Canvas
-    img.src = url
+    img.src = new URL(`./images/${name}.png`, import.meta.url).href;
     img.onload = () => {
       resolve(img);
-    }
-    img.onerror = e => {
-      reject(e);
-    }
+    };
   })
 }
 

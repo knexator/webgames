@@ -22,9 +22,11 @@
 
         #canvas_container {
             position: relative;
-            width: 100vw;
-            height: 100vh;
-            max-height: calc(100vw * 1 / 1);
+            /* width: 100vw;
+            height: 100vh; */
+            width: 640px;
+            height: 640px;
+            /* max-height: calc(100vw * 1 / 1); */
         }
 
         canvas {
@@ -55,7 +57,7 @@
         canvas:focus {
             outline: none;
         }
-
+/* 
         @media (max-aspect-ratio: 1/1) {
             #canvas_container {
                 max-height: calc(100vw * 1 / 1);
@@ -66,7 +68,7 @@
             #canvas_container {
                 max-width: calc(100vh * 1 / 1);
             }
-        }
+        } */
     </style>
     <script defer type="module" src="main.ts"></script>
 </head>
