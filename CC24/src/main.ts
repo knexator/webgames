@@ -132,22 +132,32 @@ class BoardState {
   }
 }
 
+// old solution: rows: { 0, 2, 1, 0 }, cols: { 0, 2, 0, 1 }
+// later: rows: { 0, 0, 2, 1 }, cols: { 2, 0, 1, 0 }, len: 30
+// or rows: { 0, 1, 0, 2 }, cols: { 1, 0, 0, 2 }, len: 30
+// solution: rows: { 0, 2, 1, 0 }, cols: { 2, 1, 0, 0 }, len: 34
 let cur_state = new BoardState(
   Vec2.zero,
   Grid2D.initV(Vec2.both(4), p => {
-    if (p.equal(new Vec2(0, 1))) return 50;
-    if (p.equal(new Vec2(2, 1))) return 70;
+    if (p.equal(new Vec2(3, 1))) return 50;
 
-    if (p.equal(new Vec2(2, 2))) return 80;
+    if (p.equal(new Vec2(3, 2))) return 80;
+    if (p.equal(new Vec2(1, 2))) return 10;
 
     if ((p.x + p.y) % 2 !== 0) return 'bad';
     return p.x + p.y * 4;
   }),
   Grid2D.initV(Vec2.both(4), p => {
-    if (p.equal(new Vec2(0, 0))) return 40;
-    if (p.equal(new Vec2(0, 2))) return 12;
+    // if (p.equal(new Vec2(1, 0))) return 9;
+    // if (p.equal(new Vec2(1, 2))) return 90;
 
-    if (p.equal(new Vec2(3, 2))) return 30;
+    // if (p.equal(new Vec2(3, 3))) return 30;
+    // if (p.equal(new Vec2(3, 1))) return 11;
+
+    if (p.equal(new Vec2(0, 3))) return 40;
+
+    if (p.equal(new Vec2(1, 3))) return 1;
+    if (p.equal(new Vec2(1, 1))) return 90;
 
     if ((p.x + p.y) % 2 === 0) return 'bad';
     return p.x + p.y * 4;
@@ -250,7 +260,7 @@ const back_sol: Direction[] = [
 ];
 back_sol.reverse();
 for (const dir of back_sol) {
-  cur_state = cur_state.next(dir)!;
+  // cur_state = cur_state.next(dir)!;
 }
 
 ////// library stuff

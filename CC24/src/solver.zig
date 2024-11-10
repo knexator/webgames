@@ -29,6 +29,51 @@ const BoardState = struct {
     rows: [4]i8,
     cols: [4]i8,
 
+    pub fn countThrees(self: BoardState) i8 {
+        var res: i8 = 0;
+        for (self.rows) |value| {
+            if (value == 3) res += 1;
+        }
+        for (self.cols) |value| {
+            if (value == 3) res += 1;
+        }
+        return res;
+    }
+
+    pub fn countZeros(self: BoardState) i8 {
+        var res: i8 = 0;
+        for (self.rows) |value| {
+            if (value == 0) res += 1;
+        }
+        for (self.cols) |value| {
+            if (value == 0) res += 1;
+        }
+        return res;
+    }
+
+    pub fn countVals(self: BoardState, val: i8, which: enum { Row, Col }) i8 {
+        var res: i8 = 0;
+        switch (which) {
+            .Row => {
+                for (self.rows) |value| {
+                    if (value == val) res += 1;
+                }
+            },
+            .Col => {
+                for (self.cols) |value| {
+                    if (value == val) res += 1;
+                }
+            },
+        }
+        return res;
+    }
+
+    pub fn isCoolSolution(self: BoardState) bool {
+        // solution: rows: { 0, 2, 1, 0 }, cols: { 0, 2, 0, 1 }
+        // return std.mem.eql(i8, &self.cols, &.{ 0, 2, 0, 1 });
+        return self.countVals(0, .Row) == 2 and self.countVals(0, .Col) == 2 and self.rows[0] == 0 and self.cols[0] != 0;
+    }
+
     pub fn next(self: BoardState, dir: Direction) ?BoardState {
         switch (dir) {
             .up, .down => {
@@ -124,6 +169,9 @@ fn solveBFS(allocator: std.mem.Allocator, initial_state: BoardState) !?BoardStat
     var visited = std.AutoHashMap(BoardState, ?Direction).init(allocator);
     defer visited.deinit();
 
+    var all_finished = std.ArrayList(BoardState).init(allocator);
+    defer all_finished.deinit();
+
     try queue.append(initial_state);
     try visited.put(initial_state, null);
 
@@ -131,7 +179,10 @@ fn solveBFS(allocator: std.mem.Allocator, initial_state: BoardState) !?BoardStat
         while (queue.items.len > 0) {
             const current = queue.orderedRemove(0);
 
-            if (current.isWon()) break :blk current;
+            // if (current.isWon()) break :blk current;
+            if (current.boat_pos.equal(Vec2.init(3, 3))) {
+                try all_finished.append(current);
+            }
 
             inline for (@typeInfo(Direction).Enum.fields) |field| {
                 const dir = @field(Direction, field.name);
@@ -145,6 +196,17 @@ fn solveBFS(allocator: std.mem.Allocator, initial_state: BoardState) !?BoardStat
         }
         break :blk null;
     };
+
+    for (all_finished.items) |state| {
+        if (state.isCoolSolution()) {
+            const path = try getPath(state, allocator, visited);
+            defer path.deinit();
+            std.debug.print("rows: {any}, cols: {any}, len: {d}\n", .{ state.rows, state.cols, path.items.len });
+        }
+    }
+    // rows: { 0, 0, 2, 1 }, cols: { 1, 0, 0, 2 }, len: 22
+    // rows: { 0, 1, 0, 2 }, cols: { 1, 2, 0, 0 }, len: 30
+    // rows: { 0, 0, 1, 2 }, cols: { 0, 1, 2, 0 }, len: 34
 
     if (final_state == null) return null;
 
@@ -168,6 +230,18 @@ fn solveBFS(allocator: std.mem.Allocator, initial_state: BoardState) !?BoardStat
     std.debug.print("];\n", .{});
 
     return final_state;
+}
+
+fn getPath(target_state: BoardState, allocator: std.mem.Allocator, visited: std.AutoHashMap(BoardState, ?Direction)) !std.ArrayList(Direction) {
+    var cur_state = target_state;
+    var path = std.ArrayList(Direction).init(allocator);
+
+    while (visited.get(cur_state).?) |dir| {
+        try path.append(dir);
+        cur_state = cur_state.prev(dir).?;
+    }
+
+    return path;
 }
 
 pub fn main() !void {
