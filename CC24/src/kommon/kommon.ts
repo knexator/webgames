@@ -20,6 +20,19 @@ export function repeat<T>(n: number, thing: T): T[] {
     return Array<T>(n).fill(thing);
 }
 
+// Return new array with element [index] changed to new_element
+export function replace<T>(arr: T[], new_element: T, index: number): T[] {
+    const result = [...arr];
+    result[index] = new_element;
+    return result;
+}
+
+export function mapSingle<T>(arr: T[], index: number, mapper: (param: T) => T): T[] {
+    const result = [...arr];
+    result[index] = mapper(result[index]);
+    return result;
+}
+
 export function fromRange<T>(lo: number, hi: number, callback: (index: number) => T): T[] {
     const count = hi - lo;
     const result: T[] = [];

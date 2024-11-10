@@ -2,7 +2,7 @@ import * as twgl from "twgl.js"
 import GUI from "lil-gui";
 import { Grid2D } from "./kommon/grid2D";
 import { Input, Keyboard, KeyCode, Mouse, MouseButton } from "./kommon/input";
-import { DefaultMap, fromCount, fromRange, objectMap, repeat, zip2 } from "./kommon/kommon";
+import { mapSingle, DefaultMap, fromCount, fromRange, objectMap, repeat, zip2 } from "./kommon/kommon";
 import { mod, towards as approach, lerp, inRange, clamp, argmax, argmin, max, remap, clamp01, randomInt, randomFloat, randomChoice, doSegmentsIntersect, closestPointOnSegment, roundTo, wrap, towards, inverseLerp } from "./kommon/math";
 import { canvasFromAscii } from "./kommon/spritePS";
 import { initGL2, IVec, Vec2, Color, GenericDrawer, StatefulDrawer, CircleDrawer, m3, CustomSpriteDrawer, Transform, IRect, IColor, IVec2, FullscreenShader } from "kanvas2d"
@@ -44,93 +44,76 @@ gui.hide();
 
 type Direction = 'up' | 'down' | 'left' | 'right';
 
-type BoardTile = number | 'bad';
 class BoardState {
   constructor(
     public boat_pos: Vec2,
-    public state_hor: Grid2D<BoardTile>,
-    public state_ver: Grid2D<BoardTile>,
+    public rows: number[],
+    public cols: number[],
     public parent: BoardState | null,
-  ) {
-    if (!state_hor.size.equal(state_ver.size)) throw new Error('bad size');
-    if (!inBounds(this.boat_pos, state_hor.size)) throw new Error('bad boat pos');
-  }
+  ) { }
 
-  draw_and_get_hovered_pos(screen_size: Vec2, mouse_pos: Vec2): Vec2 | null {
+  draw(screen_size: Vec2): void {
     const TILE_SIDE = Math.min(
-      screen_size.x / this.state_hor.size.x,
-      screen_size.y / this.state_hor.size.y,
+      screen_size.x / 4,
+      screen_size.y / 4,
     );
 
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.font = `${(TILE_SIDE * .75).toString()}px arial`;
-    this.state_ver.forEachV((p, v) => {
-      const is_hor = (p.x + p.y) % 2 === 0;
-      if (is_hor) {
-        v = this.state_hor.getV(p);
+    for (let j = 0; j < 4; j++) {
+      for (let i = 0; i < 4; i++) {
+        const is_hor = (i + j) % 2 === 0;
+        const good = is_hor
+          // ? (this.rows[j] === 0 || this.rows[j] === SOLUTION.rows[j])
+          // : (this.cols[i] === 0 || this.cols[i] === SOLUTION.cols[i]);
+          ? (this.rows[j] === SOLUTION.rows[j])
+          : (this.cols[i] === SOLUTION.cols[i]);
+        ctx.beginPath();
+        smallerRect(new Vec2(i, j).scale(TILE_SIDE), Vec2.both(TILE_SIDE), is_hor ? new Vec2(1.08, .9) : new Vec2(.9, 1.08));
+        ctx.fillStyle = good ? COLORS.PALETTE[6] : COLORS.PALETTE[4];
+        ctx.fill();
+        // ctx.fillStyle = is_hor ? 'white' : 'black';
+        // fillText(v === 'bad' ? 'x' : v.toString(), p.scale(TILE_SIDE).add(Vec2.both(TILE_SIDE / 2)));
       }
-      ctx.beginPath();
-      smallerRect(p.scale(TILE_SIDE), Vec2.both(TILE_SIDE), is_hor ? new Vec2(1.08, .9) : new Vec2(.9, 1.08));
-      ctx.fillStyle = v === 'bad' ? COLORS.PALETTE[4] : COLORS.PALETTE[0];
-      ctx.fill();
-      ctx.fillStyle = is_hor ? 'white' : 'black';
-      fillText(v === 'bad' ? 'x' : v.toString(), p.scale(TILE_SIDE).add(Vec2.both(TILE_SIDE / 2)));
-    });
+    }
 
     ctx.lineWidth = TILE_SIDE / 20;
     ctx.strokeStyle = COLORS.PALETTE[8];
     ctx.beginPath();
     circle(this.boat_pos.add(Vec2.both(.5)).scale(TILE_SIDE), TILE_SIDE / 3);
     ctx.stroke();
-
-    return this.state_hor.find((p, _v) => {
-      const delta = mouse_pos.sub(p.scale(TILE_SIDE));
-      return inRange(delta.x, 0, TILE_SIDE) && inRange(delta.y, 0, TILE_SIDE);
-    })[0]?.pos ?? null;
   }
 
   isWon(): boolean {
-    const visible = Grid2D.initV(this.state_hor.size, p => {
-      if ((p.x + p.y) % 2 === 0) {
-        return this.state_hor.getV(p);
-      } else {
-        return this.state_ver.getV(p);
-      }
-    })
-    return this.boat_pos.equal(new Vec2(3, 3))
-      && visible.getV(new Vec2(0, 0)) === 0
-      && visible.getV(new Vec2(1, 0)) === 1
-      && oneOf(visible.getV(new Vec2(3, 0)), [3, 30]);
-    // TODO: more stuff
+    if (!this.boat_pos.equal(new Vec2(3, 3))) return false;
+    for (let k = 0; k < 4; k++) {
+      if (this.rows[k] !== SOLUTION.rows[k]) return false;
+      if (this.cols[k] !== SOLUTION.cols[k]) return false;
+    }
+    return true;
   }
 
   next(dir: Direction): BoardState | null {
     const boat_on_hor = (this.boat_pos.x + this.boat_pos.y) % 2 === 0;
     if (dir === 'up' || dir === 'down') {
       if (boat_on_hor) return null;
-      const old_ver = this.state_ver;
       const dy = dir === 'down' ? 1 : -1;
       const new_boat_pos = this.boat_pos.addY(dy);
-      if (!inBounds(new_boat_pos, this.state_hor.size)) return null;
-      return new BoardState(new_boat_pos, this.state_hor, this.state_ver.map((p, v) => {
-        if (p.x !== this.boat_pos.x) return v;
-        return old_ver.getV(new Vec2(p.x, mod(p.y - dy, old_ver.size.y)));
-      }), this);
+      if (!inBounds(new_boat_pos, new Vec2(4, 4))) return null;
+      return new BoardState(new_boat_pos, this.rows, mapSingle(this.cols, this.boat_pos.x, v => mod(v + dy, 4)), this);
     }
     else {
       if (!boat_on_hor) return null;
-      const old_hor = this.state_hor;
       const dx = dir === 'right' ? 1 : -1;
       const new_boat_pos = this.boat_pos.addX(dx);
-      if (!inBounds(new_boat_pos, this.state_hor.size)) return null;
-      return new BoardState(new_boat_pos, this.state_hor.map((p, v) => {
-        if (p.y !== this.boat_pos.y) return v;
-        return old_hor.getV(new Vec2(mod(p.x - dx, old_hor.size.x), p.y));
-      }), this.state_ver, this);
+      if (!inBounds(new_boat_pos, new Vec2(4, 4))) return null;
+      return new BoardState(new_boat_pos, mapSingle(this.rows, this.boat_pos.y, v => mod(v + dx, 4)), this.cols, this);
     }
   }
 }
+
+const SOLUTION = new BoardState(new Vec2(3, 3), [0, 2, 1, 0], [2, 1, 0, 0], null);
 
 // old solution: rows: { 0, 2, 1, 0 }, cols: { 0, 2, 0, 1 }
 // later: rows: { 0, 0, 2, 1 }, cols: { 2, 0, 1, 0 }, len: 30
@@ -138,30 +121,8 @@ class BoardState {
 // solution: rows: { 0, 2, 1, 0 }, cols: { 2, 1, 0, 0 }, len: 34
 let cur_state = new BoardState(
   Vec2.zero,
-  Grid2D.initV(Vec2.both(4), p => {
-    if (p.equal(new Vec2(3, 1))) return 50;
-
-    if (p.equal(new Vec2(3, 2))) return 80;
-    if (p.equal(new Vec2(1, 2))) return 10;
-
-    if ((p.x + p.y) % 2 !== 0) return 'bad';
-    return p.x + p.y * 4;
-  }),
-  Grid2D.initV(Vec2.both(4), p => {
-    // if (p.equal(new Vec2(1, 0))) return 9;
-    // if (p.equal(new Vec2(1, 2))) return 90;
-
-    // if (p.equal(new Vec2(3, 3))) return 30;
-    // if (p.equal(new Vec2(3, 1))) return 11;
-
-    if (p.equal(new Vec2(0, 3))) return 40;
-
-    if (p.equal(new Vec2(1, 3))) return 1;
-    if (p.equal(new Vec2(1, 1))) return 90;
-
-    if ((p.x + p.y) % 2 === 0) return 'bad';
-    return p.x + p.y * 4;
-  }),
+  fromCount(4, _ => 0),
+  fromCount(4, _ => 0),
   null,
 );
 
@@ -204,7 +165,7 @@ function every_frame(cur_timestamp: number) {
   const screen_mouse_pos = new Vec2(input.mouse.clientX - rect.left, input.mouse.clientY - rect.top);
   const canvas_size = new Vec2(canvas_ctx.width, canvas_ctx.height);
 
-  const hovered_tile = cur_state.draw_and_get_hovered_pos(canvas_size, screen_mouse_pos);
+  cur_state.draw(canvas_size);
   const dir = dirFromKeyboard(input.keyboard);
   if (dir !== null) {
     cur_state = cur_state.next(dir) ?? cur_state;
@@ -262,6 +223,8 @@ back_sol.reverse();
 for (const dir of back_sol) {
   // cur_state = cur_state.next(dir)!;
 }
+
+console.log(cur_state);
 
 ////// library stuff
 
