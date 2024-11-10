@@ -227,6 +227,32 @@ function dirFromKeyboard(keyboard: Keyboard): Direction | null {
   return null;
 }
 
+////// solve
+const back_sol: Direction[] = [
+  'down',
+  'right',
+  'down',
+  'right',
+  'up',
+  'left',
+  'down',
+  'left',
+  'down',
+  'right',
+  'up',
+  'left',
+  'down',
+  'right',
+  'up',
+  'right',
+  'down',
+  'right',
+];
+back_sol.reverse();
+for (const dir of back_sol) {
+  cur_state = cur_state.next(dir)!;
+}
+
 ////// library stuff
 
 function oneOf<T>(v: T, arr: T[]): boolean {
