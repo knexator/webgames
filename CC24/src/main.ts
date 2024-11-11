@@ -260,7 +260,7 @@ let cur_state = new BoardState(
   null,
 );
 
-cur_state = SOLUTION;
+// cur_state = SOLUTION;
 
 canvas_ctx.addEventListener('pointerdown', event => {
   const relative = new Vec2(event.offsetX / canvas_ctx.clientWidth, event.offsetY / canvas_ctx.clientHeight).sub(Vec2.both(.5));
