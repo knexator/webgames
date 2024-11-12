@@ -229,6 +229,10 @@ export class KeyboardListener {
 
     private onKeyDown(ev: KeyboardEvent) {
         this.pressed.add(asKeyCode(ev.code));
+        if (ev.code.startsWith('Arrow')) {
+            ev.preventDefault();
+            return false;
+        }
     }
 
     private onKeyUp(ev: KeyboardEvent) {
