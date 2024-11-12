@@ -18,9 +18,9 @@ const TEXTURES = {
   tile_border: twgl.createTexture(gl, { src: await loadImage('tile_border') }),
 } 
 const MAP_IMAGES = {
-  cols: twgl.createTexture(gl, { src: await loadImage('0102_1002_' + 'cols') }),
-  rows: twgl.createTexture(gl, { src: await loadImage('0102_1002_' + 'rows') }),
-  back: twgl.createTexture(gl, { src: await loadImage('0102_1002_' + 'back') }),
+  cols: twgl.createTexture(gl, { src: await loadImage('0102_1200_' + 'cols') }),
+  rows: twgl.createTexture(gl, { src: await loadImage('0102_1200_' + 'rows') }),
+  // back: twgl.createTexture(gl, { src: await loadImage('0102_1002_' + 'back') }),
 }
 
 const vanillaSprites = new CustomSpriteDrawer<DefaultSpriteData, DefaultGlobalData & {
@@ -79,12 +79,12 @@ class BoardState {
     const TILE_SIDE = 640 / 5;
 
     // ctx.drawImage(MAP_IMAGES.back, 0, 0, TILE_SIDE * 5, TILE_SIDE * 5);
-    vanillaSprites.add({
-      transform: new Transform(Vec2.zero, Vec2.both(640), Vec2.zero, 0),
-      uvs: Transform.identity,
-    });
-    vanillaSprites.end({ resolution: [canvas_gl.clientWidth, canvas_gl.clientHeight], 
-      u_texture: MAP_IMAGES.back });
+    // vanillaSprites.add({
+    //   transform: new Transform(Vec2.zero, Vec2.both(640), Vec2.zero, 0),
+    //   uvs: Transform.identity,
+    // });
+    // vanillaSprites.end({ resolution: [canvas_gl.clientWidth, canvas_gl.clientHeight], 
+    //   u_texture: MAP_IMAGES.back });
 
     ctx.translate(TILE_SIDE / 2, TILE_SIDE / 2);
 
