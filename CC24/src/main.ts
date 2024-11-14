@@ -14,9 +14,6 @@ const canvas_gl = document.querySelector<HTMLCanvasElement>("#gl_canvas")!;
 const gl = initGL2(canvas_gl)!;
 gl.clearColor(.5, .5, .5, 1);
 
-const TEXTURES = {
-  tile_border: twgl.createTexture(gl, { src: await loadImage('tile_border') }),
-} 
 const MAP_IMAGES = {
   cols: twgl.createTexture(gl, { src: await loadImage('0102_1200_' + 'cols') }),
   rows: twgl.createTexture(gl, { src: await loadImage('0102_1200_' + 'rows') }),
@@ -113,16 +110,6 @@ class BoardState {
               Vec2.both(TILE_SIDE),
               Vec2.zero,
               0
-            ), uvs: Transform.identity
-          });
-          vanillaSprites.end({ resolution: [canvas_gl.clientWidth, canvas_gl.clientHeight], u_texture: TEXTURES.tile_border });
-
-          vanillaSprites.add({
-            transform: new Transform(
-              new Vec2(i, j).scale(TILE_SIDE).add(Vec2.both(TILE_SIDE / 2)),
-              Vec2.both(TILE_SIDE),
-              Vec2.zero,
-              0
             ), uvs: new Transform(
               new Vec2(this.asdfThingRow(i, j, anim_t) / 4, j / 4),
               Vec2.both(1 / 4),
@@ -147,16 +134,6 @@ class BoardState {
             )
           });
           vanillaSprites.end({ resolution: [canvas_gl.clientWidth, canvas_gl.clientHeight], u_texture: MAP_IMAGES.rows });
-
-          vanillaSprites.add({
-            transform: new Transform(
-              new Vec2(i, j).scale(TILE_SIDE).add(Vec2.both(TILE_SIDE / 2)),
-              Vec2.both(TILE_SIDE),
-              Vec2.zero,
-              0
-            ), uvs: new Transform(Vec2.half, Vec2.one, Vec2.half, Math.PI / 2),
-          });
-          vanillaSprites.end({ resolution: [canvas_gl.clientWidth, canvas_gl.clientHeight], u_texture: TEXTURES.tile_border });
 
           vanillaSprites.add({
             transform: new Transform(
