@@ -17,6 +17,7 @@ gl.clearColor(.5, .5, .5, 1);
 const MAP_IMAGES = {
   cols: twgl.createTexture(gl, { src: await loadImage('0102_1200_' + 'cols') }),
   rows: twgl.createTexture(gl, { src: await loadImage('0102_1200_' + 'rows') }),
+  back: twgl.createTexture(gl, { src: await loadImage('back') }),
   // back: twgl.createTexture(gl, { src: await loadImage('0102_1002_' + 'back') }),
 }
 
@@ -75,80 +76,25 @@ class BoardState {
     // );
     const TILE_SIDE = 640 / 5;
 
-    // ctx.drawImage(MAP_IMAGES.back, 0, 0, TILE_SIDE * 5, TILE_SIDE * 5);
-    // vanillaSprites.add({
-    //   transform: new Transform(Vec2.zero, Vec2.both(640), Vec2.zero, 0),
-    //   uvs: Transform.identity,
-    // });
-    // vanillaSprites.end({ resolution: [canvas_gl.clientWidth, canvas_gl.clientHeight], 
-    //   u_texture: MAP_IMAGES.back });
-
     ctx.translate(TILE_SIDE / 2, TILE_SIDE / 2);
+
+    for (let k = 0; k < 4; k++) {
+      this.drawRow(-1, k, TILE_SIDE, anim_t);
+      this.drawRow(4, k, TILE_SIDE, anim_t);
+      this.drawCol(k, -1, TILE_SIDE, anim_t);
+      this.drawCol(k, 4, TILE_SIDE, anim_t);
+    }
 
     for (let j = 0; j < 4; j++) {
       for (let i = 0; i < 4; i++) {
         const is_hor = (i + j) % 2 === 0;
         if (is_hor) {
-          vanillaSprites.add({
-            transform: new Transform(
-              new Vec2(i, j).scale(TILE_SIDE).add(Vec2.both(TILE_SIDE / 2)),
-              Vec2.both(TILE_SIDE),
-              Vec2.zero,
-              0
-            ), uvs: new Transform(
-              new Vec2(i / 4, this.asdfThingCol(i, j, anim_t) / 4),
-              Vec2.both(1 / 4),
-              Vec2.zero,
-              0
-            )
-          });
-          vanillaSprites.end({ resolution: [canvas_gl.clientWidth, canvas_gl.clientHeight], u_texture: MAP_IMAGES.cols });
-
-          vanillaSprites.add({
-            transform: new Transform(
-              new Vec2(i, j).scale(TILE_SIDE).add(Vec2.both(TILE_SIDE / 2)),
-              Vec2.both(TILE_SIDE),
-              Vec2.zero,
-              0
-            ), uvs: new Transform(
-              new Vec2(this.asdfThingRow(i, j, anim_t) / 4, j / 4),
-              Vec2.both(1 / 4),
-              Vec2.zero,
-              0
-            )
-          });
-          vanillaSprites.end({ resolution: [canvas_gl.clientWidth, canvas_gl.clientHeight], u_texture: MAP_IMAGES.rows });
+          this.drawCol(i, j, TILE_SIDE, anim_t);
+          this.drawRow(i, j, TILE_SIDE, anim_t);
         }
         else {
-          vanillaSprites.add({
-            transform: new Transform(
-              new Vec2(i, j).scale(TILE_SIDE).add(Vec2.both(TILE_SIDE / 2)),
-              Vec2.both(TILE_SIDE),
-              Vec2.zero,
-              0
-            ), uvs: new Transform(
-              new Vec2(this.asdfThingRow(i, j, anim_t) / 4, j / 4),
-              Vec2.both(1 / 4),
-              Vec2.zero,
-              0
-            )
-          });
-          vanillaSprites.end({ resolution: [canvas_gl.clientWidth, canvas_gl.clientHeight], u_texture: MAP_IMAGES.rows });
-
-          vanillaSprites.add({
-            transform: new Transform(
-              new Vec2(i, j).scale(TILE_SIDE).add(Vec2.both(TILE_SIDE / 2)),
-              Vec2.both(TILE_SIDE),
-              Vec2.zero,
-              0
-            ), uvs: new Transform(
-              new Vec2(i / 4, this.asdfThingCol(i, j, anim_t) / 4),
-              Vec2.both(1 / 4),
-              Vec2.zero,
-              0
-            )
-          });
-          vanillaSprites.end({ resolution: [canvas_gl.clientWidth, canvas_gl.clientHeight], u_texture: MAP_IMAGES.cols });
+          this.drawRow(i, j, TILE_SIDE, anim_t);
+          this.drawCol(i, j, TILE_SIDE, anim_t);
         }
         // smallerRect(new Vec2(i, j).scale(TILE_SIDE), Vec2.both(TILE_SIDE), is_hor ? new Vec2(1.06, .9) : new Vec2(.9, 1.06));
         // ctx.fillStyle = true ? COLORS.PALETTE[6] : COLORS.PALETTE[4];
@@ -162,7 +108,50 @@ class BoardState {
     circle(Vec2.lerp(this.parent?.boat_pos ?? this.boat_pos, this.boat_pos, anim_t).add(Vec2.both(.5)).scale(TILE_SIDE), TILE_SIDE / 3);
     ctx.stroke();
 
+    // ctx.drawImage(MAP_IMAGES.back, 0, 0, TILE_SIDE * 5, TILE_SIDE * 5);
+    vanillaSprites.add({
+      transform: new Transform(Vec2.zero, Vec2.both(640), Vec2.zero, 0),
+      uvs: Transform.identity,
+    });
+    vanillaSprites.end({ resolution: [canvas_gl.clientWidth, canvas_gl.clientHeight], 
+      u_texture: MAP_IMAGES.back });
+
+
     ctx.resetTransform();
+  }
+
+  private drawCol(i: number, j: number, TILE_SIDE: number, anim_t: number) {
+    vanillaSprites.add({
+      transform: new Transform(
+        new Vec2(i, j).scale(TILE_SIDE).add(Vec2.both(TILE_SIDE / 2)),
+        Vec2.both(TILE_SIDE),
+        Vec2.zero,
+        0
+      ), uvs: new Transform(
+        new Vec2(i / 4, this.asdfThingCol(i, j, anim_t) / 4),
+        Vec2.both(1 / 4),
+        Vec2.zero,
+        0
+      )
+    });
+    vanillaSprites.end({ resolution: [canvas_gl.clientWidth, canvas_gl.clientHeight], u_texture: MAP_IMAGES.cols });
+  }
+
+  private drawRow(i: number, j: number, TILE_SIDE: number, anim_t: number) {
+    vanillaSprites.add({
+      transform: new Transform(
+        new Vec2(i, j).scale(TILE_SIDE).add(Vec2.both(TILE_SIDE / 2)),
+        Vec2.both(TILE_SIDE),
+        Vec2.zero,
+        0
+      ), uvs: new Transform(
+        new Vec2(this.asdfThingRow(i, j, anim_t) / 4, j / 4),
+        Vec2.both(1 / 4),
+        Vec2.zero,
+        0
+      )
+    });
+    vanillaSprites.end({ resolution: [canvas_gl.clientWidth, canvas_gl.clientHeight], u_texture: MAP_IMAGES.rows });
   }
 
   // magic
@@ -224,7 +213,7 @@ class BoardState {
 
 // rows: { 0, 1, 0, 2 }, cols: { 1, 0, 0, 2 }, len: 30
 // const SOLUTION = new BoardState(new Vec2(3, 3), [0, 2, 1, 0], [2, 1, 0, 0], null);
-const SOLUTION = new BoardState(new Vec2(3, 3), [0, 1, 0, 2], [1, 0, 0, 2], null);
+const SOLUTION = new BoardState(new Vec2(3, 3), [0, 1, 0, 2], [1, 2, 0, 0], null);
 
 // old solution: rows: { 0, 2, 1, 0 }, cols: { 0, 2, 0, 1 }
 // later: rows: { 0, 0, 2, 1 }, cols: { 2, 0, 1, 0 }, len: 30
