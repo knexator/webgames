@@ -156,12 +156,12 @@ class BoardState {
     });
 
 
-    // vanillaSprites.add({
-    //   transform: new Transform(Vec2.zero, Vec2.both(640), Vec2.zero, 0),
-    //   uvs: Transform.identity,
-    // });
-    // vanillaSprites.end({ resolution: [canvas_gl.clientWidth, canvas_gl.clientHeight], 
-    //   u_texture: TEXTURES.back });
+    vanillaSprites.add({
+      transform: new Transform(Vec2.zero, Vec2.both(640), Vec2.zero, 0),
+      uvs: Transform.identity,
+    });
+    vanillaSprites.end({ resolution: [canvas_gl.clientWidth, canvas_gl.clientHeight], 
+      u_texture: TEXTURES.back });
 
 
     ctx.resetTransform();
