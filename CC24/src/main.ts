@@ -16,12 +16,13 @@ gl.clearColor(.5, .5, .5, 1);
 
 const TEXTURES = {
   boat: twgl.createTexture(gl, { src: await loadImage('boat') }),
+  errors: twgl.createTexture(gl, { src: await loadImage('errors') }),
+  back: twgl.createTexture(gl, { src: await loadImage('back') }),
 }
 
 const MAP_IMAGES = {
   cols: twgl.createTexture(gl, { src: await loadImage('0102_1200_' + 'cols') }),
   rows: twgl.createTexture(gl, { src: await loadImage('0102_1200_' + 'rows') }),
-  back: twgl.createTexture(gl, { src: await loadImage('back') }),
   // back: twgl.createTexture(gl, { src: await loadImage('0102_1002_' + 'back') }),
 }
 
@@ -111,20 +112,147 @@ class BoardState {
       transform: new Transform(boat_pos_visual, Vec2.both(216 * TILE_SIDE / 128), Vec2.half, 0),
       uvs: Transform.identity,
     });
-    vanillaSprites.end({ resolution: [canvas_gl.clientWidth, canvas_gl.clientHeight], 
-      u_texture: TEXTURES.boat });
-
-
-    // ctx.drawImage(MAP_IMAGES.back, 0, 0, TILE_SIDE * 5, TILE_SIDE * 5);
-    vanillaSprites.add({
-      transform: new Transform(Vec2.zero, Vec2.both(640), Vec2.zero, 0),
-      uvs: Transform.identity,
+    vanillaSprites.end({
+      resolution: [canvas_gl.clientWidth, canvas_gl.clientHeight],
+      u_texture: TEXTURES.boat
     });
-    vanillaSprites.end({ resolution: [canvas_gl.clientWidth, canvas_gl.clientHeight], 
-      u_texture: MAP_IMAGES.back });
+
+
+    for (let k = 0; k < 5; k++) {
+
+      for (let col = 0; col < 4; col++) {
+        if (this.errorAtHor(col, k) && (anim_t > .7 || (this.parent !== null && this.parent.errorAtHor(col, k)))) {
+          const s = Vec2.both(.1);
+          const asdf = {
+            top_left: new Vec2((col + 1) / 5, (k + .5) / 5).sub(s.scale(.5)),
+            size: s,
+          };
+          vanillaSprites.add({
+            transform: new Transform(Vec2.zero, Vec2.both(640), Vec2.zero, 0).actOn(asdf),
+            uvs: asdf,
+          });
+        }
+      }
+
+      for (let row = 0; row < 4; row++) {
+        if (this.errorAtVer(row, k) && (anim_t > .7 || (this.parent !== null && this.parent.errorAtVer(row, k)))) {
+          const s = Vec2.both(.1);
+          const asdf = {
+            top_left: new Vec2((k + .5) / 5, (row + 1) / 5,).sub(s.scale(.5)),
+            size: s,
+          };
+          vanillaSprites.add({
+            transform: new Transform(Vec2.zero, Vec2.both(640), Vec2.zero, 0).actOn(asdf),
+            uvs: asdf,
+          });
+        }
+      }
+
+
+    }
+    vanillaSprites.end({
+      resolution: [canvas_gl.clientWidth, canvas_gl.clientHeight],
+      u_texture: TEXTURES.errors
+    });
+
+
+    // vanillaSprites.add({
+    //   transform: new Transform(Vec2.zero, Vec2.both(640), Vec2.zero, 0),
+    //   uvs: Transform.identity,
+    // });
+    // vanillaSprites.end({ resolution: [canvas_gl.clientWidth, canvas_gl.clientHeight], 
+    //   u_texture: TEXTURES.back });
 
 
     ctx.resetTransform();
+  }
+
+  errorAtHor(col: number, bottom_row: number): boolean {
+    return this.edgeAt(new Vec2(col, mod(bottom_row - 1, 4)), 'down') !==
+      this.edgeAt(new Vec2(col, mod(bottom_row, 4)), 'up');
+  }
+
+  errorAtVer(row: number, right_col: number): boolean {
+    return this.edgeAt(new Vec2(mod(right_col - 1, 4), row), 'right') !==
+      this.edgeAt(new Vec2(mod(right_col, 4), row), 'left');
+  }
+
+  edgeAt(pos: Vec2, dir: Direction): EdgeType {
+    const is_hor = (pos.x + pos.y) % 2 === 0;
+    if (is_hor) {
+      return BoardState.startingEdgeAt(new Vec2(mod(pos.x - this.rows[pos.y], 4), pos.y), dir, 'rows');
+    } else {
+      return BoardState.startingEdgeAt(new Vec2(pos.x, mod(pos.y - this.cols[pos.x], 4)), dir, 'cols');
+    }
+    return '0';
+  }
+
+  static startingEdgeAt(pos: Vec2, dir: Direction, map: 'rows' | 'cols'): EdgeType {
+    if (map === 'rows') {
+      const UP = Grid2D.fromAscii(`
+      0000
+      0077
+      0000
+      0000
+    `);
+      const DOWN = Grid2D.fromAscii(`
+      0090
+      0000
+      0030
+      0000
+    `);
+      const RIGHT = Grid2D.fromAscii(`
+      0010
+      BBBA
+      0040
+      Y0Y0
+    `);
+      const LEFT = Grid2D.fromAscii(`
+      0001
+      ABBB
+      0004
+      0Y0Y
+    `);
+      const maps: Record<Direction, Grid2D<string>> = {
+        up: UP,
+        down: DOWN,
+        left: LEFT,
+        right: RIGHT,
+      };
+      return edgeFromString(maps[dir].getV(pos));
+    } else {
+      const UP = Grid2D.fromAscii(`
+      0000
+      0097
+      0000
+      0030
+    `);
+      const DOWN = Grid2D.fromAscii(`
+      0097
+      0000
+      0030
+      0000
+    `);
+      const RIGHT = Grid2D.fromAscii(`
+      A000
+      B0B0
+      Y000
+      Y0Y0
+    `);
+      const LEFT = Grid2D.fromAscii(`
+      B001
+      A0B0
+      0004
+      0000
+    `);
+      const maps: Record<Direction, Grid2D<string>> = {
+        up: UP,
+        down: DOWN,
+        left: LEFT,
+        right: RIGHT,
+      };
+      return edgeFromString(maps[dir].getV(pos));
+    }
   }
 
   private drawCol(i: number, j: number, TILE_SIDE: number, anim_t: number) {
@@ -218,6 +346,27 @@ class BoardState {
   }
 }
 
+type EdgeType = '0' | 'A' | 'B' | 'Y' | '9' | '3' | '4' | '7' | '1';
+
+function edgeFromString(c: string): EdgeType {
+  if ('0ABY93471'.includes(c)) {
+    // @ts-expect-error we just checked
+    return c;
+  }
+  throw new Error(`bad c: ${c}`);
+}
+// const 
+// edges_rows_hor[col][bottom_row] = the type of the thing
+// const edges_rows_hor: EdgeType[][] = [
+//   ['0', '0', '0', '0', '0'],
+//   ['0', '0', '0', '0', '0'],
+//   ['0', '0', '0', '0', '0'],
+//   ['0', '0', '0', '0', '0'],
+// ];
+// const edges_cols_hor: EdgeType[][] = [
+//   ['0'],
+// ]
+
 // rows: { 0, 1, 0, 2 }, cols: { 1, 0, 0, 2 }, len: 30
 // const SOLUTION = new BoardState(new Vec2(3, 3), [0, 2, 1, 0], [2, 1, 0, 0], null);
 const SOLUTION = new BoardState(new Vec2(3, 3), [0, 1, 0, 2], [1, 2, 0, 0], null);
@@ -232,6 +381,13 @@ let cur_state = new BoardState(
   fromCount(4, _ => 0),
   null,
 );
+
+console.log(cur_state.edgeAt(new Vec2(0, 0), 'up'));
+console.log(cur_state.edgeAt(new Vec2(0, -1), 'down'));
+console.log(cur_state.errorAtHor(0, 0));
+
+// return this.edgeAt(new Vec2(mod(bottom_row - 1, 4), 0), 'down') !==
+//   this.edgeAt(new Vec2(mod(bottom_row, 4), 0), 'up');
 
 // cur_state = SOLUTION;
 
@@ -355,8 +511,6 @@ back_sol.reverse();
 for (const dir of back_sol) {
   // cur_state = cur_state.next(dir)!;
 }
-
-console.log(cur_state);
 
 ////// library stuff
 
