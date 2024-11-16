@@ -14,6 +14,10 @@ const canvas_gl = document.querySelector<HTMLCanvasElement>("#gl_canvas")!;
 const gl = initGL2(canvas_gl)!;
 gl.clearColor(.5, .5, .5, 1);
 
+const TEXTURES = {
+  boat: twgl.createTexture(gl, { src: await loadImage('boat') }),
+}
+
 const MAP_IMAGES = {
   cols: twgl.createTexture(gl, { src: await loadImage('0102_1200_' + 'cols') }),
   rows: twgl.createTexture(gl, { src: await loadImage('0102_1200_' + 'rows') }),
@@ -102,11 +106,14 @@ class BoardState {
       }
     }
 
-    ctx.lineWidth = TILE_SIDE / 20;
-    ctx.strokeStyle = COLORS.PALETTE[2];
-    ctx.beginPath();
-    circle(Vec2.lerp(this.parent?.boat_pos ?? this.boat_pos, this.boat_pos, anim_t).add(Vec2.both(.5)).scale(TILE_SIDE), TILE_SIDE / 3);
-    ctx.stroke();
+    const boat_pos_visual = Vec2.lerp(this.parent?.boat_pos ?? this.boat_pos, this.boat_pos, anim_t).add(Vec2.both(1)).scale(TILE_SIDE);
+    vanillaSprites.add({
+      transform: new Transform(boat_pos_visual, Vec2.both(216 * TILE_SIDE / 128), Vec2.half, 0),
+      uvs: Transform.identity,
+    });
+    vanillaSprites.end({ resolution: [canvas_gl.clientWidth, canvas_gl.clientHeight], 
+      u_texture: TEXTURES.boat });
+
 
     // ctx.drawImage(MAP_IMAGES.back, 0, 0, TILE_SIDE * 5, TILE_SIDE * 5);
     vanillaSprites.add({
@@ -291,6 +298,14 @@ function every_frame(cur_timestamp: number) {
     if (cur_state.parent !== null) {
       cur_state = cur_state.parent;
     }
+  }
+  if (input.keyboard.wasPressed(KeyCode.KeyR)) {
+    cur_state = new BoardState(
+      Vec2.zero,
+      fromCount(4, _ => 0),
+      fromCount(4, _ => 0),
+      cur_state,
+    );
   }
   // if (hovered_tile !== null) {
   //   cur_state = cur_state.next_debug(hovered_tile, input.keyboard);
