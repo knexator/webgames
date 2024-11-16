@@ -103,7 +103,7 @@ class BoardState {
     }
 
     ctx.lineWidth = TILE_SIDE / 20;
-    ctx.strokeStyle = COLORS.PALETTE[8];
+    ctx.strokeStyle = COLORS.PALETTE[2];
     ctx.beginPath();
     circle(Vec2.lerp(this.parent?.boat_pos ?? this.boat_pos, this.boat_pos, anim_t).add(Vec2.both(.5)).scale(TILE_SIDE), TILE_SIDE / 3);
     ctx.stroke();
