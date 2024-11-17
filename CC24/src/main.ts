@@ -409,12 +409,7 @@ let cur_state = new BoardState(
   null,
 );
 
-console.log(cur_state.edgeAt(new Vec2(0, 0), 'up'));
-console.log(cur_state.edgeAt(new Vec2(0, -1), 'down'));
-console.log(cur_state.errorAtHor(0, 0));
-
-// return this.edgeAt(new Vec2(mod(bottom_row - 1, 4), 0), 'down') !==
-//   this.edgeAt(new Vec2(mod(bottom_row, 4), 0), 'up');
+let input_queue: Direction[] = [];
 
 // cur_state = SOLUTION;
 
@@ -423,11 +418,7 @@ canvas_ctx.addEventListener('pointerdown', event => {
   const relative = new Vec2(event.offsetX / canvas_ctx.clientWidth, event.offsetY / canvas_ctx.clientHeight).sub(Vec2.both(.5));
   const dir = dirFromRelative(relative);
   if (dir !== null) {
-    const new_state = cur_state.next(dir);
-    if (new_state !== null) {
-      cur_state = new_state;
-      anim_t = 0;
-    }
+    input_queue.push(dir);
   }
 
   function dirFromRelative(v: Vec2): Direction {
@@ -441,6 +432,7 @@ canvas_ctx.addEventListener('pointerdown', event => {
 
 let anim_t = 1;
 let on_win_anim = false;
+let turn_duration = .2;
 
 let last_timestamp: number | null = null;
 // main loop; game logic lives here
@@ -471,6 +463,15 @@ function every_frame(cur_timestamp: number) {
   } else {
     cur_state.draw(canvas_size, anim_t, false);
   }
+
+  if (!on_win_anim) {
+    const dir = dirFromKeyboard(input.keyboard);
+    if (dir !== null) {
+      input_queue.push(dir);
+    }
+  }
+
+  turn_duration = towards(turn_duration, (.2 * Math.pow(2, -input_queue.length)), delta_time * .1);
   if (anim_t >= 1) {
     if (on_win_anim) {
       // nothing
@@ -479,17 +480,19 @@ function every_frame(cur_timestamp: number) {
       cur_state = new BoardState(cur_state.boat_pos, cur_state.rows, cur_state.cols, cur_state);
       anim_t = 0;
     } else {
-      const dir = dirFromKeyboard(input.keyboard);
-      if (dir !== null) {
+      const dir = input_queue.shift();
+      if (dir !== undefined) {
         const new_state = cur_state.next(dir)
         if (new_state !== null) {
           cur_state = new_state;
           anim_t = 0;
+        } else {
+          input_queue = [];
         }
       }
     }
   } else {
-    anim_t += delta_time / (on_win_anim ? 1 : .2);
+    anim_t += delta_time / (on_win_anim ? 1 : turn_duration);
     anim_t = clamp01(anim_t);
   }
   if (input.keyboard.wasPressed(KeyCode.KeyZ)) {
