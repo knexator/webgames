@@ -8,8 +8,6 @@ import { canvasFromAscii } from "./kommon/spritePS";
 import { initGL2, IVec, Vec2, Color, GenericDrawer, StatefulDrawer, CircleDrawer, m3, CustomSpriteDrawer, Transform, IRect, IColor, IVec2, FullscreenShader, DefaultSpriteData, DefaultGlobalData } from "kanvas2d"
 
 const input = new Input();
-const canvas_ctx = document.querySelector<HTMLCanvasElement>("#ctx_canvas")!;
-const ctx = canvas_ctx.getContext("2d")!;
 const canvas_gl = document.querySelector<HTMLCanvasElement>("#gl_canvas")!;
 const gl = initGL2(canvas_gl)!;
 gl.clearColor(.5, .5, .5, 1);
@@ -81,8 +79,6 @@ class BoardState {
     //   screen_size.y / 5,
     // );
     const TILE_SIDE = 640 / 5;
-
-    ctx.translate(TILE_SIDE / 2, TILE_SIDE / 2);
 
     for (let k = 0; k < 4; k++) {
       this.drawRow(-1, k, TILE_SIDE, anim_t);
@@ -187,9 +183,6 @@ class BoardState {
       resolution: [canvas_gl.clientWidth, canvas_gl.clientHeight],
       u_texture: TEXTURES.back
     });
-
-
-    ctx.resetTransform();
   }
 
   errorAtHor(col: number, bottom_row: number): boolean {
@@ -413,9 +406,9 @@ let input_queue: Direction[] = [];
 
 // cur_state = SOLUTION;
 
-canvas_ctx.addEventListener('pointerdown', event => {
+canvas_gl.addEventListener('pointerdown', event => {
   if (cur_state.isWon()) return;
-  const relative = new Vec2(event.offsetX / canvas_ctx.clientWidth, event.offsetY / canvas_ctx.clientHeight).sub(Vec2.both(.5));
+  const relative = new Vec2(event.offsetX / canvas_gl.clientWidth, event.offsetY / canvas_gl.clientHeight).sub(Vec2.both(.5));
   const dir = dirFromRelative(relative);
   if (dir !== null) {
     input_queue.push(dir);
@@ -444,18 +437,16 @@ function every_frame(cur_timestamp: number) {
   const delta_time = (cur_timestamp - last_timestamp) / 1000;
   last_timestamp = cur_timestamp;
   input.startFrame();
-  ctx.resetTransform();
-  ctx.clearRect(0, 0, canvas_ctx.width, canvas_ctx.height);
-  if (or(twgl.resizeCanvasToDisplaySize(canvas_ctx), twgl.resizeCanvasToDisplaySize(canvas_gl))) {
+  if (twgl.resizeCanvasToDisplaySize(canvas_gl)) {
     // resizing stuff
     gl.viewport(0, 0, canvas_gl.width, canvas_gl.height);
   }
 
   if (input.keyboard.wasPressed(KeyCode.KeyH)) gui.show(gui._hidden);
 
-  const rect = canvas_ctx.getBoundingClientRect();
+  const rect = canvas_gl.getBoundingClientRect();
   const screen_mouse_pos = new Vec2(input.mouse.clientX - rect.left, input.mouse.clientY - rect.top);
-  const canvas_size = new Vec2(canvas_ctx.width, canvas_ctx.height);
+  const canvas_size = new Vec2(canvas_gl.width, canvas_gl.height);
 
   if (on_win_anim) {
     // TODO
@@ -538,32 +529,6 @@ function dirFromKeyboard(keyboard: Keyboard): Direction | null {
   return null;
 }
 
-////// solve
-const back_sol: Direction[] = [
-  'down',
-  'right',
-  'down',
-  'right',
-  'up',
-  'left',
-  'down',
-  'left',
-  'down',
-  'right',
-  'up',
-  'left',
-  'down',
-  'right',
-  'up',
-  'right',
-  'down',
-  'right',
-];
-back_sol.reverse();
-for (const dir of back_sol) {
-  // cur_state = cur_state.next(dir)!;
-}
-
 ////// library stuff
 
 function oneOf<T>(v: T, arr: T[]): boolean {
@@ -583,39 +548,6 @@ function single<T>(arr: T[]): T {
 function at<T>(arr: T[], index: number): T {
   if (arr.length === 0) throw new Error("can't call 'at' with empty array");
   return arr[mod(index, arr.length)];
-}
-
-function drawCircle(center: Vec2, radius: number): void {
-  ctx.moveTo(center.x + radius, center.y);
-  ctx.arc(center.x, center.y, radius, 0, 2 * Math.PI);
-}
-
-function moveTo(pos: Vec2): void {
-  ctx.moveTo(pos.x, pos.y);
-}
-
-function lineTo(pos: Vec2): void {
-  ctx.lineTo(pos.x, pos.y);
-}
-
-function fillText(text: string, pos: Vec2): void {
-  ctx.fillText(text, pos.x, pos.y);
-}
-
-function circle(center: Vec2, radius: number): void {
-  ctx.arc(center.x, center.y, radius, 0, 2 * Math.PI);
-}
-
-function rect(top_left: Vec2, size: Vec2): void {
-  ctx.rect(top_left.x, top_left.y, size.x, size.y);
-}
-
-function smallerRect(top_left: Vec2, size: Vec2, fill_perc: Vec2): void {
-  centeredRect(top_left.add(size.scale(.5)), size.mul(fill_perc));
-}
-
-function centeredRect(center: Vec2, size: Vec2): void {
-  ctx.rect(center.x - size.x / 2, center.y - size.y / 2, size.x, size.y);
 }
 
 function or(a: boolean, b: boolean) {
