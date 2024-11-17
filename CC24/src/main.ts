@@ -406,15 +406,26 @@ let input_queue: Direction[] = [];
 
 // cur_state = SOLUTION;
 
-canvas_gl.addEventListener('pointerdown', event => {
-  if (cur_state.isWon()) return;
-  const relative = new Vec2(event.offsetX / canvas_gl.clientWidth, event.offsetY / canvas_gl.clientHeight).sub(Vec2.both(.5));
-  const dir = dirFromRelative(relative);
+let touch_start: Vec2 | null = null;
+const MIN_SWIPE_DIST = 50;
+document.addEventListener('pointerdown', event => {
+  touch_start = new Vec2(event.offsetX, event.offsetY);
+});
+
+document.addEventListener('pointerup', event => {
+  if (touch_start === null) return;
+  const touch_end = new Vec2(event.offsetX, event.offsetY);
+  const delta = touch_end.sub(touch_start);
+  const dir = dirFromRelative(delta);
   if (dir !== null) {
     input_queue.push(dir);
   }
+  touch_start = null;
 
-  function dirFromRelative(v: Vec2): Direction {
+  function dirFromRelative(v: Vec2): Direction | null {
+    if (Math.abs(v.x) < MIN_SWIPE_DIST && Math.abs(v.y) < MIN_SWIPE_DIST) {
+      return null;
+    }
     if (Math.abs(v.x) > Math.abs(v.y)) {
       return v.x > 0 ? 'right' : 'left';
     } else {
