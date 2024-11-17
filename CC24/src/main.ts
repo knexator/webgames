@@ -73,7 +73,7 @@ class BoardState {
     public parent: BoardState | null,
   ) { }
 
-  draw(screen_size: Vec2, anim_t: number, on_win_anim: boolean): void {
+  draw(anim_t: number, on_win_anim: boolean): void {
     // const TILE_SIDE = Math.min(
     //   screen_size.x / 5,
     //   screen_size.y / 5,
@@ -120,7 +120,7 @@ class BoardState {
       uvs: Transform.identity,
     });
     vanillaSprites.end({
-      resolution: [canvas_gl.clientWidth, canvas_gl.clientHeight],
+      resolution: [canvas_gl.width, canvas_gl.height],
       u_texture: TEXTURES.boat
     });
 
@@ -158,7 +158,7 @@ class BoardState {
 
     }
     vanillaSprites.end({
-      resolution: [canvas_gl.clientWidth, canvas_gl.clientHeight],
+      resolution: [canvas_gl.width, canvas_gl.height],
       u_texture: TEXTURES.errors
     });
 
@@ -170,7 +170,7 @@ class BoardState {
         color: new Color(1, 1, 1, anim_t),
       });
       vanillaSprites.end({
-        resolution: [canvas_gl.clientWidth, canvas_gl.clientHeight],
+        resolution: [canvas_gl.width, canvas_gl.height],
         u_texture: TEXTURES.ending
       });
     }
@@ -180,7 +180,7 @@ class BoardState {
       uvs: Transform.identity,
     });
     vanillaSprites.end({
-      resolution: [canvas_gl.clientWidth, canvas_gl.clientHeight],
+      resolution: [canvas_gl.width, canvas_gl.height],
       u_texture: TEXTURES.back
     });
   }
@@ -289,7 +289,7 @@ class BoardState {
         0
       )
     });
-    vanillaSprites.end({ resolution: [canvas_gl.clientWidth, canvas_gl.clientHeight], u_texture: MAP_IMAGES.cols });
+    vanillaSprites.end({ resolution: [canvas_gl.width, canvas_gl.height], u_texture: MAP_IMAGES.cols });
   }
 
   private drawRow(i: number, j: number, TILE_SIDE: number, anim_t: number) {
@@ -306,7 +306,7 @@ class BoardState {
         0
       )
     });
-    vanillaSprites.end({ resolution: [canvas_gl.clientWidth, canvas_gl.clientHeight], u_texture: MAP_IMAGES.rows });
+    vanillaSprites.end({ resolution: [canvas_gl.width, canvas_gl.height], u_texture: MAP_IMAGES.rows });
   }
 
   // magic
@@ -427,6 +427,10 @@ let anim_t = 1;
 let on_win_anim = false;
 let turn_duration = .2;
 
+canvas_gl.width = 640;
+canvas_gl.height = 640;
+gl.viewport(0, 0, canvas_gl.width, canvas_gl.height);
+
 let last_timestamp: number | null = null;
 // main loop; game logic lives here
 function every_frame(cur_timestamp: number) {
@@ -437,10 +441,12 @@ function every_frame(cur_timestamp: number) {
   const delta_time = (cur_timestamp - last_timestamp) / 1000;
   last_timestamp = cur_timestamp;
   input.startFrame();
-  if (twgl.resizeCanvasToDisplaySize(canvas_gl)) {
-    // resizing stuff
-    gl.viewport(0, 0, canvas_gl.width, canvas_gl.height);
-  }
+  // if (twgl.resizeCanvasToDisplaySize(canvas_gl)) {
+  //   // resizing stuff
+  //   gl.viewport(0, 0, canvas_gl.width, canvas_gl.height);
+  // }
+
+  // gl.viewport(0, 0, 390, 390);
 
   if (input.keyboard.wasPressed(KeyCode.KeyH)) gui.show(gui._hidden);
 
@@ -448,12 +454,14 @@ function every_frame(cur_timestamp: number) {
   const screen_mouse_pos = new Vec2(input.mouse.clientX - rect.left, input.mouse.clientY - rect.top);
   const canvas_size = new Vec2(canvas_gl.width, canvas_gl.height);
 
-  if (on_win_anim) {
-    // TODO
-    cur_state.draw(canvas_size, anim_t, true);
-  } else {
-    cur_state.draw(canvas_size, anim_t, false);
-  }
+  // canvas_gl.style.width = `${canvas_size.x}px`;
+  // canvas_gl.style.height = `${canvas_size.y}px`;
+
+  // gl.viewport(0, 0, rect.width, rect.height);
+  // console.log(rect);
+  // console.log(canvas_size);
+
+  cur_state.draw(anim_t, on_win_anim);
 
   if (!on_win_anim) {
     const dir = dirFromKeyboard(input.keyboard);
