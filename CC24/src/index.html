@@ -35,6 +35,15 @@
             aspect-ratio: 1/1;
         }
 
+        #loading_text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #25272A;
+            font-size: 4rem; /* or your desired size */
+        }
+
         canvas {
             position: absolute;
             width: 100%;
@@ -93,6 +102,7 @@
     <div id="game_container">
         <div id="canvas_container">
             <canvas id="gl_canvas"></canvas>
+            <div id="loading_text">Loading...</div>
         </div>
         <div id="buttons_container">
             <button class="game-button" id="undo">Undo</button>

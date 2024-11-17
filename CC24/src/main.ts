@@ -645,14 +645,8 @@ if (import.meta.hot) {
   })
 }
 
-let animation_id: number;
-const loading_screen_element = document.querySelector<HTMLDivElement>("#loading_screen");
+const loading_screen_element = document.querySelector<HTMLDivElement>("#loading_text");
 if (loading_screen_element) {
-  loading_screen_element.innerText = "Press to start!";
-  document.addEventListener("pointerdown", _event => {
-    loading_screen_element.style.opacity = "0";
-    animation_id = requestAnimationFrame(every_frame);
-  }, { once: true });
-} else {
-  animation_id = requestAnimationFrame(every_frame);
+  loading_screen_element.remove();
 }
+let animation_id = requestAnimationFrame(every_frame);
