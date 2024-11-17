@@ -16,6 +16,7 @@ const TEXTURES = {
   boat: twgl.createTexture(gl, { src: await loadImage('boat') }),
   errors: twgl.createTexture(gl, { src: await loadImage('errors') }),
   back: twgl.createTexture(gl, { src: await loadImage('back') }),
+  back_extra: twgl.createTexture(gl, { src: await loadImage('back_extra') }),
   ending: twgl.createTexture(gl, { src: await loadImage('ending') }),
 }
 
@@ -105,7 +106,7 @@ class BoardState {
     }
 
     const boat_pos_visual = on_win_anim
-      ? this.boat_pos.addX(-2 * anim_t * (.25 - anim_t)).add(Vec2.both(1)).scale(TILE_SIDE)
+      ? this.boat_pos.addX(-2.5 * anim_t * (.25 - anim_t)).add(Vec2.both(1)).scale(TILE_SIDE)
       // ? subdivideT(anim_t, [
       //   [0, 0.4, (t) => {
       //     return this.boat_pos.addX( -.1 * t * (1 - t) / .25 );
@@ -183,6 +184,17 @@ class BoardState {
       resolution: [canvas_gl.width, canvas_gl.height],
       u_texture: TEXTURES.back
     });
+
+    if (window.innerWidth >= window.innerHeight) {
+      vanillaSprites.add({
+        transform: new Transform(Vec2.zero, Vec2.both(640), Vec2.zero, 0),
+        uvs: Transform.identity,
+      });
+      vanillaSprites.end({
+        resolution: [canvas_gl.width, canvas_gl.height],
+        u_texture: TEXTURES.back_extra
+      });
+    }
   }
 
   errorAtHor(col: number, bottom_row: number): boolean {
@@ -505,7 +517,7 @@ function every_frame(cur_timestamp: number) {
       }
     }
   } else {
-    anim_t += delta_time / (on_win_anim ? 1 : turn_duration);
+    anim_t += delta_time / (on_win_anim ? 1.5 : turn_duration);
     anim_t = clamp01(anim_t);
   }
   if (input.keyboard.wasPressed(KeyCode.KeyZ)) {
