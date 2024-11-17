@@ -193,13 +193,15 @@ class BoardState {
   }
 
   errorAtHor(col: number, bottom_row: number): boolean {
-    return this.edgeAt(new Vec2(col, mod(bottom_row - 1, 4)), 'down') !==
-      this.edgeAt(new Vec2(col, mod(bottom_row, 4)), 'up');
+    const e1 = this.edgeAt(new Vec2(col, mod(bottom_row - 1, 4)), 'down');
+    const e2 = this.edgeAt(new Vec2(col, mod(bottom_row, 4)), 'up');
+    return (e1 !== e2) || (e1 === 'U') || (e2 === 'U');
   }
 
   errorAtVer(row: number, right_col: number): boolean {
-    return this.edgeAt(new Vec2(mod(right_col - 1, 4), row), 'right') !==
-      this.edgeAt(new Vec2(mod(right_col, 4), row), 'left');
+    const e1 = this.edgeAt(new Vec2(mod(right_col - 1, 4), row), 'right');
+    const e2 = this.edgeAt(new Vec2(mod(right_col, 4), row), 'left');
+    return (e1 !== e2) || (e1 === 'U') || (e2 === 'U');
   }
 
   edgeAt(pos: Vec2, dir: Direction): EdgeType {
@@ -215,16 +217,16 @@ class BoardState {
   static startingEdgeAt(pos: Vec2, dir: Direction, map: 'rows' | 'cols'): EdgeType {
     if (map === 'rows') {
       const UP = Grid2D.fromAscii(`
-      0000
+      000U
       0077
-      0000
-      0000
+      0U0U
+      U0U0
     `);
       const DOWN = Grid2D.fromAscii(`
       0090
       0000
-      0030
-      0000
+      0U3U
+      U0U0
     `);
       const RIGHT = Grid2D.fromAscii(`
       0010
@@ -262,11 +264,11 @@ class BoardState {
       A000
       B0B0
       Y000
-      Y0Y0
+      YUYU
     `);
       const LEFT = Grid2D.fromAscii(`
-      B001
-      A0B0
+      B0U1
+      AUB0
       0004
       0000
     `);
@@ -371,10 +373,10 @@ class BoardState {
   }
 }
 
-type EdgeType = '0' | 'A' | 'B' | 'Y' | '9' | '3' | '4' | '7' | '1';
+type EdgeType = '0' | 'A' | 'B' | 'Y' | '9' | '3' | '4' | '7' | '1' | 'U';
 
 function edgeFromString(c: string): EdgeType {
-  if ('0ABY93471'.includes(c)) {
+  if ('0ABY93471U'.includes(c)) {
     // @ts-expect-error we just checked
     return c;
   }
