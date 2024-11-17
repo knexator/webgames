@@ -8,6 +8,18 @@
 //     }
 // }
 
+import { in01, remap } from "./math";
+
+export function subdivideT<T>(t: number, ranges: [number, number, (t: number) => T][]): T {
+    for (const range of ranges) {
+        const local_t = remap(t, range[0], range[1], 0, 1);
+        if (in01(local_t)) {
+            return range[2](local_t);
+        }
+    }
+    throw new Error('no matching range');
+}
+
 export function fromCount<T>(n: number, callback: (index: number) => T): T[] {
     const result: T[] = [];
     for (let k = 0; k < n; k++) {

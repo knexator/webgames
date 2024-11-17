@@ -2,7 +2,7 @@ import * as twgl from "twgl.js"
 import GUI from "lil-gui";
 import { Grid2D } from "./kommon/grid2D";
 import { Input, Keyboard, KeyCode, Mouse, MouseButton } from "./kommon/input";
-import { mapSingle, DefaultMap, fromCount, fromRange, objectMap, repeat, zip2 } from "./kommon/kommon";
+import { mapSingle, DefaultMap, fromCount, fromRange, objectMap, repeat, zip2, subdivideT } from "./kommon/kommon";
 import { mod, towards as approach, lerp, inRange, clamp, argmax, argmin, max, remap, clamp01, randomInt, randomFloat, randomChoice, doSegmentsIntersect, closestPointOnSegment, roundTo, wrap, towards, inverseLerp } from "./kommon/math";
 import { canvasFromAscii } from "./kommon/spritePS";
 import { initGL2, IVec, Vec2, Color, GenericDrawer, StatefulDrawer, CircleDrawer, m3, CustomSpriteDrawer, Transform, IRect, IColor, IVec2, FullscreenShader, DefaultSpriteData, DefaultGlobalData } from "kanvas2d"
@@ -18,6 +18,7 @@ const TEXTURES = {
   boat: twgl.createTexture(gl, { src: await loadImage('boat') }),
   errors: twgl.createTexture(gl, { src: await loadImage('errors') }),
   back: twgl.createTexture(gl, { src: await loadImage('back') }),
+  ending: twgl.createTexture(gl, { src: await loadImage('ending') }),
 }
 
 const MAP_IMAGES = {
@@ -39,7 +40,7 @@ const vanillaSprites = new CustomSpriteDrawer<DefaultSpriteData, DefaultGlobalDa
   void main() {
     // Assume texture is premultiplied
     vec4 texture = texture(u_texture, v_uv);
-    out_color = texture;
+    out_color = texture * v_color * v_color.a;
   }`);
 
 const CONFIG = {
@@ -74,7 +75,7 @@ class BoardState {
     public parent: BoardState | null,
   ) { }
 
-  draw(screen_size: Vec2, anim_t: number): void {
+  draw(screen_size: Vec2, anim_t: number, on_win_anim: boolean): void {
     // const TILE_SIDE = Math.min(
     //   screen_size.x / 5,
     //   screen_size.y / 5,
@@ -107,7 +108,17 @@ class BoardState {
       }
     }
 
-    const boat_pos_visual = Vec2.lerp(this.parent?.boat_pos ?? this.boat_pos, this.boat_pos, anim_t).add(Vec2.both(1)).scale(TILE_SIDE);
+    const boat_pos_visual = on_win_anim
+      ? this.boat_pos.addX(-2 * anim_t * (.25 - anim_t)).add(Vec2.both(1)).scale(TILE_SIDE)
+      // ? subdivideT(anim_t, [
+      //   [0, 0.4, (t) => {
+      //     return this.boat_pos.addX( -.1 * t * (1 - t) / .25 );
+      //   }],
+      //   [0.4, 1, (t) => {
+      //     return this.boat_pos.addX(t * 2);
+      //   }],
+      // ]).add(Vec2.both(1)).scale(TILE_SIDE)
+      : Vec2.lerp(this.parent?.boat_pos ?? this.boat_pos, this.boat_pos, anim_t).add(Vec2.both(1)).scale(TILE_SIDE);
     vanillaSprites.add({
       transform: new Transform(boat_pos_visual, Vec2.both(216 * TILE_SIDE / 128), Vec2.half, 0),
       uvs: Transform.identity,
@@ -155,13 +166,27 @@ class BoardState {
       u_texture: TEXTURES.errors
     });
 
+    if (on_win_anim) {// && anim_t > .6) {
+      console.log(anim_t);
+      vanillaSprites.add({
+        transform: new Transform(Vec2.zero, Vec2.both(640), Vec2.zero, 0),
+        uvs: Transform.identity,
+        color: new Color(1, 1, 1, anim_t),
+      });
+      vanillaSprites.end({
+        resolution: [canvas_gl.clientWidth, canvas_gl.clientHeight],
+        u_texture: TEXTURES.ending
+      });
+    }
 
     vanillaSprites.add({
       transform: new Transform(Vec2.zero, Vec2.both(640), Vec2.zero, 0),
       uvs: Transform.identity,
     });
-    vanillaSprites.end({ resolution: [canvas_gl.clientWidth, canvas_gl.clientHeight], 
-      u_texture: TEXTURES.back });
+    vanillaSprites.end({
+      resolution: [canvas_gl.clientWidth, canvas_gl.clientHeight],
+      u_texture: TEXTURES.back
+    });
 
 
     ctx.resetTransform();
@@ -392,6 +417,7 @@ console.log(cur_state.errorAtHor(0, 0));
 // cur_state = SOLUTION;
 
 canvas_ctx.addEventListener('pointerdown', event => {
+  if (cur_state.isWon()) return;
   const relative = new Vec2(event.offsetX / canvas_ctx.clientWidth, event.offsetY / canvas_ctx.clientHeight).sub(Vec2.both(.5));
   const dir = dirFromRelative(relative);
   if (dir !== null) {
@@ -412,6 +438,7 @@ canvas_ctx.addEventListener('pointerdown', event => {
 })
 
 let anim_t = 1;
+let on_win_anim = false;
 
 let last_timestamp: number | null = null;
 // main loop; game logic lives here
@@ -436,23 +463,41 @@ function every_frame(cur_timestamp: number) {
   const screen_mouse_pos = new Vec2(input.mouse.clientX - rect.left, input.mouse.clientY - rect.top);
   const canvas_size = new Vec2(canvas_ctx.width, canvas_ctx.height);
 
-  cur_state.draw(canvas_size, anim_t);
+  if (on_win_anim) {
+    // TODO
+    cur_state.draw(canvas_size, anim_t, true);
+  } else {
+    cur_state.draw(canvas_size, anim_t, false);
+  }
   if (anim_t >= 1) {
-    const dir = dirFromKeyboard(input.keyboard);
-    if (dir !== null) {
-      const new_state = cur_state.next(dir)
-      if (new_state !== null) {
-        cur_state = new_state;
-        anim_t = 0;
+    if (on_win_anim) {
+      // nothing
+    } else if (cur_state.isWon()) {
+      on_win_anim = true;
+      cur_state = new BoardState(cur_state.boat_pos, cur_state.rows, cur_state.cols, cur_state);
+      anim_t = 0;
+    } else {
+      const dir = dirFromKeyboard(input.keyboard);
+      if (dir !== null) {
+        const new_state = cur_state.next(dir)
+        if (new_state !== null) {
+          cur_state = new_state;
+          anim_t = 0;
+        }
       }
     }
   } else {
-    anim_t += delta_time / .2;
+    anim_t += delta_time / (on_win_anim ? 1 : .2);
     anim_t = clamp01(anim_t);
   }
   if (input.keyboard.wasPressed(KeyCode.KeyZ)) {
     if (cur_state.parent !== null) {
       cur_state = cur_state.parent;
+      anim_t = 1;
+      while (cur_state.isWon()) {
+        cur_state = cur_state.parent!;
+        on_win_anim = false;
+      }
     }
   }
   if (input.keyboard.wasPressed(KeyCode.KeyR)) {
@@ -462,6 +507,8 @@ function every_frame(cur_timestamp: number) {
       fromCount(4, _ => 0),
       cur_state,
     );
+    anim_t = 1;
+    on_win_anim = false;
   }
   // if (hovered_tile !== null) {
   //   cur_state = cur_state.next_debug(hovered_tile, input.keyboard);

@@ -106,8 +106,17 @@ export function clamp01(value: number): number {
     return Math.max(0, Math.min(1, value));
 }
 
+export function remapClamped(value: number, old_a: number, old_b: number, new_a: number, new_b: number) {
+    const t = (value - old_a) / (old_b - old_a);
+    return clamp01(t) * (new_b - new_a) + new_a;
+}
+
 export function inRange(value: number, min_inclusive: number, max_exclusive: number): boolean {
     return value >= min_inclusive && value < max_exclusive;
+}
+
+export function in01(value: number): boolean {
+    return value >= 0 && value <= 1;
 }
 
 export function onBorder(value: number, min_inclusive: number, max_exclusive: number): boolean {
