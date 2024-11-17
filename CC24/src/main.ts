@@ -421,7 +421,10 @@ canvas_gl.addEventListener('pointerdown', event => {
       return v.y > 0 ? 'down' : 'up';
     }
   }
-})
+});
+
+document.querySelector<HTMLButtonElement>('#undo')!.addEventListener('click', _ => undo());
+document.querySelector<HTMLButtonElement>('#restart')!.addEventListener('click', _ => restart());
 
 let anim_t = 1;
 let on_win_anim = false;
@@ -495,30 +498,35 @@ function every_frame(cur_timestamp: number) {
     anim_t = clamp01(anim_t);
   }
   if (input.keyboard.wasPressed(KeyCode.KeyZ)) {
-    if (cur_state.parent !== null) {
-      cur_state = cur_state.parent;
-      anim_t = 1;
-      while (cur_state.isWon()) {
-        cur_state = cur_state.parent!;
-        on_win_anim = false;
-      }
-    }
+    undo();
   }
   if (input.keyboard.wasPressed(KeyCode.KeyR)) {
-    cur_state = new BoardState(
-      Vec2.zero,
-      fromCount(4, _ => 0),
-      fromCount(4, _ => 0),
-      cur_state,
-    );
-    anim_t = 1;
-    on_win_anim = false;
+    restart();
   }
-  // if (hovered_tile !== null) {
-  //   cur_state = cur_state.next_debug(hovered_tile, input.keyboard);
-  // }
 
   animation_id = requestAnimationFrame(every_frame);
+}
+
+function restart() {
+  cur_state = new BoardState(
+    Vec2.zero,
+    fromCount(4, _ => 0),
+    fromCount(4, _ => 0),
+    cur_state
+  );
+  anim_t = 1;
+  on_win_anim = false;
+}
+
+function undo() {
+  if (cur_state.parent !== null) {
+    cur_state = cur_state.parent;
+    anim_t = 1;
+    while (cur_state.isWon()) {
+      cur_state = cur_state.parent!;
+      on_win_anim = false;
+    }
+  }
 }
 
 function dirFromKeyboard(keyboard: Keyboard): Direction | null {
