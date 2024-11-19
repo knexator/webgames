@@ -56,7 +56,7 @@
             outline: none;
         }
 
-        #buttons_container {
+        .buttons-container {
             display: flex;
             gap: 20px;
             width: 100%;
@@ -91,7 +91,7 @@
             #canvas_container {
                 max-width: calc(100vh - 140px);
             }
-            #buttons_container {
+            .buttons-container {
                 max-width: calc(100vh - 140px);
             }
         }
@@ -104,9 +104,13 @@
             <canvas id="gl_canvas"></canvas>
             <div id="loading_text">Loading...</div>
         </div>
-        <div id="buttons_container">
+        <div class="buttons-container">
             <button class="game-button" id="undo">Undo</button>
             <button class="game-button" id="restart">Restart</button>
+        </div>
+        <div class="buttons-container">
+            <button class="game-button" id="rows">Show rows</button>
+            <button class="game-button" id="cols">Show cols</button>
         </div>
     </div>
 </body>

@@ -39,7 +39,7 @@ const vanillaSprites = new CustomSpriteDrawer<DefaultSpriteData, DefaultGlobalDa
   void main() {
     // Assume texture is premultiplied
     vec4 texture = texture(u_texture, v_uv);
-    out_color = texture * v_color * v_color.a;
+    out_color = texture * v_color;
   }`);
 
 const CONFIG = {
@@ -66,6 +66,8 @@ gui.hide();
 
 type Direction = 'up' | 'down' | 'left' | 'right';
 
+type ViewMode = 'normal' | 'rows' | 'cols';
+
 class BoardState {
   constructor(
     public boat_pos: Vec2,
@@ -74,7 +76,7 @@ class BoardState {
     public parent: BoardState | null,
   ) { }
 
-  draw(anim_t: number, on_win_anim: boolean, xray: boolean): void {
+  draw(anim_t: number, on_win_anim: boolean, mode: ViewMode): void {
     // const TILE_SIDE = Math.min(
     //   screen_size.x / 5,
     //   screen_size.y / 5,
@@ -90,7 +92,9 @@ class BoardState {
 
     for (let j = 0; j < 4; j++) {
       for (let i = 0; i < 4; i++) {
-        const is_hor = ((i + j) % 2 === 0) !== xray;
+        const is_hor = mode === 'normal'
+          ? ((i + j) % 2 === 0)
+          : mode === 'rows';
         if (is_hor) {
           this.drawCol(i, j, TILE_SIDE, anim_t);
           this.drawRow(i, j, TILE_SIDE, anim_t);
@@ -116,9 +120,11 @@ class BoardState {
       //   }],
       // ]).add(Vec2.both(1)).scale(TILE_SIDE)
       : Vec2.lerp(this.parent?.boat_pos ?? this.boat_pos, this.boat_pos, anim_t).add(Vec2.both(1)).scale(TILE_SIDE);
+    const alpha = mode === 'normal' ? 1 : .5;
     vanillaSprites.add({
       transform: new Transform(boat_pos_visual, Vec2.both(216 * TILE_SIDE / 128), Vec2.half, 0),
       uvs: Transform.identity,
+      color: new Color(alpha, alpha, alpha, alpha),
     });
     vanillaSprites.end({
       resolution: [canvas_gl.width, canvas_gl.height],
@@ -168,7 +174,7 @@ class BoardState {
       vanillaSprites.add({
         transform: new Transform(Vec2.zero, Vec2.both(640), Vec2.zero, 0),
         uvs: Transform.identity,
-        color: new Color(1, 1, 1, anim_t),
+        color: new Color(anim_t, anim_t, anim_t, anim_t),
       });
       vanillaSprites.end({
         resolution: [canvas_gl.width, canvas_gl.height],
@@ -415,6 +421,7 @@ let cur_state = new BoardState(
 );
 
 let input_queue: Direction[] = [];
+let view_mode: ViewMode = 'normal';
 
 // cur_state = SOLUTION;
 
@@ -448,6 +455,18 @@ document.addEventListener('pointerup', event => {
 
 document.querySelector<HTMLButtonElement>('#undo')!.addEventListener('click', _ => undo());
 document.querySelector<HTMLButtonElement>('#restart')!.addEventListener('click', _ => restart());
+document.querySelector<HTMLButtonElement>('#rows')!.addEventListener('pointerdown', _ => {
+  view_mode = 'rows';
+});
+document.querySelector<HTMLButtonElement>('#rows')!.addEventListener('pointerup', _ => {
+  view_mode = 'normal';
+});
+document.querySelector<HTMLButtonElement>('#cols')!.addEventListener('pointerdown', _ => {
+  view_mode = 'cols';
+});
+document.querySelector<HTMLButtonElement>('#cols')!.addEventListener('pointerup', _ => {
+  view_mode = 'normal';
+});
 
 let anim_t = 1;
 let on_win_anim = false;
@@ -480,6 +499,15 @@ function every_frame(cur_timestamp: number) {
   const screen_mouse_pos = new Vec2(input.mouse.clientX - rect.left, input.mouse.clientY - rect.top);
   const canvas_size = new Vec2(canvas_gl.width, canvas_gl.height);
 
+  if (input.keyboard.wasPressed(KeyCode.KeyE)) {
+    view_mode = 'cols';
+  } else if (input.keyboard.wasReleased(KeyCode.KeyE)) {
+    view_mode = 'normal';
+  } else if (input.keyboard.wasPressed(KeyCode.KeyQ)) {
+    view_mode = 'rows';
+  } else if (input.keyboard.wasReleased(KeyCode.KeyQ)) {
+    view_mode = 'normal';
+  }
   // canvas_gl.style.width = `${canvas_size.x}px`;
   // canvas_gl.style.height = `${canvas_size.y}px`;
 
@@ -487,7 +515,7 @@ function every_frame(cur_timestamp: number) {
   // console.log(rect);
   // console.log(canvas_size);
 
-  cur_state.draw(anim_t, on_win_anim, input.keyboard.isDown(KeyCode.Space));
+  cur_state.draw(anim_t, on_win_anim, view_mode);
 
   if (!on_win_anim) {
     const dir = dirFromKeyboard(input.keyboard);
