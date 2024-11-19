@@ -74,7 +74,7 @@ class BoardState {
     public parent: BoardState | null,
   ) { }
 
-  draw(anim_t: number, on_win_anim: boolean): void {
+  draw(anim_t: number, on_win_anim: boolean, xray: boolean): void {
     // const TILE_SIDE = Math.min(
     //   screen_size.x / 5,
     //   screen_size.y / 5,
@@ -90,7 +90,7 @@ class BoardState {
 
     for (let j = 0; j < 4; j++) {
       for (let i = 0; i < 4; i++) {
-        const is_hor = (i + j) % 2 === 0;
+        const is_hor = ((i + j) % 2 === 0) !== xray;
         if (is_hor) {
           this.drawCol(i, j, TILE_SIDE, anim_t);
           this.drawRow(i, j, TILE_SIDE, anim_t);
@@ -225,7 +225,7 @@ class BoardState {
       000U
       0077
       0U0U
-      U0U0
+      U000
     `);
       const DOWN = Grid2D.fromAscii(`
       0090
@@ -273,8 +273,8 @@ class BoardState {
     `);
       const LEFT = Grid2D.fromAscii(`
       B0U1
-      AUB0
-      0004
+      AUBU
+      00U4
       0000
     `);
       const maps: Record<Direction, Grid2D<string>> = {
@@ -487,7 +487,7 @@ function every_frame(cur_timestamp: number) {
   // console.log(rect);
   // console.log(canvas_size);
 
-  cur_state.draw(anim_t, on_win_anim);
+  cur_state.draw(anim_t, on_win_anim, input.keyboard.isDown(KeyCode.Space));
 
   if (!on_win_anim) {
     const dir = dirFromKeyboard(input.keyboard);
