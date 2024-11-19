@@ -3,7 +3,7 @@ import GUI from "lil-gui";
 import { Grid2D } from "./kommon/grid2D";
 import { Input, Keyboard, KeyCode, Mouse, MouseButton } from "./kommon/input";
 import { mapSingle, DefaultMap, fromCount, fromRange, objectMap, repeat, zip2, subdivideT } from "./kommon/kommon";
-import { mod, towards as approach, lerp, inRange, clamp, argmax, argmin, max, remap, clamp01, randomInt, randomFloat, randomChoice, doSegmentsIntersect, closestPointOnSegment, roundTo, wrap, towards, inverseLerp } from "./kommon/math";
+import { mod, towards as approach, lerp, inRange, clamp, argmax, argmin, max, remap, clamp01, randomInt, randomFloat, randomChoice, doSegmentsIntersect, closestPointOnSegment, roundTo, wrap, towards, inverseLerp, smoothClamp01 } from "./kommon/math";
 import { canvasFromAscii } from "./kommon/spritePS";
 import { initGL2, IVec, Vec2, Color, GenericDrawer, StatefulDrawer, CircleDrawer, m3, CustomSpriteDrawer, Transform, IRect, IColor, IVec2, FullscreenShader, DefaultSpriteData, DefaultGlobalData } from "kanvas2d"
 
@@ -83,14 +83,17 @@ class BoardState {
     // );
     const TILE_SIDE = 640 / 5;
 
-    for (let k = 0; k < 4; k++) {
+    for (let k = 0; k < 3; k++) {
       this.drawRow(-1, k, TILE_SIDE, anim_t);
       this.drawRow(4, k, TILE_SIDE, anim_t);
-      this.drawCol(k, -1, TILE_SIDE, anim_t);
-      this.drawCol(k, 4, TILE_SIDE, anim_t);
     }
 
-    for (let j = 0; j < 4; j++) {
+    for (let k = 0; k < 4; k++) {
+      this.drawCol(k, -1, TILE_SIDE, anim_t);
+      this.drawCol(k, 3, TILE_SIDE, anim_t);
+    }
+
+    for (let j = 0; j < 3; j++) {
       for (let i = 0; i < 4; i++) {
         const is_hor = mode === 'normal'
           ? ((i + j) % 2 === 0)
@@ -132,42 +135,42 @@ class BoardState {
     });
 
 
-    for (let k = 0; k < 5; k++) {
+    // for (let k = 0; k < 5; k++) {
 
-      for (let col = 0; col < 4; col++) {
-        if (this.errorAtHor(col, k) && (anim_t > .7 || (this.parent !== null && this.parent.errorAtHor(col, k)))) {
-          const s = Vec2.both(.1);
-          const asdf = {
-            top_left: new Vec2((col + 1) / 5, (k + .5) / 5).sub(s.scale(.5)),
-            size: s,
-          };
-          vanillaSprites.add({
-            transform: new Transform(Vec2.zero, Vec2.both(640), Vec2.zero, 0).actOn(asdf),
-            uvs: asdf,
-          });
-        }
-      }
+    //   for (let col = 0; col < 4; col++) {
+    //     if (this.errorAtHor(col, k) && (anim_t > .7 || (this.parent !== null && this.parent.errorAtHor(col, k)))) {
+    //       const s = Vec2.both(.1);
+    //       const asdf = {
+    //         top_left: new Vec2((col + 1) / 5, (k + .5) / 5).sub(s.scale(.5)),
+    //         size: s,
+    //       };
+    //       vanillaSprites.add({
+    //         transform: new Transform(Vec2.zero, Vec2.both(640), Vec2.zero, 0).actOn(asdf),
+    //         uvs: asdf,
+    //       });
+    //     }
+    //   }
 
-      for (let row = 0; row < 4; row++) {
-        if (this.errorAtVer(row, k) && (anim_t > .7 || (this.parent !== null && this.parent.errorAtVer(row, k)))) {
-          const s = Vec2.both(.1);
-          const asdf = {
-            top_left: new Vec2((k + .5) / 5, (row + 1) / 5,).sub(s.scale(.5)),
-            size: s,
-          };
-          vanillaSprites.add({
-            transform: new Transform(Vec2.zero, Vec2.both(640), Vec2.zero, 0).actOn(asdf),
-            uvs: asdf,
-          });
-        }
-      }
+    //   for (let row = 0; row < 4; row++) {
+    //     if (this.errorAtVer(row, k) && (anim_t > .7 || (this.parent !== null && this.parent.errorAtVer(row, k)))) {
+    //       const s = Vec2.both(.1);
+    //       const asdf = {
+    //         top_left: new Vec2((k + .5) / 5, (row + 1) / 5,).sub(s.scale(.5)),
+    //         size: s,
+    //       };
+    //       vanillaSprites.add({
+    //         transform: new Transform(Vec2.zero, Vec2.both(640), Vec2.zero, 0).actOn(asdf),
+    //         uvs: asdf,
+    //       });
+    //     }
+    //   }
 
 
-    }
-    vanillaSprites.end({
-      resolution: [canvas_gl.width, canvas_gl.height],
-      u_texture: TEXTURES.errors
-    });
+    // }
+    // vanillaSprites.end({
+    //   resolution: [canvas_gl.width, canvas_gl.height],
+    //   u_texture: TEXTURES.errors
+    // });
 
     if (on_win_anim) {// && anim_t > .6) {
       console.log(anim_t);
@@ -301,7 +304,7 @@ class BoardState {
         Vec2.zero,
         0
       ), uvs: new Transform(
-        new Vec2(i / 4, this.asdfThingCol(i, j, anim_t) / 4),
+        new Vec2(i / 4, this.asdfThingCol(i, mod(j + 2, 4), anim_t) / 4),
         Vec2.both(1 / 4),
         Vec2.zero,
         0
@@ -318,7 +321,7 @@ class BoardState {
         Vec2.zero,
         0
       ), uvs: new Transform(
-        new Vec2(this.asdfThingRow(i, j, anim_t) / 4, j / 4),
+        new Vec2(this.asdfThingRow(i, mod(j + 2, 4), anim_t) / 4, mod(j + 2, 4) / 4),
         Vec2.both(1 / 4),
         Vec2.zero,
         0
@@ -379,7 +382,7 @@ class BoardState {
       const dx = dir === 'right' ? 1 : -1;
       const new_boat_pos = this.boat_pos.addX(dx);
       if (!inBounds(new_boat_pos, new Vec2(4, 4))) return null;
-      return new BoardState(new_boat_pos, mapSingle(this.rows, this.boat_pos.y, v => mod(v + dx, 4)), this.cols, this);
+      return new BoardState(new_boat_pos, mapSingle(this.rows, this.boat_pos.y - 2, v => mod(v + dx, 4)), this.cols, this);
     }
   }
 }
@@ -414,11 +417,13 @@ const SOLUTION = new BoardState(new Vec2(3, 3), [0, 1, 0, 2], [1, 2, 0, 0], null
 // or rows: { 0, 1, 0, 2 }, cols: { 1, 0, 0, 2 }, len: 30
 // solution: rows: { 0, 2, 1, 0 }, cols: { 2, 1, 0, 0 }, len: 34
 let cur_state = new BoardState(
-  Vec2.zero,
-  fromCount(4, _ => 0),
-  fromCount(4, _ => 0),
+  new Vec2(2, 2),
+  [0, 1, 0, 2],
+  [1, 2, 0, 0],
   null,
 );
+
+cur_state = cur_state.next('left')!;
 
 let input_queue: Direction[] = [];
 let view_mode: ViewMode = 'normal';
@@ -515,7 +520,7 @@ function every_frame(cur_timestamp: number) {
   // console.log(rect);
   // console.log(canvas_size);
 
-  cur_state.draw(anim_t, on_win_anim, view_mode);
+  cur_state.draw(smoothClamp01(remap(Math.sin(cur_timestamp * .004), -1, 1, -.3, 1.3), .1), on_win_anim, view_mode);
 
   if (!on_win_anim) {
     const dir = dirFromKeyboard(input.keyboard);
@@ -559,12 +564,15 @@ function every_frame(cur_timestamp: number) {
 }
 
 function restart() {
-  cur_state = new BoardState(
-    Vec2.zero,
-    fromCount(4, _ => 0),
-    fromCount(4, _ => 0),
-    cur_state
-  );
+  // cur_state = new BoardState(
+  //   Vec2.zero,
+  //   fromCount(4, _ => 0),
+  //   fromCount(4, _ => 0),
+  //   cur_state
+  // );
+  while (cur_state.parent !== null) {
+    cur_state = cur_state.parent;
+  }
   anim_t = 1;
   on_win_anim = false;
 }

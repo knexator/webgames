@@ -106,6 +106,21 @@ export function clamp01(value: number): number {
     return Math.max(0, Math.min(1, value));
 }
 
+export function smoothMin(a: number, b: number, k: number): number {
+    const r = Math.pow(2, -a / k) + Math.pow(2, -b / k);
+    return -k * Math.log2(r);
+}
+
+export function smoothMax(a: number, b: number, k: number): number {
+    const r = Math.pow(2, a / k) + Math.pow(2, b / k);
+    return k * Math.log2(r);
+}
+
+export function smoothClamp01(value: number, k: number): number {
+    return smoothMax(0, smoothMin(1, value, k), k);
+}
+
+
 export function remapClamped(value: number, old_a: number, old_b: number, new_a: number, new_b: number) {
     const t = (value - old_a) / (old_b - old_a);
     return clamp01(t) * (new_b - new_a) + new_a;
