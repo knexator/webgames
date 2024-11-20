@@ -451,16 +451,16 @@ class LeaderboardData {
   public top_scores: 'loading' | 'error' | { name: string, score: number }[];
   public submit_status: 'none' | 'submitting' | 'submitted' = 'none';
 
-  constructor(center: number) {
+  constructor(center: number, speed: number) {
     this.around_scores = 'loading';
     this.top_scores = 'loading';
-    this.fetchAndUpdate(center);
-    this.fetchAndUpdateTopScores();
+    this.fetchAndUpdate(center, speed + 1);
+    this.fetchAndUpdateTopScores(speed + 1);
   }
 
-  async fetchAndUpdate(center: number) {
+  async fetchAndUpdate(center: number, mode: number) {
     const corsProxy = 'https://cors-anywhere.herokuapp.com/';
-    const url = `https://php.droqen.com/storescore/bombsnack/do_get_nearby.php?score=${center}`;
+    const url = `https://php.droqen.com/storescore/bombsnack/do_get_nearby.php?score=${center}&mode=${mode}`;
     const true_url = DEBUG_CORS ? `${corsProxy}${url}` : url;
     try {
       const response = await fetch(true_url);
@@ -474,15 +474,23 @@ class LeaderboardData {
         if (typeof this.around_scores === 'string') throw new Error("unreachable");
         this.around_scores.push({ name: null, score: center });
         this.around_scores = this.around_scores.sort((a, b) => b.score - a.score);
+        while (this.around_scores.length > 7) {
+          const middle = this.around_scores[Math.floor(this.around_scores.length / 2)].score;
+          if (center > middle) {
+            this.around_scores.pop();
+          } else {
+            this.around_scores.shift();
+          }
+        }
       }
     } catch (error) {
       this.around_scores = 'error';
     }
   }
 
-  async fetchAndUpdateTopScores() {
+  async fetchAndUpdateTopScores(mode: number) {
     const corsProxy = 'https://cors-anywhere.herokuapp.com/';
-    const url = `https://php.droqen.com/storescore/bombsnack/do_get_top10.php`;
+    const url = `https://php.droqen.com/storescore/bombsnack/do_get_top10.php?mode=${mode}`;
     const true_url = DEBUG_CORS ? `${corsProxy}${url}` : url;
     try {
       const response = await fetch(true_url);
@@ -499,7 +507,7 @@ class LeaderboardData {
     }
   }
 
-  submit() {
+  submit(speed: number) {
     if (this.submit_status !== 'none') return;
     if (this.around_scores === 'error') return;
     this.submit_status = 'submitting';
@@ -509,7 +517,7 @@ class LeaderboardData {
       return
     }
     const corsProxy = 'https://cors-anywhere.herokuapp.com/';
-    const url = `https://php.droqen.com/storescore/bombsnack/do_new_score.php?name=${name}&score=${score}`;
+    const url = `https://php.droqen.com/storescore/bombsnack/do_new_score.php?name=${name}&score=${score}&mode=${speed}`;
     const true_url = DEBUG_CORS ? `${corsProxy}${url}` : url;
     const response = fetch(true_url);
     const asdf = this;
@@ -612,7 +620,7 @@ const lost_menu: { focus: number, buttons: MenuButton[] } = {
       },
       y_coord: .9,
       callback: (dx: number) => {
-        leaderboard_data!.submit();
+        leaderboard_data!.submit(game_speed);
         // restartGame();
       }
     },
@@ -972,9 +980,9 @@ function every_frame(cur_timestamp: number) {
       game_state = "pause_menu";
     }
 
-    // if (input.keyboard.wasPressed(KeyCode.KeyR)) {
-    //   restartGame();
-    // }
+    if (input.keyboard.wasPressed(KeyCode.KeyR)) {
+      restartGame();
+    }
     // else if (input.keyboard.wasPressed(KeyCode.Escape) || (input.mouse.wasPressed(MouseButton.Left) && settings_overlapped)) {
     //   restartGame();
     //   game_state = "pause_menu";
@@ -1772,7 +1780,7 @@ function lose() {
   stopTickTockSound();
   game_state = "lost";
   last_lost_timestamp = last_timestamp;
-  leaderboard_data = new LeaderboardData(score);
+  leaderboard_data = new LeaderboardData(score, game_speed);
 
   // draw(false);
   // canvas_ctx.toBlob(async (blob) => {
