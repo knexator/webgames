@@ -425,7 +425,7 @@ class SnakeBlocks {
   }
 }
 
-let game_state: "loading_menu" | "main_menu" | "pause_menu" | "playing" | "lost";
+let game_state: "loading_menu" | "main_menu" | "pause_menu" | "playing" | "lost" | "leaderboard";
 let turn: number;
 let snake_blocks_new = new SnakeBlocks();
 let started_at_timestamp: number;
@@ -454,13 +454,28 @@ class LeaderboardData {
   public top_scores_local: 'loading' | 'error' | { name: string, score: number, highlight?: boolean }[];
   public submit_status: 'none' | 'submitting' | 'submitted' = 'none';
 
-  constructor(center: number, speed: number) {
+  public top_scores_per_speed: ('loading' | 'error' | { name: string, score: number, highlight?: boolean }[])[];
+
+  constructor(center: number | null, speed: number) {
     this.around_scores = 'loading';
     this.top_scores = 'loading';
     this.around_scores_local = 'loading';
     this.top_scores_local = 'loading';
-    this.fetchAndUpdate(center, speed + 1);
-    this.fetchAndUpdateTopScores(speed + 1);
+    this.top_scores_per_speed = ['loading', 'loading', 'loading'];
+    if (center === null) {
+      this.fetchAndUpdateTopScoresMainMenu();
+    } else {
+      this.fetchAndUpdate(center, speed + 1);
+      this.fetchAndUpdateTopScores(speed + 1);
+    }
+  }
+
+  async fetchAndUpdateTopScoresMainMenu() {
+    this.top_scores_per_speed = await Promise.all([
+      LeaderboardData.fetchTopScoresWithName(1, null),
+      LeaderboardData.fetchTopScoresWithName(2, null),
+      LeaderboardData.fetchTopScoresWithName(3, null),
+    ]);
   }
 
   async fetchAndUpdate(center: number, mode: number) {
@@ -519,7 +534,7 @@ class LeaderboardData {
       if (data.err !== 0) {
         return 'error';
       } else {
-        return data.scores.slice(0, 3);
+        return data.scores;
       }
     } catch (error) {
       return 'error';
@@ -575,6 +590,15 @@ const main_menu: { focus: number, buttons: MenuButton[] } = {
       callback: (dx: number) => {
         music_track = mod(music_track + dx, SONGS.length);
         updateSong();
+      }
+    },
+    {
+      multiple_choice: false,
+      get_text: () => 'Leaderboard',
+      y_coord: .64,
+      callback: (dx: number) => {
+        leaderboard_data = new LeaderboardData(null, game_speed);
+        game_state = 'leaderboard';
       }
     },
     {
@@ -667,8 +691,28 @@ const lost_button_restart: MenuButton = {
 }
 
 const lost_menu: { focus: number, buttons: MenuButton[] } = {
-  focus: 1,
+  focus: 0,
   buttons: [lost_button_submit, lost_button_restart],
+};
+
+const leaderboard_menu: { focus: number, buttons: MenuButton[] } = {
+  focus: 0,
+  buttons: [{
+      multiple_choice: true,
+      get_text: () => `Speed: ${game_speed + 1}`,
+      y_coord: .8,
+      callback: (dx: number) => {
+        game_speed = mod(game_speed + dx, SPEEDS.length);
+        CONFIG.TURN_DURATION = SPEEDS[game_speed];
+      }
+    }, {
+    multiple_choice: false,
+    get_text: () => 'Back',
+    y_coord: .91,
+    callback: (dx: number) => {
+      game_state = 'main_menu';
+    }
+  }],
 };
 
 function restartGame() {
@@ -1008,6 +1052,12 @@ function every_frame(cur_timestamp: number) {
         // SONGS[music_track].play();
         // SONGS[music_track].fade(0, 1, 2000);
       }
+    }
+  } else if (game_state === "leaderboard") {
+    doGenericMenu(leaderboard_menu, canvas_mouse_pos, raw_mouse_pos);
+
+    if (input.keyboard.wasPressed(KeyCode.Escape)) {
+      game_state = "main_menu";
     }
   } else if (game_state === "lost") {
     doGenericMenu(lost_menu, canvas_mouse_pos, raw_mouse_pos);
@@ -1699,7 +1749,7 @@ function draw(is_loading: boolean) {
     } else if (around_scores === 'loading' || top_scores === 'loading') {
       drawCenteredShadowedText('Loading leaderboard...', real_y(.5));
     } else {
-      for (const { name, score, highlight } of top_scores) {
+      for (const { name, score, highlight } of top_scores.slice(0, 3)) {
         drawScore(name, highlight ?? false, score, k);
         k += 1;
       }
@@ -1730,6 +1780,38 @@ function draw(is_loading: boolean) {
     });
 
     // drawCenteredShadowedText(is_phone ? 'Tap here to Restart' : `R to Restart`, real_y(1));
+  } else if (game_state === "leaderboard") {
+    if (leaderboard_data === null) throw new Error("unreachable");
+    let k = 1;
+    const top_scores = leaderboard_data.top_scores_per_speed[game_speed];
+    if (top_scores === 'error') {
+      drawCenteredShadowedText('Could not load leaderboard', real_y(.5));
+    } else if (top_scores === 'loading') {
+      drawCenteredShadowedText('Loading leaderboard...', real_y(.5));
+    } else {
+      for (const { name, score, highlight } of top_scores) {
+        drawScore(name, highlight ?? false, score, k);
+        k += 1;
+      }
+      ctx.textAlign = "center";
+    }
+
+    leaderboard_menu.buttons.forEach((button, k) => {
+      const y_coord = real_y(button.y_coord);
+      if (button.multiple_choice) {
+        drawCenteredShadowedText(button.get_text(), y_coord);
+        if (leaderboard_menu.focus === k) {
+          drawMenuArrowNew(y_coord, false, button.get_text().length);
+          drawMenuArrowNew(y_coord, true, button.get_text().length);
+        }
+      } else {
+        drawCenteredShadowedTextWithColor(
+          (leaderboard_menu.focus === k) ? COLORS.TEXT : COLORS.GRAY_TEXT,
+          button.get_text(), y_coord
+        );
+      }
+    });
+
   } else if (game_state === "playing") {
     // nothing
   } else {
