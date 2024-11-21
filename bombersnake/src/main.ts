@@ -445,15 +445,20 @@ let music_track: number;
 let share_button_state: { folded: boolean, hovered: null | 'vanilla' | 'twitter' | 'bsky' };
 let last_lost_timestamp = 0;
 let settings_overlapped = false;
+let scores_view: 'global' | 'local' = 'global';
 
 class LeaderboardData {
-  public around_scores: 'loading' | 'error' | { name: string | null, score: number }[];
-  public top_scores: 'loading' | 'error' | { name: string, score: number }[];
+  public around_scores: 'loading' | 'error' | { name: string | null, score: number, highlight?: boolean }[];
+  public top_scores: 'loading' | 'error' | { name: string, score: number, highlight?: boolean }[];
+  public around_scores_local: 'loading' | 'error' | { name: string, score: number, highlight?: boolean }[];
+  public top_scores_local: 'loading' | 'error' | { name: string, score: number, highlight?: boolean }[];
   public submit_status: 'none' | 'submitting' | 'submitted' = 'none';
 
   constructor(center: number, speed: number) {
     this.around_scores = 'loading';
     this.top_scores = 'loading';
+    this.around_scores_local = 'loading';
+    this.top_scores_local = 'loading';
     this.fetchAndUpdate(center, speed + 1);
     this.fetchAndUpdateTopScores(speed + 1);
   }
@@ -472,7 +477,7 @@ class LeaderboardData {
       } else {
         this.around_scores = data.scores;
         if (typeof this.around_scores === 'string') throw new Error("unreachable");
-        this.around_scores.push({ name: null, score: center });
+        this.around_scores.push({ name: null, score: center, highlight: true });
         this.around_scores = this.around_scores.sort((a, b) => b.score - a.score);
         while (this.around_scores.length > 7) {
           const middle = this.around_scores[Math.floor(this.around_scores.length / 2)].score;
@@ -507,7 +512,57 @@ class LeaderboardData {
     }
   }
 
-  submit(speed: number) {
+  static async fetchAroundWithName(center: number, mode: number, pname: string): Promise<'error' | { name: string, highlight?: boolean, score: number }[]> {
+    const corsProxy = 'https://cors-anywhere.herokuapp.com/';
+    const url = `https://php.droqen.com/storescore/bombsnack/do_get_nearby.php?score=${center}&mode=${mode}&pname=${pname}`;
+    const true_url = DEBUG_CORS ? `${corsProxy}${url}` : url;
+    try {
+      const response = await fetch(true_url);
+      const asdf = await response.text();
+      console.log(asdf);
+      const data = JSON5.parse(asdf);
+      if (data.err !== 0) {
+        return 'error';
+      } else {
+        let result: { name: string, score: number, highlight?: boolean }[] = data.scores;
+        result.push({ name: pname, score: center, highlight: true });
+        result = result.sort((a, b) => b.score - a.score);
+        while (result.length > 7) {
+          const middle = result[Math.floor(result.length / 2)].score;
+          if (center > middle) {
+            result.pop();
+          } else {
+            result.shift();
+          }
+        }
+        return result
+      }
+    } catch (error) {
+      return 'error';
+    }
+  }
+
+  static async fetchTopScoresWithName(mode: number, pname: string): Promise<'error' | { name: string, score: number }[]> {
+    const corsProxy = 'https://cors-anywhere.herokuapp.com/';
+    const url = `https://php.droqen.com/storescore/bombsnack/do_get_top10.php?mode=${mode}&pname=${pname}`;
+    const true_url = DEBUG_CORS ? `${corsProxy}${url}` : url;
+    try {
+      const response = await fetch(true_url);
+      const asdf = await response.text();
+      console.log(asdf);
+      const data = JSON5.parse(asdf);
+      if (data.err !== 0) {
+        return 'error';
+      } else {
+        return data.scores.slice(0, 3);
+      }
+    } catch (error) {
+      return 'error';
+    }
+  }
+
+
+  async submit(mode: number) {
     if (this.submit_status !== 'none') return;
     if (this.around_scores === 'error') return;
     this.submit_status = 'submitting';
@@ -517,13 +572,19 @@ class LeaderboardData {
       return
     }
     const corsProxy = 'https://cors-anywhere.herokuapp.com/';
-    const url = `https://php.droqen.com/storescore/bombsnack/do_new_score.php?name=${name}&score=${score}&mode=${speed}`;
+    const url = `https://php.droqen.com/storescore/bombsnack/do_new_score.php?name=${name}&score=${score}&mode=${mode}`;
     const true_url = DEBUG_CORS ? `${corsProxy}${url}` : url;
     const response = fetch(true_url);
     const asdf = this;
-    response.then(x => {
-      asdf.submit_status = 'submitted';
-    })
+    await response;
+    asdf.submit_status = 'submitted';
+    const top_promise = LeaderboardData.fetchTopScoresWithName(mode, name);
+    const around_promise = LeaderboardData.fetchAroundWithName(score, mode, name);
+    const [a, b] = await Promise.all([top_promise, around_promise])
+    this.top_scores_local = a;
+    this.around_scores_local = b;
+
+    lost_menu.buttons = [lost_button_global_local, lost_button_restart];
   }
 }
 
@@ -602,37 +663,47 @@ const pause_menu: { focus: number, buttons: MenuButton[] } = {
   ],
 };
 
+const lost_button_submit: MenuButton = {
+  multiple_choice: false,
+  get_text: () => {
+    if (leaderboard_data === null) return 'bug! call knexator';
+    switch (leaderboard_data.submit_status) {
+      case 'none':
+        return 'Submit score'
+      case "submitting":
+        return 'Submitting...'
+      case "submitted":
+        return 'Score submited!'
+    }
+  },
+  y_coord: .9,
+  callback: (dx: number) => {
+    leaderboard_data!.submit(game_speed + 1);
+    // restartGame();
+  }
+}
+
+const lost_button_global_local: MenuButton = {
+  multiple_choice: true,
+  get_text: () => scores_view === 'global' ? 'Global' : 'Local',
+  y_coord: .9,
+  callback: (dx: number) => {
+    scores_view = scores_view === 'global' ? 'local' : 'global';
+  }
+}
+
+const lost_button_restart: MenuButton = {
+  multiple_choice: false,
+  get_text: () => is_phone ? 'Tap here to Restart' : `R to Restart`,
+  y_coord: 1,
+  callback: (dx: number) => {
+    restartGame();
+  }
+}
+
 const lost_menu: { focus: number, buttons: MenuButton[] } = {
   focus: 1,
-  buttons: [
-    {
-      multiple_choice: false,
-      get_text: () => {
-        if (leaderboard_data === null) return 'bug! call knexator';
-        switch (leaderboard_data.submit_status) {
-          case 'none':
-            return 'Submit score'
-          case "submitting":
-            return 'Submitting...'
-          case "submitted":
-            return 'Score submited!'
-        }
-      },
-      y_coord: .9,
-      callback: (dx: number) => {
-        leaderboard_data!.submit(game_speed);
-        // restartGame();
-      }
-    },
-    {
-      multiple_choice: false,
-      get_text: () => is_phone ? 'Tap here to Restart' : `R to Restart`,
-      y_coord: 1,
-      callback: (dx: number) => {
-        restartGame();
-      }
-    },
-  ],
+  buttons: [lost_button_submit, lost_button_restart],
 };
 
 function restartGame() {
@@ -655,6 +726,8 @@ function restartGame() {
   started_at_timestamp = last_timestamp;
   score = 0
   leaderboard_data = null;
+  lost_menu.buttons = [lost_button_submit, lost_button_restart];
+  scores_view = 'global';
   spookyness = 0;
   input_queue = [];
   cur_collectables = [new Bomb(BOARD_SIZE.sub(Vec2.both(2)))];
@@ -1654,20 +1727,22 @@ function draw(is_loading: boolean) {
 
     if (leaderboard_data === null) throw new Error("unreachable");
     let k = 0;
-    if (leaderboard_data.around_scores === 'error' || leaderboard_data.top_scores === 'error') {
+    const top_scores = scores_view === 'global' ? leaderboard_data.top_scores : leaderboard_data.top_scores_local;
+    const around_scores = scores_view === 'global' ? leaderboard_data.around_scores : leaderboard_data.around_scores_local;
+    if (around_scores === 'error' || top_scores === 'error') {
       drawCenteredShadowedText('Could not load leaderboard', real_y(.5));
-    } else if (leaderboard_data.around_scores === 'loading' || leaderboard_data.top_scores === 'loading') {
+    } else if (around_scores === 'loading' || top_scores === 'loading') {
       drawCenteredShadowedText('Loading leaderboard...', real_y(.5));
     } else {
-      for (const { name, score } of leaderboard_data.top_scores) {
-        drawScore(name, score, k);
+      for (const { name, score, highlight } of top_scores) {
+        drawScore(name, highlight ?? false, score, k);
         k += 1;
       }
 
       drawSeparator(k);
       k += 1;
-      for (const { name, score } of leaderboard_data.around_scores) {
-        drawScore(name, score, k);
+      for (const { name, score, highlight } of around_scores) {
+        drawScore(name, highlight ?? false, score, k);
         k += 1;
       }
       ctx.textAlign = "center";
@@ -2045,10 +2120,10 @@ function blinking(period: number, cur_time: number, color1: string, color2: stri
   return (mod(cur_time / period, 1) < 0.5) ? color1 : color2;
 }
 
-function drawScore(name: string | null, score: number, row: number) {
+function drawScore(name: string | null, highlight: boolean, score: number, row: number) {
   const y = 4 * TILE_SIZE + row * (TILE_SIZE + 1.8);
   ctx.textAlign = 'left';
-  const color = name === null ? COLORS.HEAD : COLORS.TEXT;
+  const color = highlight ? COLORS.HEAD : COLORS.TEXT;
   fillTextWithShadow(new Vec2((MARGIN + 1) * TILE_SIZE, y),
     color, name === null ? 'YOU' : name)
   ctx.textAlign = 'right';
