@@ -450,7 +450,7 @@ let scores_view: 'global' | 'local' = 'global';
 class LeaderboardData {
   public around_scores: 'loading' | 'error' | { name: string | null, score: number, highlight?: boolean }[];
   public top_scores: 'loading' | 'error' | { name: string, score: number, highlight?: boolean }[];
-  public around_scores_local: 'loading' | 'error' | { name: string, score: number, highlight?: boolean }[];
+  public around_scores_local: 'loading' | 'error' | { name: string | null, score: number, highlight?: boolean }[];
   public top_scores_local: 'loading' | 'error' | { name: string, score: number, highlight?: boolean }[];
   public submit_status: 'none' | 'submitting' | 'submitted' = 'none';
 
@@ -464,57 +464,19 @@ class LeaderboardData {
   }
 
   async fetchAndUpdate(center: number, mode: number) {
-    const corsProxy = 'https://cors-anywhere.herokuapp.com/';
-    const url = `https://php.droqen.com/storescore/bombsnack/do_get_nearby.php?score=${center}&mode=${mode}`;
-    const true_url = DEBUG_CORS ? `${corsProxy}${url}` : url;
-    try {
-      const response = await fetch(true_url);
-      const asdf = await response.text();
-      console.log(asdf);
-      const data = JSON5.parse(asdf);
-      if (data.err !== 0) {
-        this.around_scores = 'error';
-      } else {
-        this.around_scores = data.scores;
-        if (typeof this.around_scores === 'string') throw new Error("unreachable");
-        this.around_scores.push({ name: null, score: center, highlight: true });
-        this.around_scores = this.around_scores.sort((a, b) => b.score - a.score);
-        while (this.around_scores.length > 7) {
-          const middle = this.around_scores[Math.floor(this.around_scores.length / 2)].score;
-          if (center > middle) {
-            this.around_scores.pop();
-          } else {
-            this.around_scores.shift();
-          }
-        }
-      }
-    } catch (error) {
-      this.around_scores = 'error';
-    }
+    this.around_scores = await LeaderboardData.fetchAroundWithName(center, mode, null);
   }
 
   async fetchAndUpdateTopScores(mode: number) {
-    const corsProxy = 'https://cors-anywhere.herokuapp.com/';
-    const url = `https://php.droqen.com/storescore/bombsnack/do_get_top10.php?mode=${mode}`;
-    const true_url = DEBUG_CORS ? `${corsProxy}${url}` : url;
-    try {
-      const response = await fetch(true_url);
-      const asdf = await response.text();
-      console.log(asdf);
-      const data = JSON5.parse(asdf);
-      if (data.err !== 0) {
-        this.top_scores = 'error';
-      } else {
-        this.top_scores = data.scores.slice(0, 3);
-      }
-    } catch (error) {
-      this.top_scores = 'error';
-    }
+    this.top_scores = await LeaderboardData.fetchTopScoresWithName(mode, null);
   }
 
-  static async fetchAroundWithName(center: number, mode: number, pname: string): Promise<'error' | { name: string, highlight?: boolean, score: number }[]> {
+  static async fetchAroundWithName(center: number, mode: number, pname: string | null): Promise<'error' | { name: string | null, highlight?: boolean, score: number }[]> {
     const corsProxy = 'https://cors-anywhere.herokuapp.com/';
-    const url = `https://php.droqen.com/storescore/bombsnack/do_get_nearby.php?score=${center}&mode=${mode}&pname=${pname}`;
+    let url = `https://php.droqen.com/storescore/bombsnack/do_get_nearby.php?score=${center}&mode=${mode}`;
+    if (pname !== null) {
+      url += `&pname=${pname}`;
+    }
     const true_url = DEBUG_CORS ? `${corsProxy}${url}` : url;
     try {
       const response = await fetch(true_url);
@@ -524,7 +486,7 @@ class LeaderboardData {
       if (data.err !== 0) {
         return 'error';
       } else {
-        let result: { name: string, score: number, highlight?: boolean }[] = data.scores;
+        let result: { name: string | null, score: number, highlight?: boolean }[] = data.scores;
         result.push({ name: pname, score: center, highlight: true });
         result = result.sort((a, b) => b.score - a.score);
         while (result.length > 7) {
@@ -542,9 +504,12 @@ class LeaderboardData {
     }
   }
 
-  static async fetchTopScoresWithName(mode: number, pname: string): Promise<'error' | { name: string, score: number }[]> {
+  static async fetchTopScoresWithName(mode: number, pname: string | null): Promise<'error' | { name: string, score: number }[]> {
     const corsProxy = 'https://cors-anywhere.herokuapp.com/';
-    const url = `https://php.droqen.com/storescore/bombsnack/do_get_top10.php?mode=${mode}&pname=${pname}`;
+    let url = `https://php.droqen.com/storescore/bombsnack/do_get_top10.php?mode=${mode}`;
+    if (pname !== null) {
+      url += `&pname=${pname}`;
+    }
     const true_url = DEBUG_CORS ? `${corsProxy}${url}` : url;
     try {
       const response = await fetch(true_url);
