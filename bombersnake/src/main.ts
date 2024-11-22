@@ -441,6 +441,7 @@ let tick_or_tock: boolean;
 let touch_input_base_point: Vec2 | null;
 let haptic: boolean;
 let game_speed: number;
+let min_game_speed: number;
 let music_track: number;
 let share_button_state: { folded: boolean, hovered: null | 'vanilla' | 'twitter' | 'bsky' };
 let last_lost_timestamp = 0;
@@ -607,6 +608,7 @@ const main_menu: { focus: number, buttons: MenuButton[] } = {
       y_coord: .8,
       callback: (dx: number) => {
         game_state = 'playing';
+        min_game_speed = game_speed;
       }
     },
   ],
@@ -630,6 +632,7 @@ const pause_menu: { focus: number, buttons: MenuButton[] } = {
       callback: (dx: number) => {
         game_speed = mod(game_speed + dx, SPEEDS.length);
         CONFIG.TURN_DURATION = SPEEDS[game_speed];
+        min_game_speed = Math.min(min_game_speed, game_speed);
       }
     },
     {
@@ -1030,6 +1033,7 @@ function every_frame(cur_timestamp: number) {
     doMainMenu(canvas_mouse_pos, raw_mouse_pos);
     // @ts-ignore
     if (game_state === 'playing') {
+      min_game_speed = game_speed;
       for (let k = cur_collectables.filter(x => x instanceof Bomb).length; k < CONFIG.N_BOMBS; k++) {
         cur_collectables.push(placeBomb());
       }
@@ -1910,7 +1914,7 @@ function lose() {
   stopTickTockSound();
   game_state = "lost";
   last_lost_timestamp = last_timestamp;
-  leaderboard_data = new LeaderboardData(score, game_speed);
+  leaderboard_data = new LeaderboardData(score, min_game_speed);
 
   // draw(false);
   // canvas_ctx.toBlob(async (blob) => {
