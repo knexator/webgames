@@ -206,7 +206,7 @@ if (is_phone) {
         cross_back_to_normal = null;
       }
     }
-    if (game_state === 'pause_menu' || game_state === 'lost') {
+    if (game_state === 'pause_menu' || game_state === 'lost' || game_state === 'main_menu' || game_state === 'loading_menu' || game_state === 'leaderboard') {
       const touch = ev.changedTouches.item(ev.changedTouches.length - 1)!;
       const place = touchPos(touch);
       const dir = roundToCardinalDirection(place);
@@ -547,11 +547,12 @@ class LeaderboardData {
     if (this.submit_status !== 'none') return;
     if (this.around_scores === 'error') return;
     this.submit_status = 'submitting';
-    const name = prompt('your name for the leaderboard:')
+    const name = prompt('your name for the leaderboard:', localStorage.getItem('bombsnack_name') ?? undefined);
     if (name === null) {
       this.submit_status = 'none';
       return
     }
+    localStorage.setItem('bombsnack_name', name);
     const corsProxy = 'https://cors-anywhere.herokuapp.com/';
     const url = `https://php.droqen.com/storescore/bombsnack/do_new_score.php?name=${name}&score=${score}&mode=${mode}`;
     const true_url = DEBUG_CORS ? `${corsProxy}${url}` : url;
@@ -689,6 +690,7 @@ const lost_button_restart: MenuButton = {
   get_text: () => is_phone ? 'Tap here to Restart' : `R to Restart`,
   y_coord: 1,
   callback: (dx: number) => {
+    console.log('hola en restart');
     restartGame();
   }
 }
@@ -1336,7 +1338,7 @@ function doGenericMenu(menu: { focus: number, buttons: MenuButton[] }, canvas_mo
 
   // mouse moved
   if ((input.mouse.clientX !== input.mouse.prev_clientX || input.mouse.clientY !== input.mouse.prev_clientY)
-    && canvas_mouse_pos.y < BOARD_SIZE.y * TILE_SIZE) {
+    && (canvas_mouse_pos.y + TILE_SIZE * TOP_OFFSET) < (BOARD_SIZE.y + MARGIN * 2) * TILE_SIZE) {
     menu.focus = argmin(menu.buttons.map(button => Math.abs(raw_mouse_pos.y - real_y(button.y_coord))));
   }
 
@@ -1344,7 +1346,7 @@ function doGenericMenu(menu: { focus: number, buttons: MenuButton[] }, canvas_mo
     menu.focus = menu.buttons.length - 1;
   }
 
-  if (input.mouse.wasPressed(MouseButton.Left) && canvas_mouse_pos.y < BOARD_SIZE.y * TILE_SIZE) {
+  if (input.mouse.wasPressed(MouseButton.Left) && (canvas_mouse_pos.y + TILE_SIZE * TOP_OFFSET) < (BOARD_SIZE.y + MARGIN * 2) * TILE_SIZE) {
     const dx = canvas_mouse_pos.x / (BOARD_SIZE.x * TILE_SIZE) < 1 / 2 ? -1 : 1;
     user_clicked_something = true;
 
