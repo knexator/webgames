@@ -1703,7 +1703,9 @@ function draw(is_loading: boolean) {
     main_menu.buttons.forEach((button, k) => {
       const y_coord = real_y(button.y_coord);
       if (button.multiple_choice) {
-        drawCenteredShadowedText(button.get_text(), y_coord);
+        drawCenteredShadowedTextWithColor(
+          (main_menu.focus === k) ? COLORS.TEXT : COLORS.GRAY_TEXT,
+          button.get_text(), y_coord);
         if (main_menu.focus === k) {
           drawMenuArrowNew(y_coord, false, button.get_text().length);
           drawMenuArrowNew(y_coord, true, button.get_text().length);
@@ -1725,7 +1727,9 @@ function draw(is_loading: boolean) {
     pause_menu.buttons.forEach((button, k) => {
       const y_coord = real_y(button.y_coord);
       if (button.multiple_choice) {
-        drawCenteredShadowedText(button.get_text(), y_coord);
+        drawCenteredShadowedTextWithColor(
+          (pause_menu.focus === k) ? COLORS.TEXT : COLORS.GRAY_TEXT,
+          button.get_text(), y_coord);
         if (pause_menu.focus === k) {
           drawMenuArrowNew(y_coord, false, button.get_text().length);
           drawMenuArrowNew(y_coord, true, button.get_text().length);
@@ -1733,8 +1737,7 @@ function draw(is_loading: boolean) {
       } else {
         drawCenteredShadowedTextWithColor(
           (pause_menu.focus === k) ? COLORS.TEXT : COLORS.GRAY_TEXT,
-          button.get_text(), y_coord
-        );
+          button.get_text(), y_coord);
       }
     });
   } else if (game_state === "lost") {
@@ -1765,7 +1768,10 @@ function draw(is_loading: boolean) {
     lost_menu.buttons.forEach((button, k) => {
       const y_coord = real_y(button.y_coord);
       if (button.multiple_choice) {
-        drawCenteredShadowedText(button.get_text(), y_coord);
+        drawCenteredShadowedTextWithColor(
+          (lost_menu.focus === k) ? COLORS.TEXT : COLORS.GRAY_TEXT,
+          button.get_text(), y_coord
+        );
         if (lost_menu.focus === k) {
           drawMenuArrowNew(y_coord, false, button.get_text().length);
           drawMenuArrowNew(y_coord, true, button.get_text().length);
@@ -1798,7 +1804,10 @@ function draw(is_loading: boolean) {
     leaderboard_menu.buttons.forEach((button, k) => {
       const y_coord = real_y(button.y_coord);
       if (button.multiple_choice) {
-        drawCenteredShadowedText(button.get_text(), y_coord);
+        drawCenteredShadowedTextWithColor(
+          (leaderboard_menu.focus === k) ? COLORS.TEXT : COLORS.GRAY_TEXT,
+          button.get_text(), y_coord
+        );
         if (leaderboard_menu.focus === k) {
           drawMenuArrowNew(y_coord, false, button.get_text().length);
           drawMenuArrowNew(y_coord, true, button.get_text().length);
