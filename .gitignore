@@ -1,5 +1,6 @@
 node_modules
 .vscode
+*.blend1
 
 # these games are already uploaded elsewhere
 another_clone
