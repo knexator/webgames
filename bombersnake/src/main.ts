@@ -889,8 +889,8 @@ function updateSong() {
   }
 }
 
-// Howler.volume(1);
-Howler.volume(0);
+Howler.volume(1);
+// Howler.volume(0);
 
 const INITIAL_VOLUME = objectMap(SOUNDS, x => x.volume());
 
@@ -1064,8 +1064,7 @@ function every_frame(cur_timestamp: number) {
 
     if (input.keyboard.wasPressed(KeyCode.Escape) || (input.mouse.wasPressed(MouseButton.Left) && settings_overlapped)) {
       restartGame();
-      // TODO: bug here
-      game_state = "pause_menu";
+      game_state = "main_menu";
     }
 
     if (input.keyboard.wasPressed(KeyCode.KeyR)) {
