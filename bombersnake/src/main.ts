@@ -703,14 +703,14 @@ const lost_menu: { focus: number, buttons: MenuButton[] } = {
 const leaderboard_menu: { focus: number, buttons: MenuButton[] } = {
   focus: 0,
   buttons: [{
-      multiple_choice: true,
-      get_text: () => `Speed: ${game_speed + 1}`,
-      y_coord: .8,
-      callback: (dx: number) => {
-        game_speed = mod(game_speed + dx, SPEEDS.length);
-        CONFIG.TURN_DURATION = SPEEDS[game_speed];
-      }
-    }, {
+    multiple_choice: true,
+    get_text: () => `Speed: ${game_speed + 1}`,
+    y_coord: .8,
+    callback: (dx: number) => {
+      game_speed = mod(game_speed + dx, SPEEDS.length);
+      CONFIG.TURN_DURATION = SPEEDS[game_speed];
+    }
+  }, {
     multiple_choice: false,
     get_text: () => 'Back',
     y_coord: .91,
@@ -1021,6 +1021,21 @@ function every_frame(cur_timestamp: number) {
 
     if (input.mouse.wasPressed(MouseButton.Left)) {
       SOUNDS.waffel.play();
+      // setTimeout(() => {
+      //   SOUNDS.waffel.play();
+      // }, 400);
+      const initial_song = SONGS[music_track];
+      if (initial_song !== null && !initial_song.playing()) {
+        // SONGS[music_track].play()
+        // setTimeout(() => {
+        const original_volume = initial_song.volume()
+        if (!initial_song.playing()) initial_song.play()
+        initial_song.fade(0, original_volume, 1200);
+        // }, 200);
+        // setTimeout(() => SONGS[music_track].play(), 1500);
+        // SONGS[music_track].play();
+        // SONGS[music_track].fade(0, 1, 2000);
+      }
       game_state = "main_menu";
     }
   } else if (game_state === "pause_menu") {
@@ -1043,21 +1058,6 @@ function every_frame(cur_timestamp: number) {
         cur_collectables.push(placeMultiplier());
       }
       cur_collectables.push(new Clock());
-      // setTimeout(() => {
-      //   SOUNDS.waffel.play();
-      // }, 400);
-      const initial_song = SONGS[music_track];
-      if (initial_song !== null && !initial_song.playing()) {
-        // SONGS[music_track].play()
-        // setTimeout(() => {
-        const original_volume = initial_song.volume()
-        if (!initial_song.playing()) initial_song.play()
-        initial_song.fade(0, original_volume, 1200);
-        // }, 200);
-        // setTimeout(() => SONGS[music_track].play(), 1500);
-        // SONGS[music_track].play();
-        // SONGS[music_track].fade(0, 1, 2000);
-      }
     }
   } else if (game_state === "leaderboard") {
     doGenericMenu(leaderboard_menu, canvas_mouse_pos, raw_mouse_pos);
@@ -1328,10 +1328,12 @@ function doGenericMenu(menu: { focus: number, buttons: MenuButton[] }, canvas_mo
       const button = menu.buttons[menu.focus];
       if (button.multiple_choice) {
         SOUNDS.menu1.play();
-      } else {
-        SOUNDS.menu2.play();
+        button.callback(delta.x);
       }
-      button.callback(delta.x);
+      else if (menu_fake_key === KeyCode.Space || btnp([KeyCode.Space])) {
+        SOUNDS.menu2.play();
+        button.callback(delta.x);
+      }
     }
     menu_fake_key = null;
   }
