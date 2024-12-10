@@ -7,6 +7,7 @@ import { Howl } from "howler"
 import { Vec2 } from "./kommon/vec2"
 import * as noise from './kommon/noise';
 import { Grid2D } from "./kommon/grid2D";
+import JSON5 from 'json5';
 
 
 // TODO: animated scarf not rounded right after corner
@@ -17,6 +18,7 @@ import { Grid2D } from "./kommon/grid2D";
 // TODO: only have 2 buttons on tap
 
 const RECORDING_GIF = false;
+const DEBUG_CORS = false;
 
 const input = new Input();
 const canvas_ctx = document.querySelector<HTMLCanvasElement>("#ctx_canvas")!;
@@ -214,7 +216,7 @@ if (is_phone) {
         cross_back_to_normal = null;
       }
     }
-    if (game_state === 'pause_menu' || game_state === 'lost') {
+    if (game_state === 'pause_menu' || game_state === 'lost' || game_state === 'main_menu' || game_state === 'loading_menu' || game_state === 'leaderboard') {
       const touch = ev.changedTouches.item(ev.changedTouches.length - 1)!;
       const place = touchPos(touch);
       const dir = roundToCardinalDirection(place);
@@ -305,7 +307,6 @@ const gui = new GUI();
   gui.add(CONFIG, "ANIM_PERC", 0, 1);
   gui.add(CONFIG, "BORDER_ARROWS");
   gui.add(CONFIG, "CHEAT_INMORTAL");
-  gui.add(CONFIG, "FUSE_DURATION", 0, 10, 1);
   gui.add(CONFIG, "N_BOMBS", 0, 6, 1);
   gui.add(CONFIG, "N_BOMBS_HOR", 0, 6, 1);
   gui.add(CONFIG, "N_BOMBS_VER", 0, 6, 1);
@@ -316,7 +317,6 @@ const gui = new GUI();
   gui.add(CONFIG, "TICKTOCK_SPEED", 300, 600);
   gui.add(CONFIG, "MUSIC_DURING_TICKTOCK", 0, 1);
   gui.add(CONFIG, "LUCK", 1, 15, 1);
-  gui.add(CONFIG, "PLAYER_CAN_EXPLODE");
   gui.add(CONFIG, "DRAW_WRAP", 0, MARGIN);
   gui.add(CONFIG, "WRAP_GRAY");
   gui.add(CONFIG, "WRAP_ITEMS");
@@ -324,7 +324,6 @@ const gui = new GUI();
   gui.add(CONFIG, "SHADOW");
   gui.add(CONFIG, "SHADOW_DIST", 0, .5);
   gui.add(CONFIG, "SCARF", ["no", "half", "full"]);
-  gui.add(CONFIG, "SCARF_BORDER_WIDTH", 0, .5);
   gui.add(CONFIG, "HEAD_COLOR");
   gui.add(CONFIG, "START_ON_BORDER");
   gui.add(CONFIG, "EXPLOSION_CIRCLE");
@@ -443,7 +442,7 @@ class SnakeBlocks {
   }
 }
 
-let game_state: "loading_menu" | "main_menu" | "pause_menu" | "playing" | "lost";
+let game_state: "loading_menu" | "main_menu" | "pause_menu" | "playing" | "lost" | "leaderboard";
 let turn: number;
 let snake_blocks_new = new SnakeBlocks();
 let started_at_timestamp: number;
@@ -459,11 +458,136 @@ let tick_or_tock: boolean;
 let touch_input_base_point: Vec2 | null;
 let haptic: boolean;
 let game_speed: number; // TODO: delete
+let min_game_speed: number; // TODO: delete
 let music_track: number;
-let menu_focus: "speed" | "music" | "resume" | "haptic";
-let share_button_state: { folded: boolean, hovered: null | 'vanilla' | 'twitter' | 'bsky' };
 let last_lost_timestamp = 0;
 let settings_overlapped = false;
+let scores_view: 'global' | 'local' = 'global';
+
+// TODO: ask droqen for a new table
+class LeaderboardData {
+  public around_scores: 'loading' | 'error' | { name: string | null, score: number, highlight?: boolean }[];
+  public top_scores: 'loading' | 'error' | { name: string, score: number, highlight?: boolean }[];
+  public around_scores_local: 'loading' | 'error' | { name: string | null, score: number, highlight?: boolean }[];
+  public top_scores_local: 'loading' | 'error' | { name: string, score: number, highlight?: boolean }[];
+  public submit_status: 'none' | 'submitting' | 'submitted' = 'none';
+
+  public top_scores_per_speed: ('loading' | 'error' | { name: string, score: number, highlight?: boolean }[])[];
+
+  constructor(center: number | null, speed: number) {
+    this.around_scores = 'loading';
+    this.top_scores = 'loading';
+    this.around_scores_local = 'loading';
+    this.top_scores_local = 'loading';
+    this.top_scores_per_speed = ['loading', 'loading', 'loading'];
+    if (center === null) {
+      this.fetchAndUpdateTopScoresMainMenu();
+    } else {
+      this.fetchAndUpdate(center, speed + 1);
+      this.fetchAndUpdateTopScores(speed + 1);
+    }
+  }
+
+  async fetchAndUpdateTopScoresMainMenu() {
+    this.top_scores_per_speed = await Promise.all([
+      LeaderboardData.fetchTopScoresWithName(1, null),
+      LeaderboardData.fetchTopScoresWithName(2, null),
+      LeaderboardData.fetchTopScoresWithName(3, null),
+    ]);
+  }
+
+  async fetchAndUpdate(center: number, mode: number) {
+    this.around_scores = await LeaderboardData.fetchAroundWithName(center, mode, null);
+  }
+
+  async fetchAndUpdateTopScores(mode: number) {
+    this.top_scores = await LeaderboardData.fetchTopScoresWithName(mode, null);
+  }
+
+  static async fetchAroundWithName(center: number, mode: number, pname: string | null): Promise<'error' | { name: string | null, highlight?: boolean, score: number }[]> {
+    const corsProxy = 'https://cors-anywhere.herokuapp.com/';
+    let url = `https://php.droqen.com/storescore/bombsnack/do_get_nearby.php?score=${center}&mode=${mode}`;
+    if (pname !== null) {
+      url += `&pname=${pname}`;
+    }
+    const true_url = DEBUG_CORS ? `${corsProxy}${url}` : url;
+    try {
+      const response = await fetch(true_url);
+      const asdf = await response.text();
+      console.log(asdf);
+      const data = JSON5.parse(asdf);
+      if (data.err !== 0) {
+        return 'error';
+      } else {
+        let result: { name: string | null, score: number, highlight?: boolean }[] = data.scores;
+        result.push({ name: pname, score: center, highlight: true });
+        result = result.sort((a, b) => b.score - a.score);
+        while (result.length > 7) {
+          const middle = result[Math.floor(result.length / 2)].score;
+          if (center > middle) {
+            result.pop();
+          } else {
+            result.shift();
+          }
+        }
+        return result
+      }
+    } catch (error) {
+      return 'error';
+    }
+  }
+
+  static async fetchTopScoresWithName(mode: number, pname: string | null): Promise<'error' | { name: string, score: number }[]> {
+    const corsProxy = 'https://cors-anywhere.herokuapp.com/';
+    let url = `https://php.droqen.com/storescore/bombsnack/do_get_top10.php?mode=${mode}`;
+    if (pname !== null) {
+      url += `&pname=${pname}`;
+    }
+    const true_url = DEBUG_CORS ? `${corsProxy}${url}` : url;
+    try {
+      const response = await fetch(true_url);
+      const asdf = await response.text();
+      console.log(asdf);
+      const data = JSON5.parse(asdf);
+      if (data.err !== 0) {
+        return 'error';
+      } else {
+        return data.scores;
+      }
+    } catch (error) {
+      return 'error';
+    }
+  }
+
+
+  async submit(mode: number) {
+    if (this.submit_status !== 'none') return;
+    if (this.around_scores === 'error') return;
+    this.submit_status = 'submitting';
+    const name = prompt('your name for the leaderboard:', localStorage.getItem('bombsnack_name') ?? undefined);
+    if (name === null) {
+      this.submit_status = 'none';
+      return
+    }
+    localStorage.setItem('bombsnack_name', name);
+    const corsProxy = 'https://cors-anywhere.herokuapp.com/';
+    const url = `https://php.droqen.com/storescore/bombsnack/do_new_score.php?name=${name}&score=${score}&mode=${mode}`;
+    const true_url = DEBUG_CORS ? `${corsProxy}${url}` : url;
+    const response = fetch(true_url);
+    const asdf = this;
+    await response;
+    asdf.submit_status = 'submitted';
+    const top_promise = LeaderboardData.fetchTopScoresWithName(mode, name);
+    const around_promise = LeaderboardData.fetchAroundWithName(score, mode, name);
+    const [a, b] = await Promise.all([top_promise, around_promise])
+    this.top_scores_local = a;
+    this.around_scores_local = b;
+
+    lost_menu.buttons = [lost_button_global_local, lost_button_restart];
+  }
+}
+
+let leaderboard_data: LeaderboardData | null = null;
 
 type MenuButton = { multiple_choice: boolean, get_text: () => string, y_coord: number, callback: (delta_x: number) => void };
 const main_menu: { focus: number, buttons: MenuButton[] } = {
@@ -489,10 +613,20 @@ const main_menu: { focus: number, buttons: MenuButton[] } = {
     },
     {
       multiple_choice: false,
+      get_text: () => 'Leaderboard',
+      y_coord: .64,
+      callback: (dx: number) => {
+        leaderboard_data = new LeaderboardData(null, game_speed);
+        game_state = 'leaderboard';
+      }
+    },
+    {
+      multiple_choice: false,
       get_text: () => `Start!`,
       y_coord: .8,
       callback: (dx: number) => {
         game_state = 'playing';
+        min_game_speed = game_speed;
       }
     },
   ],
@@ -516,6 +650,7 @@ const pause_menu: { focus: number, buttons: MenuButton[] } = {
       callback: (dx: number) => {
         game_speed = mod(game_speed + dx, SPEEDS.length);
         CONFIG.TURN_DURATION = SPEEDS[game_speed];
+        min_game_speed = Math.min(min_game_speed, game_speed);
       }
     },
     {
@@ -538,6 +673,70 @@ const pause_menu: { focus: number, buttons: MenuButton[] } = {
   ],
 };
 
+const lost_button_submit: MenuButton = {
+  multiple_choice: false,
+  get_text: () => {
+    if (leaderboard_data === null) return 'bug! call knexator';
+    switch (leaderboard_data.submit_status) {
+      case 'none':
+        return 'Submit score'
+      case "submitting":
+        return 'Submitting...'
+      case "submitted":
+        return 'Score submited!'
+    }
+  },
+  y_coord: .9,
+  callback: (dx: number) => {
+    leaderboard_data!.submit(game_speed + 1);
+    // restartGame();
+  }
+}
+
+const lost_button_global_local: MenuButton = {
+  multiple_choice: true,
+  get_text: () => scores_view === 'global' ? 'Global' : 'Local',
+  y_coord: .9,
+  callback: (dx: number) => {
+    scores_view = scores_view === 'global' ? 'local' : 'global';
+  }
+}
+
+const lost_button_restart: MenuButton = {
+  multiple_choice: false,
+  get_text: () => is_phone ? 'Tap here to Restart' : `R to Restart`,
+  y_coord: 1,
+  callback: (dx: number) => {
+    console.log('hola en restart');
+    restartGame();
+  }
+}
+
+const lost_menu: { focus: number, buttons: MenuButton[] } = {
+  focus: 0,
+  buttons: [lost_button_submit, lost_button_restart],
+};
+
+const leaderboard_menu: { focus: number, buttons: MenuButton[] } = {
+  focus: 0,
+  buttons: [{
+    multiple_choice: true,
+    get_text: () => `Speed: ${game_speed + 1}`,
+    y_coord: .8,
+    callback: (dx: number) => {
+      game_speed = mod(game_speed + dx, SPEEDS.length);
+      CONFIG.TURN_DURATION = SPEEDS[game_speed];
+    }
+  }, {
+    multiple_choice: false,
+    get_text: () => 'Back',
+    y_coord: .91,
+    callback: (dx: number) => {
+      game_state = 'main_menu';
+    }
+  }],
+};
+
 function restartGame() {
   stopTickTockSound();
   game_state = "main_menu";
@@ -558,16 +757,17 @@ function restartGame() {
   started_at_timestamp = last_timestamp;
   score = 0;
   remaining_sopa = CONFIG.SOPA;
+  leaderboard_data = null;
+  lost_menu.buttons = [lost_button_submit, lost_button_restart];
+  scores_view = 'global';
   input_queue = [];
-  cur_collectables = [];
+  cur_collectables = [new Bomb(BOARD_SIZE.sub(Vec2.both(2)), 'both')];
   turn_offset = 0.99; // always between 0..1
   exploding_cross_particles = [];
   collected_stuff_particles = [];
   multiplier = 1;
   tick_or_tock = false;
   touch_input_base_point = null;
-  menu_focus = "resume";
-  share_button_state = { hovered: null, folded: true };
 }
 
 class Bomb {
@@ -601,8 +801,6 @@ class Soup {
   ) { }
 }
 
-Howler.mute(true);
-
 type Collectable = Bomb | Multiplier | Clock | Soup;
 
 // Loading menu
@@ -623,13 +821,14 @@ if (CONFIG.START_ON_BORDER) {
 }
 score = 0
 remaining_sopa = CONFIG.SOPA;
+leaderboard_data = null;
 input_queue = [];
 cur_collectables = RECORDING_GIF ? [
   new Multiplier(new Vec2(11, 6)),
   new Bomb(new Vec2(11, 14), 'both'),
   new Bomb(new Vec2(12, 8), 'both'),
   new Bomb(new Vec2(5, 6), 'both')
-] : [];
+] : [new Bomb(BOARD_SIZE.sub(Vec2.both(2)), 'both')];
 turn_offset = 0.99; // always between 0..1
 exploding_cross_particles = [];
 collected_stuff_particles = [];
@@ -639,12 +838,9 @@ touch_input_base_point = null;
 game_speed = is_phone ? 0 : 1;
 haptic = true;
 music_track = 1;
-menu_focus = "resume";
-share_button_state = { folded: true, hovered: null };
 
 let last_timestamp = 0;
 const bouncyTexts = new Map<string, number>();
-let hide_end_text = false;
 
 draw(true);
 
@@ -828,9 +1024,6 @@ function every_frame(cur_timestamp: number) {
   if (input.keyboard.wasPressed(KeyCode.KeyK)) {
     gui.show(gui._hidden);
   }
-  if (input.keyboard.wasPressed(KeyCode.KeyH)) {
-    hide_end_text = true;
-  }
 
   // if (input.keyboard.wasPressed(KeyCode.KeyM)) {
   //   // SONGS[music_track].mute(!SONGS[music_track].mute());
@@ -854,6 +1047,22 @@ function every_frame(cur_timestamp: number) {
     // turn_offset += delta_time / CONFIG.TURN_DURATION;
 
     if (input.mouse.wasPressed(MouseButton.Left)) {
+      SOUNDS.waffel.play();
+      // setTimeout(() => {
+      //   SOUNDS.waffel.play();
+      // }, 400);
+      const initial_song = SONGS[music_track];
+      if (initial_song !== null && !initial_song.playing()) {
+        // SONGS[music_track].play()
+        // setTimeout(() => {
+        const original_volume = initial_song.volume()
+        if (!initial_song.playing()) initial_song.play()
+        initial_song.fade(0, original_volume, 1200);
+        // }, 200);
+        // setTimeout(() => SONGS[music_track].play(), 1500);
+        // SONGS[music_track].play();
+        // SONGS[music_track].fade(0, 1, 2000);
+      }
       game_state = "main_menu";
     }
   } else if (game_state === "pause_menu") {
@@ -884,68 +1093,35 @@ function every_frame(cur_timestamp: number) {
         cur_collectables.push(placeSoup());
       }
       cur_collectables.push(new Clock());
-      // setTimeout(() => {
-      //   SOUNDS.waffel.play();
-      // }, 400);
-      SOUNDS.waffel.play();
-      const initial_song = SONGS[music_track]!;
-      // SONGS[music_track].play()
-      // setTimeout(() => {
-      const original_volume = initial_song.volume()
-      initial_song.play()
-      initial_song.fade(0, original_volume, 1200);
-      // }, 200);
-      // setTimeout(() => SONGS[music_track].play(), 1500);
-      // SONGS[music_track].play();
-      // SONGS[music_track].fade(0, 1, 2000);
+    }
+  } else if (game_state === "leaderboard") {
+    doGenericMenu(leaderboard_menu, canvas_mouse_pos, raw_mouse_pos);
+
+    if (input.keyboard.wasPressed(KeyCode.Escape)) {
+      game_state = "main_menu";
     }
   } else if (game_state === "lost") {
+    doGenericMenu(lost_menu, canvas_mouse_pos, raw_mouse_pos);
+
+    if (input.keyboard.wasPressed(KeyCode.Escape) || (input.mouse.wasPressed(MouseButton.Left) && settings_overlapped)) {
+      restartGame();
+      game_state = "main_menu";
+    }
+
     if (input.keyboard.wasPressed(KeyCode.KeyR)) {
       restartGame();
     }
-    else if (input.keyboard.wasPressed(KeyCode.Escape) || (input.mouse.wasPressed(MouseButton.Left) && settings_overlapped)) {
-      restartGame();
-      game_state = "pause_menu";
-    }
+    // else if (input.keyboard.wasPressed(KeyCode.Escape) || (input.mouse.wasPressed(MouseButton.Left) && settings_overlapped)) {
+    //   restartGame();
+    //   game_state = "pause_menu";
+    // }
+    // else if (input.mouse.wasPressed(MouseButton.Left)) {
+    //   leaderboard_data!.submit();
+    // }
 
-    let pressed_some_menu_button = false;
-    if (share_button_state.folded) {
-      const share_vanilla = new Vec2(percX(.5), menuYCoordOf('share'));
-      share_button_state.hovered = (share_vanilla.sub(raw_mouse_pos).mag() < TILE_SIZE * CONFIG.SHARE_BUTTON_SCALE) ? "vanilla" : null;
-      if (input.mouse.wasPressed(MouseButton.Left) && share_button_state.hovered === 'vanilla') {
-        share_button_state.folded = false;
-        share_button_state.hovered = null;
-        pressed_some_menu_button = true;
-        SOUNDS.waffel.play();
-      }
-    } else {
-      const share_vanilla = new Vec2(percX(.5), menuYCoordOf('share'));
-      const pos_twitter = share_vanilla.addX(-TILE_SIZE * 2);
-      const pos_bsky = share_vanilla.addX(TILE_SIZE * 2);
-      share_button_state.hovered = (pos_twitter.sub(raw_mouse_pos).mag() < TILE_SIZE * CONFIG.SHARE_BUTTON_SCALE)
-        ? "twitter"
-        : (pos_bsky.sub(raw_mouse_pos).mag() < TILE_SIZE * CONFIG.SHARE_BUTTON_SCALE)
-          ? 'bsky'
-          : null;
-      if (input.mouse.wasPressed(MouseButton.Left) && share_button_state.hovered !== null) {
-        const message = generateShareMessage()
-        if (share_button_state.hovered === 'twitter') {
-          const tweet = encodeURIComponent(message);
-          const twitterUrl = `https://twitter.com/intent/tweet?text=${tweet}`;
-          window.open(twitterUrl, '_blank');
-        } else if (share_button_state.hovered === 'bsky') {
-          const post = encodeURIComponent(message);
-          const blueskyUrl = `https://bsky.app/intent/compose?text=${post}`;
-          window.open(blueskyUrl, '_blank');
-        }
-        pressed_some_menu_button = true;
-        share_button_state.hovered = null;
-      }
-    }
-
-    if (!pressed_some_menu_button && input.mouse.wasPressed(MouseButton.Left) && canvas_mouse_pos.y < BOARD_SIZE.y * TILE_SIZE) {
-      restartGame();
-    }
+    // if (!pressed_some_menu_button && input.mouse.wasPressed(MouseButton.Left) && canvas_mouse_pos.y < BOARD_SIZE.y * TILE_SIZE) {
+    //   restartGame();
+    // }
   } else if (game_state === "playing") {
     if ([
       KeyCode.KeyW, KeyCode.ArrowUp,
@@ -1202,17 +1378,19 @@ function doGenericMenu(menu: { focus: number, buttons: MenuButton[] }, canvas_mo
       const button = menu.buttons[menu.focus];
       if (button.multiple_choice) {
         SOUNDS.menu1.play();
-      } else {
-        SOUNDS.menu2.play();
+        button.callback(delta.x);
       }
-      button.callback(delta.x);
+      else if (menu_fake_key === KeyCode.Space || btnp([KeyCode.Space])) {
+        SOUNDS.menu2.play();
+        button.callback(delta.x);
+      }
     }
     menu_fake_key = null;
   }
 
   // mouse moved
   if ((input.mouse.clientX !== input.mouse.prev_clientX || input.mouse.clientY !== input.mouse.prev_clientY)
-    && canvas_mouse_pos.y < BOARD_SIZE.y * TILE_SIZE) {
+    && (canvas_mouse_pos.y + TILE_SIZE * TOP_OFFSET) < (BOARD_SIZE.y + MARGIN * 2) * TILE_SIZE) {
     menu.focus = argmin(menu.buttons.map(button => Math.abs(raw_mouse_pos.y - real_y(button.y_coord))));
   }
 
@@ -1220,7 +1398,7 @@ function doGenericMenu(menu: { focus: number, buttons: MenuButton[] }, canvas_mo
     menu.focus = menu.buttons.length - 1;
   }
 
-  if (input.mouse.wasPressed(MouseButton.Left) && canvas_mouse_pos.y < BOARD_SIZE.y * TILE_SIZE) {
+  if (input.mouse.wasPressed(MouseButton.Left) && (canvas_mouse_pos.y + TILE_SIZE * TOP_OFFSET) < (BOARD_SIZE.y + MARGIN * 2) * TILE_SIZE) {
     const dx = canvas_mouse_pos.x / (BOARD_SIZE.x * TILE_SIZE) < 1 / 2 ? -1 : 1;
     user_clicked_something = true;
 
@@ -1314,7 +1492,7 @@ function draw(is_loading: boolean) {
       const cur_collectable = cur_collectables[k];
       if (cur_collectable instanceof Bomb) {
         const cur_bomb = cur_collectable;
-        if (cur_bomb.dir !== 'both') continue;
+        if (cur_bomb.dir !== 'both') continue; // TODO: shadows for all
         // @ts-ignore
         drawItem(cur_bomb.pos.add(Vec2.both(CONFIG.SHADOW_DIST)), 'bomb_' + cur_bomb.dir, true);
       } else if (cur_collectable instanceof Multiplier) {
@@ -1327,8 +1505,7 @@ function draw(is_loading: boolean) {
           drawItem(clock.pos.add(Vec2.both(CONFIG.SHADOW_DIST)), 'clock', true);
         }
       } else if (cur_collectable instanceof Soup) {
-        // nothing
-        // drawItem(cur_collectable.pos.add(Vec2.both(CONFIG.SHADOW_DIST)), 'soup', true);
+        // TODO: shadow for soup
       } else {
         const _: never = cur_collectable;
         throw new Error();
@@ -1597,10 +1774,12 @@ function draw(is_loading: boolean) {
     main_menu.buttons.forEach((button, k) => {
       const y_coord = real_y(button.y_coord);
       if (button.multiple_choice) {
-        drawCenteredShadowedText(button.get_text(), y_coord);
+        drawCenteredShadowedTextWithColor(
+          (main_menu.focus === k) ? COLORS.TEXT : COLORS.GRAY_TEXT,
+          button.get_text(), y_coord);
         if (main_menu.focus === k) {
-          drawMenuArrowNew(y_coord, false);
-          drawMenuArrowNew(y_coord, true);
+          drawMenuArrowNew(y_coord, false, button.get_text().length);
+          drawMenuArrowNew(y_coord, true, button.get_text().length);
         }
       } else {
         drawCenteredShadowedTextWithColor(
@@ -1619,45 +1798,99 @@ function draw(is_loading: boolean) {
     pause_menu.buttons.forEach((button, k) => {
       const y_coord = real_y(button.y_coord);
       if (button.multiple_choice) {
-        drawCenteredShadowedText(button.get_text(), y_coord);
+        drawCenteredShadowedTextWithColor(
+          (pause_menu.focus === k) ? COLORS.TEXT : COLORS.GRAY_TEXT,
+          button.get_text(), y_coord);
         if (pause_menu.focus === k) {
-          drawMenuArrowNew(y_coord, false);
-          drawMenuArrowNew(y_coord, true);
+          drawMenuArrowNew(y_coord, false, button.get_text().length);
+          drawMenuArrowNew(y_coord, true, button.get_text().length);
         }
       } else {
         drawCenteredShadowedTextWithColor(
           (pause_menu.focus === k) ? COLORS.TEXT : COLORS.GRAY_TEXT,
-          button.get_text(), y_coord
-        );
+          button.get_text(), y_coord);
       }
     });
   } else if (game_state === "lost") {
 
-    // drawCenteredShadowedText(`Score: ${score}`, (TOP_OFFSET + MARGIN + BOARD_SIZE.y / 4) * TILE_SIZE);
-    drawCenteredShadowedText(is_phone ? 'Tap here to Restart' : `R to Restart`, (TOP_OFFSET + MARGIN + BOARD_SIZE.y * 3 / 4) * TILE_SIZE);
-
-    if (!hide_end_text) {
-      drawCenteredShadowedTextMultiline(['We suck at PR, please help us', 'bring the game to more people.'], menuYCoordOf("share") - TILE_SIZE * 4.5, 1);
-    }
-    const share_button_scale = CONFIG.SHARE_BUTTON_SCALE;
-    if (share_button_state.folded) {
-      const pos = new Vec2(canvas_ctx.width / 2, menuYCoordOf("share"));
-      drawImageCentered(TEXTURES.share.vanilla_shadow, pos.add(Vec2.both(CONFIG.SHADOW_TEXT)), share_button_scale);
-      if (share_button_state.hovered === 'vanilla') {
-        drawImageCentered(TEXTURES.share.vanilla, pos.sub(Vec2.both(CONFIG.SHADOW_TEXT / 2)), share_button_scale);
-      }
-      else {
-        drawImageCentered(TEXTURES.share.vanilla, pos, share_button_scale);
-      }
+    if (leaderboard_data === null) throw new Error("unreachable");
+    let k = 0;
+    const top_scores = scores_view === 'global' ? leaderboard_data.top_scores : leaderboard_data.top_scores_local;
+    const around_scores = scores_view === 'global' ? leaderboard_data.around_scores : leaderboard_data.around_scores_local;
+    if (around_scores === 'error' || top_scores === 'error') {
+      drawCenteredShadowedText('Could not load leaderboard', real_y(.5));
+    } else if (around_scores === 'loading' || top_scores === 'loading') {
+      drawCenteredShadowedText('Loading leaderboard...', real_y(.5));
     } else {
-      const center = new Vec2(canvas_ctx.width / 2, menuYCoordOf("share"));
-      drawImageCentered(TEXTURES.share.twitter, center.addX(-TILE_SIZE * 2)
-        .sub(share_button_state.hovered === 'twitter' ? Vec2.both(CONFIG.SHADOW_TEXT / 2) : Vec2.zero), share_button_scale);
-      drawImageCentered(TEXTURES.share.bsky, center.addX(TILE_SIZE * 2)
-        .sub(share_button_state.hovered === 'bsky' ? Vec2.both(CONFIG.SHADOW_TEXT / 2) : Vec2.zero), share_button_scale);
+      for (const { name, score, highlight } of top_scores.slice(0, 3)) {
+        drawScore(name, highlight ?? false, score, k);
+        k += 1;
+      }
+
+      drawSeparator(k);
+      k += 1;
+      for (const { name, score, highlight } of around_scores) {
+        drawScore(name, highlight ?? false, score, k);
+        k += 1;
+      }
+      ctx.textAlign = "center";
     }
 
-    // ctx.fillText("", canvas.width / 2, canvas.height / 2);
+    lost_menu.buttons.forEach((button, k) => {
+      const y_coord = real_y(button.y_coord);
+      if (button.multiple_choice) {
+        drawCenteredShadowedTextWithColor(
+          (lost_menu.focus === k) ? COLORS.TEXT : COLORS.GRAY_TEXT,
+          button.get_text(), y_coord
+        );
+        if (lost_menu.focus === k) {
+          drawMenuArrowNew(y_coord, false, button.get_text().length);
+          drawMenuArrowNew(y_coord, true, button.get_text().length);
+        }
+      } else {
+        drawCenteredShadowedTextWithColor(
+          (lost_menu.focus === k) ? COLORS.TEXT : COLORS.GRAY_TEXT,
+          button.get_text(), y_coord
+        );
+      }
+    });
+
+    // drawCenteredShadowedText(is_phone ? 'Tap here to Restart' : `R to Restart`, real_y(1));
+  } else if (game_state === "leaderboard") {
+    if (leaderboard_data === null) throw new Error("unreachable");
+    let k = 1;
+    const top_scores = leaderboard_data.top_scores_per_speed[game_speed];
+    if (top_scores === 'error') {
+      drawCenteredShadowedText('Could not load leaderboard', real_y(.5));
+    } else if (top_scores === 'loading') {
+      drawCenteredShadowedText('Loading leaderboard...', real_y(.5));
+    } else {
+      for (const { name, score, highlight } of top_scores) {
+        drawScore(name, highlight ?? false, score, k);
+        k += 1;
+      }
+      ctx.textAlign = "center";
+    }
+
+    leaderboard_menu.buttons.forEach((button, k) => {
+      const y_coord = real_y(button.y_coord);
+      if (button.multiple_choice) {
+        drawCenteredShadowedTextWithColor(
+          (leaderboard_menu.focus === k) ? COLORS.TEXT : COLORS.GRAY_TEXT,
+          button.get_text(), y_coord
+        );
+        if (leaderboard_menu.focus === k) {
+          drawMenuArrowNew(y_coord, false, button.get_text().length);
+          drawMenuArrowNew(y_coord, true, button.get_text().length);
+        }
+      } else {
+        drawCenteredShadowedTextWithColor(
+          (leaderboard_menu.focus === k) ? COLORS.TEXT : COLORS.GRAY_TEXT,
+          button.get_text(), y_coord
+        );
+      }
+    });
+
   } else if (game_state === "playing") {
     // nothing
   } else {
@@ -1744,8 +1977,8 @@ function percX(x: number): number {
 function lose() {
   stopTickTockSound();
   game_state = "lost";
-  menu_focus = 'music';
   last_lost_timestamp = last_timestamp;
+  leaderboard_data = new LeaderboardData(score, min_game_speed);
 
   // draw(false);
   // canvas_ctx.toBlob(async (blob) => {
@@ -1759,10 +1992,10 @@ function lose() {
 
 }
 
-function drawMenuArrowNew(y_coord: number, left: boolean): void {
+function drawMenuArrowNew(y_coord: number, left: boolean, text_len: number): void {
   ctx.fillStyle = COLORS.TEXT;
   const pos = new Vec2(
-    canvas_ctx.width / 2 + (left ? -1 : 1) * 3.25 * TILE_SIZE,
+    canvas_ctx.width / 2 + (left ? -1 : 1) * (text_len * 3 / 8) * TILE_SIZE,
     y_coord);
   drawImageCentered(left ? TEXTURES.menu_arrow.left : TEXTURES.menu_arrow.right, pos);
 }
@@ -1836,7 +2069,7 @@ function drawItem(top_left: Vec2, item: "bomb_both" | "bomb_hor" | "bomb_ver" | 
       for (let j = -1; j <= 1; j++) {
         ctx.drawImage(is_shadow
           ? TEXTURES.shadow[item]
-          : (CONFIG.WRAP_GRAY && (i !== 0 || j !== 0))
+          : (CONFIG.WRAP_GRAY && (i !== 0 || j !== 0 || game_state === 'lost'))
             ? TEXTURES.gray[item]
             : TEXTURES[item],
           (top_left.x + i * BOARD_SIZE.x) * TILE_SIZE, (top_left.y + j * BOARD_SIZE.y) * TILE_SIZE, TILE_SIZE, TILE_SIZE);
@@ -1963,6 +2196,14 @@ function drawCenteredShadowedTextWithColor(color: string, text: string, yCoord: 
   ctx.fillText(text, canvas_ctx.width / 2, yCoord);
 }
 
+function fillTextWithShadow(pos: Vec2, color: string, text: string, scale: number = 1) {
+  ctx.font = `bold ${Math.floor(scale * 30 * TILE_SIZE / 32)}px sans-serif`;
+  ctx.fillStyle = "black";
+  ctx.fillText(text, pos.x + CONFIG.SHADOW_TEXT, pos.y + CONFIG.SHADOW_TEXT);
+  ctx.fillStyle = color;
+  ctx.fillText(text, pos.x, pos.y);
+}
+
 function drawImageCentered(image: HTMLImageElement, center: Vec2, scale: number = 1) {
   const display_size = new Vec2(image.width, image.height).scale(scale * TILE_SIZE / 32);
   const offset = center.sub(display_size.scale(.5));
@@ -2000,6 +2241,25 @@ function fillJumpyText(id: string, text: string, x: number, y: number) {
 
 function blinking(period: number, cur_time: number, color1: string, color2: string): string {
   return (mod(cur_time / period, 1) < 0.5) ? color1 : color2;
+}
+
+function drawScore(name: string | null, highlight: boolean, score: number, row: number) {
+  const y = 4 * TILE_SIZE + row * (TILE_SIZE + 1.8);
+  ctx.textAlign = 'left';
+  const color = highlight ? COLORS.HEAD : COLORS.TEXT;
+  fillTextWithShadow(new Vec2((MARGIN + 1) * TILE_SIZE, y),
+    color, name === null ? 'YOU' : name)
+  ctx.textAlign = 'right';
+  fillTextWithShadow(new Vec2((MARGIN - 1 + BOARD_SIZE.x) * TILE_SIZE, y),
+    color, score.toString());
+}
+
+function drawSeparator(row: number) {
+  const y = 4 * TILE_SIZE + row * (TILE_SIZE + 1.8);
+  ctx.textAlign = 'center';
+  const color = COLORS.TEXT;
+  fillTextWithShadow(new Vec2((MARGIN + BOARD_SIZE.x / 2) * TILE_SIZE, y),
+    color, '------------------------------------------------');
 }
 
 window.addEventListener('beforeunload', function () {
