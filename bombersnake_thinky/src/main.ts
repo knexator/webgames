@@ -940,6 +940,16 @@ function placeBomb(dir: 'both' | 'hor' | 'ver'): Bomb {
         count += 1;
       }
     });
+    cur_collectables.forEach(c => {
+      if (!(c instanceof Bomb)) return;
+      if (c.dir === 'both') return;
+      if (c.dir !== dir) return;
+      if ((dir === 'ver' && c.pos.x === pos.x)
+        || (dir === 'hor' && c.pos.y === pos.y)
+      ) {
+        count -= 10;
+      }
+    });
     return count;
   });
   let pos = candidates[argmax(visible_walls_at_each_candidate)];
