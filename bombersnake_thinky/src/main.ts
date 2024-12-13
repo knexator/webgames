@@ -453,7 +453,7 @@ class SnakeBlocks {
 
 let game_state: "loading_menu" | "main_menu" | "pause_menu" | "playing" | "lost" | "leaderboard";
 let turn: number;
-let snake_blocks_new = new SnakeBlocks();
+let snake_blocks = new SnakeBlocks();
 let started_at_timestamp: number;
 let score: number;
 let remaining_sopa: number;
@@ -808,13 +808,13 @@ function restartGame() {
   game_state = "main_menu";
   if (CONFIG.START_ON_BORDER) {
     turn = 1;
-    snake_blocks_new.setAll([
+    snake_blocks.setAll([
       { pos: new Vec2(0, BOARD_SIZE.y - 2), in_dir: new Vec2(-1, 0), out_dir: new Vec2(1, 0), t: 0 },
       { pos: new Vec2(1, BOARD_SIZE.y - 2), in_dir: new Vec2(-1, 0), out_dir: new Vec2(0, 0), t: 1 },
     ]);
   } else {
     turn = 2;
-    snake_blocks_new.setAll([
+    snake_blocks.setAll([
       { pos: new Vec2(6, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(1, 0), t: 0 },
       { pos: new Vec2(7, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(1, 0), t: 1 },
       { pos: new Vec2(8, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(0, 0), t: 2 },
@@ -873,13 +873,13 @@ type Collectable = Bomb | Multiplier | Clock | Soup;
 game_state = "loading_menu";
 if (CONFIG.START_ON_BORDER) {
   turn = 1;
-  snake_blocks_new.setAll([
+  snake_blocks.setAll([
     { pos: new Vec2(0, BOARD_SIZE.y - 2), in_dir: new Vec2(-1, 0), out_dir: new Vec2(1, 0), t: 0 },
     { pos: new Vec2(1, BOARD_SIZE.y - 2), in_dir: new Vec2(-1, 0), out_dir: new Vec2(0, 0), t: 1 },
   ]);
 } else {
   turn = 2;
-  snake_blocks_new.setAll([
+  snake_blocks.setAll([
     { pos: new Vec2(6, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(1, 0), t: 0 },
     { pos: new Vec2(7, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(1, 0), t: 1 },
     { pos: new Vec2(8, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(0, 0), t: 2 },
@@ -990,8 +990,8 @@ function findSpotWithoutWall(): Vec2 {
       Math.floor(Math.random() * BOARD_SIZE.x),
       Math.floor(Math.random() * BOARD_SIZE.y)
     );
-    valid = !snake_blocks_new.grid.getV(pos).valid;
-    let head_block = snake_blocks_new.getHead();
+    valid = !snake_blocks.grid.getV(pos).valid;
+    let head_block = snake_blocks.getHead();
     valid = valid && !pos.equal(head_block.pos.add(head_block.in_dir)) && !cur_collectables.some(x => x.pos.equal(pos));
   } while (!valid);
   return pos;
@@ -1001,7 +1001,7 @@ function placeBomb(dir: 'both' | 'hor' | 'ver'): Bomb {
   let candidates = fromCount(CONFIG.LUCK, _ => findSpotWithoutWall());
   let visible_walls_at_each_candidate = candidates.map(pos => {
     let count = 0;
-    snake_blocks_new.grid.forEachV((pos, b) => {
+    snake_blocks.grid.forEachV((pos, b) => {
       if (b.valid && (pos.x === pos.x || pos.y === pos.y)) {
         count += 1;
       }
@@ -1033,7 +1033,7 @@ function placeSoup(): Soup {
 
 function explodeBomb(k: number) {
   let cur_bomb = cur_collectables[k] as Bomb;
-  snake_blocks_new.grid.forEachV((pos, b) => {
+  snake_blocks.grid.forEachV((pos, b) => {
     let affected_hor = b.valid && pos.y === cur_bomb.pos.y;
     let affected_ver = b.valid && pos.x === cur_bomb.pos.x;
     let affected = cur_bomb.dir === 'both'
@@ -1156,7 +1156,7 @@ function every_frame(cur_timestamp: number) {
       // start game
       randomChoice(MAPS).forEachV((p, w) => {
         if (w) {
-          snake_blocks_new.addInitialObstacleAt(p);
+          snake_blocks.addInitialObstacleAt(p);
         }
       })
       for (let k = cur_collectables.filter(x => x instanceof Bomb && x.dir === 'both').length; k < CONFIG.N_BOMBS; k++) {
@@ -1239,7 +1239,7 @@ function every_frame(cur_timestamp: number) {
 
   while (turn_offset >= 1 && input_queue.length > 0) {
     // do turn
-    let last_block = snake_blocks_new.getHead();
+    let last_block = snake_blocks.getHead();
     let next_input: Vec2 | null = null;
     while (input_queue.length > 0) {
       let maybe_next_input = input_queue.shift()!;
@@ -1260,8 +1260,6 @@ function every_frame(cur_timestamp: number) {
       continue;
     }
 
-    console.log(last_block.in_dir);
-    console.log(delta);
     if (!delta.equal(last_block.in_dir.scale(-1))) {
       remaining_sopa -= 1;
     }
@@ -1275,7 +1273,7 @@ function every_frame(cur_timestamp: number) {
       last_block.in_dir = delta.scale(-1);
     }
     last_block.out_dir = delta;
-    let new_block = snake_blocks_new.grid.getV(modVec2(snake_blocks_new.head_pos.add(delta), BOARD_SIZE));
+    let new_block = snake_blocks.grid.getV(modVec2(snake_blocks.head_pos.add(delta), BOARD_SIZE));
 
     let collision = new_block.valid;
 
@@ -1283,7 +1281,7 @@ function every_frame(cur_timestamp: number) {
     new_block.out_dir = Vec2.zero;
     new_block.t = turn;
     new_block.valid = true;
-    snake_blocks_new.head_pos = new_block.pos;
+    snake_blocks.head_pos = new_block.pos;
 
     if (!CONFIG.CHEAT_INMORTAL && collision) {
       SOUNDS.crash.play();
@@ -1516,7 +1514,7 @@ function draw(is_loading: boolean) {
   }
 
   if (CONFIG.SHADOW) {
-    snake_blocks_new.grid.forEachV((_, cur_block) => {
+    snake_blocks.grid.forEachV((_, cur_block) => {
       if (!cur_block.valid) return;
       const is_scarf = CONFIG.SCARF === "full" && turn - cur_block.t === 1;
       if (cur_block.in_dir.equal(cur_block.out_dir.scale(-1))) {
@@ -1637,7 +1635,7 @@ function draw(is_loading: boolean) {
   });
 
   // snake body
-  snake_blocks_new.grid.forEachV((_, cur_block) => {
+  snake_blocks.grid.forEachV((_, cur_block) => {
     if (!cur_block.valid) return;
     let fill: keyof typeof COLORS = mod(cur_block.t, 2) == 1 ? "SNAKE_HEAD" : "SNAKE_WALL";
     const is_scarf = CONFIG.SCARF === "full" && turn - cur_block.t === 1;
@@ -2010,7 +2008,7 @@ function draw(is_loading: boolean) {
     ctx.resetTransform();
     ctx.translate(MARGIN * TILE_SIZE, (TOP_OFFSET + MARGIN) * TILE_SIZE);
     ctx.fillStyle = 'red';
-    const head_position = snake_blocks_new.head_pos;
+    const head_position = snake_blocks.head_pos;
     drawRotatedTextureNoWrap(new Vec2(-1, head_position.y).add(Vec2.both(.5)),
       anyBlockAt(new Vec2(BOARD_SIZE.x - 1, head_position.y)) ? TEXTURES.border_arrow.red : TEXTURES.border_arrow.white, Math.PI, new Vec2(.5, 1));
     drawRotatedTextureNoWrap(new Vec2(BOARD_SIZE.x, head_position.y).add(Vec2.both(.5)),
@@ -2259,7 +2257,7 @@ function drawCircleNoWrap(center: Vec2, radius: number) {
 }
 
 function anyBlockAt(pos: Vec2): boolean {
-  return snake_blocks_new.grid.getV(pos).valid;
+  return snake_blocks.grid.getV(pos).valid;
 }
 
 function drawCenteredShadowedText(text: string, yCoord: number, scale: number = 1) {
