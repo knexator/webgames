@@ -431,6 +431,8 @@ class TurnState {
     public readonly grid: Grid2D<Block>,
     public readonly head_pos: Vec2,
     public readonly cur_collectables: Collectable[],
+    public readonly turn: number,
+    public readonly score: number,
   ) { }
 
   addInitialObstacleAt(p: Vec2) {
@@ -443,7 +445,7 @@ class TurnState {
     })
   }
 
-  static initial(blocks: Omit<Block, 'valid'>[], collectables: Collectable[]): TurnState {
+  static initial(turn: number, blocks: Omit<Block, 'valid'>[], collectables: Collectable[]): TurnState {
     const grid = Grid2D.initV(BOARD_SIZE, pos => ({ valid: false, in_dir: Vec2.zero, out_dir: Vec2.zero, t: 0, pos: pos }));
     blocks.forEach(v => {
       grid.setV(v.pos, {
@@ -456,7 +458,7 @@ class TurnState {
     });
     const head_pos = blocks[blocks.length - 1].pos;
 
-    return new TurnState(grid, head_pos, collectables);
+    return new TurnState(grid, head_pos, collectables, turn, 0);
   }
 
   getHead() {
@@ -467,11 +469,13 @@ class TurnState {
   doThing(delta: Vec2): [TurnState, boolean] {
     const new_grid = this.grid.map((_, v) => cloneBlock(v));
     const new_collectables = this.cur_collectables.slice();
+    const new_turn = this.turn + 1;
+    let new_score = this.score;
 
     let new_block = new_grid.getV(modVec2(turn_state.head_pos.add(delta), BOARD_SIZE));
     new_block.in_dir = delta.scale(-1);
     new_block.out_dir = Vec2.zero;
-    new_block.t = turn;
+    new_block.t = new_turn;
     let collision = new_block.valid;
     new_block.valid = true;
 
@@ -492,40 +496,40 @@ class TurnState {
             : cur_bomb.dir === 'hor'
               ? affected_hor
               : affected_ver;
-          if (affected && b.t !== turn) {
+          if (affected && b.t !== new_turn) {
             b.valid = false;
           }
         })
         cur_screen_shake.actualMag = 5.0;
         cur_collectables[k] = placeBomb(cur_bomb.dir);
         remaining_sopa += CONFIG.SOPA_PER_BOMB;
-        score += multiplier;
+        new_score += multiplier;
         bounceText('score');
         vibrateBomb();
-        collected_stuff_particles.push({ center: cur_bomb.pos, text: '+' + multiplier.toString(), turn: turn });
+        collected_stuff_particles.push({ center: cur_bomb.pos, text: '+' + multiplier.toString(), turn: new_turn });
         SOUNDS.bomb.play();
-        exploding_cross_particles.push({ center: cur_bomb.pos, turn: turn, dir: cur_bomb.dir });
+        exploding_cross_particles.push({ center: cur_bomb.pos, turn: new_turn, dir: cur_bomb.dir });
 
       } else if (cur_collectable instanceof Multiplier) {
         multiplier += 1;
         bounceText('multiplier');
-        collected_stuff_particles.push({ center: cur_collectable.pos, text: 'x' + multiplier.toString(), turn: turn });
+        collected_stuff_particles.push({ center: cur_collectable.pos, text: 'x' + multiplier.toString(), turn: new_turn });
         cur_collectables[k] = placeMultiplier();
         SOUNDS.star.play();
       } else if (cur_collectable instanceof Clock) {
         const clock = cur_collectable;
         if (clock.active) {
           let clock_score = CONFIG.CLOCK_VALUE * multiplier;
-          collected_stuff_particles.push({ center: cur_collectable.pos, text: '+' + clock_score.toString(), turn: turn });
+          collected_stuff_particles.push({ center: cur_collectable.pos, text: '+' + clock_score.toString(), turn: new_turn });
           clock.remaining_turns = 0;
-          score += clock_score;
+          new_score += clock_score;
           bounceText('score');
           SOUNDS.clock.play();
           stopTickTockSound();
         }
       } else if (cur_collectable instanceof Soup) {
         remaining_sopa = CONFIG.SOPA;
-        collected_stuff_particles.push({ center: cur_collectable.pos, text: 'soup', turn: turn });
+        collected_stuff_particles.push({ center: cur_collectable.pos, text: 'soup', turn: new_turn });
         cur_collectables[k] = placeSoup();
         SOUNDS.menu2.play();
       } else {
@@ -565,7 +569,7 @@ class TurnState {
       }
     }
 
-    return [new TurnState(new_grid, new_block.pos, new_collectables), collision]
+    return [new TurnState(new_grid, new_block.pos, new_collectables, new_turn, new_score), collision]
   }
 
   findSpotWithoutWall(): Vec2 {
@@ -585,10 +589,8 @@ class TurnState {
 }
 
 let game_state: "loading_menu" | "main_menu" | "pause_menu" | "playing" | "lost" | "leaderboard";
-let turn: number;
 let turn_state: TurnState;
 let started_at_timestamp: number;
-let score: number;
 let remaining_sopa: number;
 let input_queue: Vec2[];
 let turn_offset: number; // always between 0..1
@@ -758,7 +760,7 @@ class LeaderboardData {
   }
 
 
-  async submit(mode: number) {
+  async submit(mode: number, score: number) {
     if (this.submit_status !== 'none') return;
     if (this.around_scores === 'error') return;
     this.submit_status = 'submitting';
@@ -886,7 +888,7 @@ const lost_button_submit: MenuButton = {
   },
   y_coord: .9,
   callback: (dx: number) => {
-    leaderboard_data!.submit(game_speed + 1);
+    leaderboard_data!.submit(game_speed + 1, turn_state.score);
     // restartGame();
   }
 }
@@ -939,21 +941,18 @@ function restartGame() {
   stopTickTockSound();
   game_state = "main_menu";
   if (CONFIG.START_ON_BORDER) {
-    turn = 1;
-    turn_state = TurnState.initial([
+    turn_state = TurnState.initial(1, [
       { pos: new Vec2(0, BOARD_SIZE.y - 2), in_dir: new Vec2(-1, 0), out_dir: new Vec2(1, 0), t: 0 },
       { pos: new Vec2(1, BOARD_SIZE.y - 2), in_dir: new Vec2(-1, 0), out_dir: new Vec2(0, 0), t: 1 },
     ], [new Bomb(BOARD_SIZE.sub(Vec2.both(2)), 'both')])
   } else {
-    turn = 2;
-    turn_state = TurnState.initial([
+    turn_state = TurnState.initial(2, [
       { pos: new Vec2(6, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(1, 0), t: 0 },
       { pos: new Vec2(7, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(1, 0), t: 1 },
       { pos: new Vec2(8, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(0, 0), t: 2 },
     ], [new Bomb(BOARD_SIZE.sub(Vec2.both(2)), 'both')]);
   }
   started_at_timestamp = last_timestamp;
-  score = 0;
   remaining_sopa = CONFIG.SOPA;
   leaderboard_data = null;
   lost_menu.buttons = [lost_button_submit, lost_button_restart];
@@ -1011,20 +1010,17 @@ let collectables = RECORDING_GIF ? [
 ] : [new Bomb(BOARD_SIZE.sub(Vec2.both(2)), 'both')];
 
 if (CONFIG.START_ON_BORDER) {
-  turn = 1;
-  turn_state = TurnState.initial([
+  turn_state = TurnState.initial(1, [
     { pos: new Vec2(0, BOARD_SIZE.y - 2), in_dir: new Vec2(-1, 0), out_dir: new Vec2(1, 0), t: 0 },
     { pos: new Vec2(1, BOARD_SIZE.y - 2), in_dir: new Vec2(-1, 0), out_dir: new Vec2(0, 0), t: 1 },
   ], collectables);
 } else {
-  turn = 2;
-  turn_state = TurnState.initial([
+  turn_state = TurnState.initial(2, [
     { pos: new Vec2(6, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(1, 0), t: 0 },
     { pos: new Vec2(7, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(1, 0), t: 1 },
     { pos: new Vec2(8, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(0, 0), t: 2 },
   ], collectables);
 }
-score = 0
 remaining_sopa = CONFIG.SOPA;
 leaderboard_data = null;
 input_queue = [];
@@ -1359,11 +1355,11 @@ function every_frame(cur_timestamp: number) {
     }
 
     turn_offset -= 1
-    turn += 1
+    // turn += 1
     //SOUNDS.step.play();
 
     // assert: turn == last_block.t + time_direction
-    if (turn == 1) {
+    if (turn_state.turn == 1) {
       last_block.in_dir = delta.scale(-1);
     }
     last_block.out_dir = delta;
@@ -1388,56 +1384,6 @@ function every_frame(cur_timestamp: number) {
   draw(false);
 
   animation_id = requestAnimationFrame(every_frame);
-}
-
-function generateShareMessage() {
-  // The fabled snake Ourobombos has been biting her own tail for ages, and she can't stand it anymore! Now she has a crazy plan to avoid it: blasting off her tail with bombs. Still painful, but at least she'll get rid of that boring old taste.
-  // please scroll down to learn to play
-  // we suck at PR, please help us bring the game to more people.
-  // all shared phrases start with “playing #bombsnack: score xxx, speed y.
-  // If playing on mobile, add it at the end of the first sentence. Then follow with…
-  const intros = [
-    `playing #bombsnack${is_phone ? ' on mobile' : ''}: score ${score}, speed ${game_speed + 1}💣🐍 `
-  ]
-
-  let messages = [
-    `Ate a bomb, had a blast💥🥁`,
-    `No clue what clocks do 🕒 don't wanna read instructions.`,
-    `Gaem is fun but wheres the story, what are the snakes motivations?🤓`,
-    `cheat code: ⬆️⬆️⬇️⬇️⬅️➡️⬅➡️ activates the debug mode😜`,
-    `big secret: if you play for 30s without collecting anything you unlock a hidden level😜`,
-    `can you believe the Devs chose this BS over a proper leaderboard?😜`,
-    `Ofc I didn't die in the first 10 seconds, speed options are for softies #git gud😎`,
-    `funny how the snake seems to change mood depending on her direction😆`,
-    `this way of tracking scores allows cheating, and I totally didn't rewrite mine to raise it😎`,
-    `insider info: one of the Devs is such a city-boy he has never seen a snake irl🤫`,
-    `Insider info: one of the Devs is on the spectrum! Omg too many labels these days amirite?😆`,
-    `insider info: the alpha snake used to wear a scarf but snakes don't use clothes (they do eat bombs ofc)🐍`,
-    `don't eat bombs at home⚠️`,
-    `insider info: this game also cheats in your favour. Sometimes it tries to spawn bombs on the most crowded lines, otherwise those could get stale🤫`,
-    `insider info: the game took 40 times longer than planned to be finished😅`,
-    `insider info: this tiny game was tested by over 30 students! ❤️ you all, and u too Sai`,
-    `Supongo que toca escribir al menos 1 de estos en español. Lo sentimos pero traducir todo y detectar tu idioma sería demasiado incordio😅`,
-    `I'm tired of the Devs forcing their bad punchlines on me (but I do like the game)😜`,
-    `Props to the composers for making such bangers!❤️Devs wanted to thank you with direct @mentions, but some of u weren't active here`,
-    `Devs: you can write your own stuff too you know😜`,
-    `I'm still trying to find out all the predefined phrases, send help😅`,
-
-  ]
-  //if (multiplier === 0) messages.push(`That many points without a single clock, take that Pinch.`);
-  if (multiplier * 3 > score) messages.push(`got a ${multiplier} multiplier but very few bombs 😅😅😅 too greedy`);
-  if (score > 961 && game_speed == 1) messages.push(`According to this I've beaten the pre-release record (score 961, speed 2)😎`);
-  /*if (game_speed == 2) {
-    messages.push(`max speed is insane, wtf Devs?`);
-    messages.push(`max speed is still easy, wtf Devs?`);
-  }
-  messages.push(`My fav song is ${songName(music_track)}, props to ${songAuthor(music_track)}`);
-*/
-  if ((last_lost_timestamp - started_at_timestamp) / 1000 < 4) {
-    messages = ["Are you dying on purpose to see all messages?😜"]
-  }
-
-  return randomChoice(intros) + randomChoice(messages) + ' Play at https://pinchazumos.itch.io/bombsnack';
 }
 
 function doMainMenu(canvas_mouse_pos: Vec2, raw_mouse_pos: Vec2): boolean {
@@ -1534,6 +1480,7 @@ function draw(is_loading: boolean) {
     }
   }
 
+  let turn = turn_state.turn;
   if (CONFIG.SHADOW) {
     turn_state.grid.forEachV((_, cur_block) => {
       if (!cur_block.valid) return;
@@ -2012,7 +1959,7 @@ function draw(is_loading: boolean) {
   ctx.fillStyle = game_state === 'lost'
     ? blinking(1000, last_timestamp, COLORS.TEXT_WIN_SCORE, COLORS.TEXT_WIN_SCORE_2)
     : COLORS.TEXT;
-  fillJumpyText('score', `Score: ${score}`, (5.9 - .25 * Math.floor(Math.log10(Math.max(1, score)))) * TILE_SIZE, 1.15 * TILE_SIZE);
+  fillJumpyText('score', `Score: ${turn_state.score}`, (5.9 - .25 * Math.floor(Math.log10(Math.max(1, turn_state.score)))) * TILE_SIZE, 1.15 * TILE_SIZE);
   // ctx.drawImage(TEXTURES.multiplier, 12.5 * TILE_SIZE, 0, TILE_SIZE, TILE_SIZE);
 
   if (game_state !== 'loading_menu' && game_state !== 'main_menu') {
@@ -2078,7 +2025,7 @@ function lose() {
   stopTickTockSound();
   game_state = "lost";
   last_lost_timestamp = last_timestamp;
-  leaderboard_data = new LeaderboardData(score, min_game_speed);
+  leaderboard_data = new LeaderboardData(turn_state.score, min_game_speed);
 
   // draw(false);
   // canvas_ctx.toBlob(async (blob) => {
