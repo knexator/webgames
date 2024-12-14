@@ -425,6 +425,7 @@ class TurnState {
   private constructor(
     public readonly grid: Grid2D<{ valid: boolean; in_dir: Vec2; out_dir: Vec2; t: number; pos: Vec2, }>,
     public readonly head_pos: Vec2,
+    public readonly cur_collectables: Collectable[],
   ) { }
 
   addInitialObstacleAt(p: Vec2) {
@@ -437,7 +438,7 @@ class TurnState {
     })
   }
 
-  static initial(blocks: Block[]): TurnState {
+  static initial(blocks: Block[], collectables: Collectable[]): TurnState {
     const grid = Grid2D.initV(BOARD_SIZE, pos => ({ valid: false, in_dir: Vec2.zero, out_dir: Vec2.zero, t: 0, pos: pos }));
     blocks.forEach(v => {
       grid.setV(v.pos, {
@@ -450,7 +451,7 @@ class TurnState {
     });
     const head_pos = blocks[blocks.length - 1].pos;
 
-    return new TurnState(grid, head_pos);
+    return new TurnState(grid, head_pos, collectables);
   }
 
   getHead() {
@@ -458,14 +459,97 @@ class TurnState {
   }
 
   // TODO: don't modify the current state
-  doThing(delta: Vec2): [TurnState, Block, boolean] {
+  doThing(delta: Vec2): [TurnState, boolean] {
     let new_block = this.grid.getV(modVec2(turn_state.head_pos.add(delta), BOARD_SIZE));
     new_block.in_dir = delta.scale(-1);
     new_block.out_dir = Vec2.zero;
     new_block.t = turn;
     let collision = new_block.valid;
     new_block.valid = true;
-    return [new TurnState(this.grid, new_block.pos), new_block, collision]
+
+    let cur_collectables = this.cur_collectables;
+    // collect collectables
+    for (let k = 0; k < cur_collectables.length; k++) {
+      const cur_collectable = cur_collectables[k];
+      if (!new_block.pos.equal(cur_collectable.pos)) continue;
+
+      if (cur_collectable instanceof Bomb) {
+        explodeBomb(k);
+      } else if (cur_collectable instanceof Multiplier) {
+        multiplier += 1;
+        bounceText('multiplier');
+        collected_stuff_particles.push({ center: cur_collectable.pos, text: 'x' + multiplier.toString(), turn: turn });
+        cur_collectables[k] = placeMultiplier();
+        SOUNDS.star.play();
+      } else if (cur_collectable instanceof Clock) {
+        const clock = cur_collectable;
+        if (clock.active) {
+          let clock_score = CONFIG.CLOCK_VALUE * multiplier;
+          collected_stuff_particles.push({ center: cur_collectable.pos, text: '+' + clock_score.toString(), turn: turn });
+          clock.remaining_turns = 0;
+          score += clock_score;
+          bounceText('score');
+          SOUNDS.clock.play();
+          stopTickTockSound();
+        }
+      } else if (cur_collectable instanceof Soup) {
+        remaining_sopa = CONFIG.SOPA;
+        collected_stuff_particles.push({ center: cur_collectable.pos, text: 'soup', turn: turn });
+        cur_collectables[k] = placeSoup();
+        SOUNDS.menu2.play();
+      } else {
+        const _: never = cur_collectable;
+        throw new Error();
+      }
+    }
+
+    // tick collectables
+    for (let k = 0; k < cur_collectables.length; k++) {
+      const cur_collectable = cur_collectables[k];
+      if (cur_collectable instanceof Bomb) {
+        // nothing
+      } else if (cur_collectable instanceof Multiplier) {
+        // nothing
+      } else if (cur_collectable instanceof Soup) {
+        // nothing
+      } else if (cur_collectable instanceof Clock) {
+        const clock = cur_collectable;
+        clock.remaining_turns -= 1;
+        if (clock.remaining_turns <= 0) {
+          if (clock.active) {
+            clock.active = false;
+            clock.remaining_turns = CONFIG.CLOCK_FREQUENCY;
+            stopTickTockSound();
+            //SOUNDS.clock_end.play();
+          } else {
+            clock.pos = this.findSpotWithoutWall();
+            clock.active = true;
+            clock.remaining_turns = CONFIG.CLOCK_DURATION;
+            startTickTockSound();
+          }
+        }
+      } else {
+        const _: never = cur_collectable;
+        throw new Error();
+      }
+    }
+
+    return [new TurnState(this.grid, new_block.pos, this.cur_collectables), collision]
+  }
+
+  findSpotWithoutWall(): Vec2 {
+    let pos: Vec2;
+    let valid: boolean;
+    do {
+      pos = new Vec2(
+        Math.floor(Math.random() * BOARD_SIZE.x),
+        Math.floor(Math.random() * BOARD_SIZE.y)
+      );
+      valid = !turn_state.grid.getV(pos).valid;
+      let head_block = turn_state.getHead();
+      valid = valid && !pos.equal(head_block.pos.add(head_block.in_dir)) && !this.cur_collectables.some(x => x.pos.equal(pos));
+    } while (!valid);
+    return pos;
   }
 
 }
@@ -477,7 +561,6 @@ let started_at_timestamp: number;
 let score: number;
 let remaining_sopa: number;
 let input_queue: Vec2[];
-let cur_collectables: Collectable[];
 let turn_offset: number; // always between 0..1
 let exploding_cross_particles: { center: Vec2, turn: number, dir: 'both' | 'hor' | 'ver' }[];
 let collected_stuff_particles: { center: Vec2, text: string, turn: number }[];
@@ -830,14 +913,14 @@ function restartGame() {
     turn_state = TurnState.initial([
       { pos: new Vec2(0, BOARD_SIZE.y - 2), in_dir: new Vec2(-1, 0), out_dir: new Vec2(1, 0), t: 0 },
       { pos: new Vec2(1, BOARD_SIZE.y - 2), in_dir: new Vec2(-1, 0), out_dir: new Vec2(0, 0), t: 1 },
-    ])
+    ], [new Bomb(BOARD_SIZE.sub(Vec2.both(2)), 'both')])
   } else {
     turn = 2;
     turn_state = TurnState.initial([
       { pos: new Vec2(6, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(1, 0), t: 0 },
       { pos: new Vec2(7, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(1, 0), t: 1 },
       { pos: new Vec2(8, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(0, 0), t: 2 },
-    ]);
+    ], [new Bomb(BOARD_SIZE.sub(Vec2.both(2)), 'both')]);
   }
   started_at_timestamp = last_timestamp;
   score = 0;
@@ -846,7 +929,6 @@ function restartGame() {
   lost_menu.buttons = [lost_button_submit, lost_button_restart];
   scores_view = 'global';
   input_queue = [];
-  cur_collectables = [new Bomb(BOARD_SIZE.sub(Vec2.both(2)), 'both')];
   turn_offset = 0.99; // always between 0..1
   exploding_cross_particles = [];
   collected_stuff_particles = [];
@@ -874,7 +956,7 @@ class Clock {
   public remaining_turns: number;
 
   constructor() {
-    this.pos = findSpotWithoutWall();
+    this.pos = turn_state.findSpotWithoutWall();
     this.active = false;
     this.remaining_turns = CONFIG.CLOCK_FREQUENCY;
   }
@@ -890,30 +972,32 @@ type Collectable = Bomb | Multiplier | Clock | Soup;
 
 // Loading menu
 game_state = "loading_menu";
+
+let collectables = RECORDING_GIF ? [
+  new Multiplier(new Vec2(11, 6)),
+  new Bomb(new Vec2(11, 14), 'both'),
+  new Bomb(new Vec2(12, 8), 'both'),
+  new Bomb(new Vec2(5, 6), 'both')
+] : [new Bomb(BOARD_SIZE.sub(Vec2.both(2)), 'both')];
+
 if (CONFIG.START_ON_BORDER) {
   turn = 1;
   turn_state = TurnState.initial([
     { pos: new Vec2(0, BOARD_SIZE.y - 2), in_dir: new Vec2(-1, 0), out_dir: new Vec2(1, 0), t: 0 },
     { pos: new Vec2(1, BOARD_SIZE.y - 2), in_dir: new Vec2(-1, 0), out_dir: new Vec2(0, 0), t: 1 },
-  ]);
+  ], collectables);
 } else {
   turn = 2;
   turn_state = TurnState.initial([
     { pos: new Vec2(6, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(1, 0), t: 0 },
     { pos: new Vec2(7, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(1, 0), t: 1 },
     { pos: new Vec2(8, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(0, 0), t: 2 },
-  ]);
+  ], collectables);
 }
 score = 0
 remaining_sopa = CONFIG.SOPA;
 leaderboard_data = null;
 input_queue = [];
-cur_collectables = RECORDING_GIF ? [
-  new Multiplier(new Vec2(11, 6)),
-  new Bomb(new Vec2(11, 14), 'both'),
-  new Bomb(new Vec2(12, 8), 'both'),
-  new Bomb(new Vec2(5, 6), 'both')
-] : [new Bomb(BOARD_SIZE.sub(Vec2.both(2)), 'both')];
 turn_offset = 0.99; // always between 0..1
 exploding_cross_particles = [];
 collected_stuff_particles = [];
@@ -1000,24 +1084,9 @@ Howler.volume(1);
 
 const INITIAL_VOLUME = objectMap(SOUNDS, x => x.volume());
 
-
-function findSpotWithoutWall(): Vec2 {
-  let pos: Vec2;
-  let valid: boolean;
-  do {
-    pos = new Vec2(
-      Math.floor(Math.random() * BOARD_SIZE.x),
-      Math.floor(Math.random() * BOARD_SIZE.y)
-    );
-    valid = !turn_state.grid.getV(pos).valid;
-    let head_block = turn_state.getHead();
-    valid = valid && !pos.equal(head_block.pos.add(head_block.in_dir)) && !cur_collectables.some(x => x.pos.equal(pos));
-  } while (!valid);
-  return pos;
-}
-
+// TODO: move all of these into TurnState
 function placeBomb(dir: 'both' | 'hor' | 'ver'): Bomb {
-  let candidates = fromCount(CONFIG.LUCK, _ => findSpotWithoutWall());
+  let candidates = fromCount(CONFIG.LUCK, _ => turn_state.findSpotWithoutWall());
   let visible_walls_at_each_candidate = candidates.map(pos => {
     let count = 0;
     turn_state.grid.forEachV((pos, b) => {
@@ -1025,7 +1094,7 @@ function placeBomb(dir: 'both' | 'hor' | 'ver'): Bomb {
         count += 1;
       }
     });
-    cur_collectables.forEach(c => {
+    turn_state.cur_collectables.forEach(c => {
       if (!(c instanceof Bomb)) return;
       if (c.dir === 'both') return;
       if (c.dir !== dir) return;
@@ -1043,15 +1112,15 @@ function placeBomb(dir: 'both' | 'hor' | 'ver'): Bomb {
 }
 
 function placeMultiplier(): Multiplier {
-  return new Multiplier(findSpotWithoutWall());
+  return new Multiplier(turn_state.findSpotWithoutWall());
 }
 
 function placeSoup(): Soup {
-  return new Soup(findSpotWithoutWall());
+  return new Soup(turn_state.findSpotWithoutWall());
 }
 
 function explodeBomb(k: number) {
-  let cur_bomb = cur_collectables[k] as Bomb;
+  let cur_bomb = turn_state.cur_collectables[k] as Bomb;
   turn_state.grid.forEachV((pos, b) => {
     let affected_hor = b.valid && pos.y === cur_bomb.pos.y;
     let affected_ver = b.valid && pos.x === cur_bomb.pos.x;
@@ -1065,7 +1134,7 @@ function explodeBomb(k: number) {
     }
   })
   cur_screen_shake.actualMag = 5.0;
-  cur_collectables[k] = placeBomb(cur_bomb.dir);
+  turn_state.cur_collectables[k] = placeBomb(cur_bomb.dir);
   remaining_sopa += CONFIG.SOPA_PER_BOMB;
   score += multiplier;
   bounceText('score');
@@ -1178,6 +1247,7 @@ function every_frame(cur_timestamp: number) {
           turn_state.addInitialObstacleAt(p);
         }
       })
+      let cur_collectables = turn_state.cur_collectables;
       for (let k = cur_collectables.filter(x => x instanceof Bomb && x.dir === 'both').length; k < CONFIG.N_BOMBS; k++) {
         cur_collectables.push(placeBomb('both'));
       }
@@ -1294,79 +1364,11 @@ function every_frame(cur_timestamp: number) {
     last_block.out_dir = delta;
 
     let collision = false;
-    let new_block: Block;
-    [turn_state, new_block, collision] = turn_state.doThing(delta);
+    [turn_state, collision] = turn_state.doThing(delta);
 
     if (!CONFIG.CHEAT_INMORTAL && collision) {
       SOUNDS.crash.play();
       lose()
-    }
-
-    // collect collectables
-    for (let k = 0; k < cur_collectables.length; k++) {
-      const cur_collectable = cur_collectables[k];
-      if (!new_block.pos.equal(cur_collectable.pos)) continue;
-
-      if (cur_collectable instanceof Bomb) {
-        const cur_bomb = cur_collectable;
-        explodeBomb(k);
-      } else if (cur_collectable instanceof Multiplier) {
-        multiplier += 1;
-        bounceText('multiplier');
-        collected_stuff_particles.push({ center: cur_collectable.pos, text: 'x' + multiplier.toString(), turn: turn });
-        cur_collectables[k] = placeMultiplier();
-        SOUNDS.star.play();
-      } else if (cur_collectable instanceof Clock) {
-        const clock = cur_collectable;
-        if (clock.active) {
-          let clock_score = CONFIG.CLOCK_VALUE * multiplier;
-          collected_stuff_particles.push({ center: cur_collectable.pos, text: '+' + clock_score.toString(), turn: turn });
-          clock.remaining_turns = 0;
-          score += clock_score;
-          bounceText('score');
-          SOUNDS.clock.play();
-          stopTickTockSound();
-        }
-      } else if (cur_collectable instanceof Soup) {
-        remaining_sopa = CONFIG.SOPA;
-        collected_stuff_particles.push({ center: cur_collectable.pos, text: 'soup', turn: turn });
-        cur_collectables[k] = placeSoup();
-        SOUNDS.menu2.play();
-      } else {
-        const _: never = cur_collectable;
-        throw new Error();
-      }
-    }
-
-    // tick collectables
-    for (let k = 0; k < cur_collectables.length; k++) {
-      const cur_collectable = cur_collectables[k];
-      if (cur_collectable instanceof Bomb) {
-        // nothing
-      } else if (cur_collectable instanceof Multiplier) {
-        // nothing
-      } else if (cur_collectable instanceof Soup) {
-        // nothing
-      } else if (cur_collectable instanceof Clock) {
-        const clock = cur_collectable;
-        clock.remaining_turns -= 1;
-        if (clock.remaining_turns <= 0) {
-          if (clock.active) {
-            clock.active = false;
-            clock.remaining_turns = CONFIG.CLOCK_FREQUENCY;
-            stopTickTockSound();
-            //SOUNDS.clock_end.play();
-          } else {
-            clock.pos = findSpotWithoutWall();
-            clock.active = true;
-            clock.remaining_turns = CONFIG.CLOCK_DURATION;
-            startTickTockSound();
-          }
-        }
-      } else {
-        const _: never = cur_collectable;
-        throw new Error();
-      }
     }
   }
 
@@ -1582,8 +1584,8 @@ function draw(is_loading: boolean) {
     });
 
     // draw collectables
-    for (let k = 0; k < cur_collectables.length; k++) {
-      const cur_collectable = cur_collectables[k];
+    // for (let k = 0; k < cur_collectables.length; k++) {
+    for (const cur_collectable of turn_state.cur_collectables) {
       if (cur_collectable instanceof Bomb) {
         const cur_bomb = cur_collectable;
         if (cur_bomb.dir !== 'both') continue; // TODO: shadows for all
@@ -1754,8 +1756,7 @@ function draw(is_loading: boolean) {
   });
 
   // draw collectables
-  for (let k = 0; k < cur_collectables.length; k++) {
-    const cur_collectable = cur_collectables[k];
+  for (const cur_collectable of turn_state.cur_collectables) {
     if (cur_collectable instanceof Bomb) {
       const cur_bomb = cur_collectable;
       // @ts-ignore
