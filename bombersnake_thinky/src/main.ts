@@ -417,13 +417,18 @@ type Block = {
   in_dir: Vec2;
   out_dir: Vec2;
   t: number;
+  valid: boolean;
 };
+
+function cloneBlock(b: Block): Block {
+  return { pos: b.pos, in_dir: b.in_dir, out_dir: b.out_dir, t: b.t, valid: b.valid };
+}
 
 class TurnState {
 
   // TODO: bring the turn, remaining_sopa, etc
   private constructor(
-    public readonly grid: Grid2D<{ valid: boolean; in_dir: Vec2; out_dir: Vec2; t: number; pos: Vec2, }>,
+    public readonly grid: Grid2D<Block>,
     public readonly head_pos: Vec2,
     public readonly cur_collectables: Collectable[],
   ) { }
@@ -438,7 +443,7 @@ class TurnState {
     })
   }
 
-  static initial(blocks: Block[], collectables: Collectable[]): TurnState {
+  static initial(blocks: Omit<Block, 'valid'>[], collectables: Collectable[]): TurnState {
     const grid = Grid2D.initV(BOARD_SIZE, pos => ({ valid: false, in_dir: Vec2.zero, out_dir: Vec2.zero, t: 0, pos: pos }));
     blocks.forEach(v => {
       grid.setV(v.pos, {
@@ -460,21 +465,47 @@ class TurnState {
 
   // TODO: don't modify the current state
   doThing(delta: Vec2): [TurnState, boolean] {
-    let new_block = this.grid.getV(modVec2(turn_state.head_pos.add(delta), BOARD_SIZE));
+    const new_grid = this.grid.map((_, v) => cloneBlock(v));
+    const new_collectables = this.cur_collectables.slice();
+
+    let new_block = new_grid.getV(modVec2(turn_state.head_pos.add(delta), BOARD_SIZE));
     new_block.in_dir = delta.scale(-1);
     new_block.out_dir = Vec2.zero;
     new_block.t = turn;
     let collision = new_block.valid;
     new_block.valid = true;
 
-    let cur_collectables = this.cur_collectables;
+    let cur_collectables = new_collectables;
     // collect collectables
     for (let k = 0; k < cur_collectables.length; k++) {
       const cur_collectable = cur_collectables[k];
       if (!new_block.pos.equal(cur_collectable.pos)) continue;
 
       if (cur_collectable instanceof Bomb) {
-        explodeBomb(k);
+        // explodeBomb
+        let cur_bomb = cur_collectables[k] as Bomb;
+        new_grid.forEachV((pos, b) => {
+          let affected_hor = b.valid && pos.y === cur_bomb.pos.y;
+          let affected_ver = b.valid && pos.x === cur_bomb.pos.x;
+          let affected = cur_bomb.dir === 'both'
+            ? affected_hor || affected_ver
+            : cur_bomb.dir === 'hor'
+              ? affected_hor
+              : affected_ver;
+          if (affected && b.t !== turn) {
+            b.valid = false;
+          }
+        })
+        cur_screen_shake.actualMag = 5.0;
+        cur_collectables[k] = placeBomb(cur_bomb.dir);
+        remaining_sopa += CONFIG.SOPA_PER_BOMB;
+        score += multiplier;
+        bounceText('score');
+        vibrateBomb();
+        collected_stuff_particles.push({ center: cur_bomb.pos, text: '+' + multiplier.toString(), turn: turn });
+        SOUNDS.bomb.play();
+        exploding_cross_particles.push({ center: cur_bomb.pos, turn: turn, dir: cur_bomb.dir });
+
       } else if (cur_collectable instanceof Multiplier) {
         multiplier += 1;
         bounceText('multiplier');
@@ -534,7 +565,7 @@ class TurnState {
       }
     }
 
-    return [new TurnState(this.grid, new_block.pos, this.cur_collectables), collision]
+    return [new TurnState(new_grid, new_block.pos, new_collectables), collision]
   }
 
   findSpotWithoutWall(): Vec2 {
@@ -551,7 +582,6 @@ class TurnState {
     } while (!valid);
     return pos;
   }
-
 }
 
 let game_state: "loading_menu" | "main_menu" | "pause_menu" | "playing" | "lost" | "leaderboard";
@@ -1117,31 +1147,6 @@ function placeMultiplier(): Multiplier {
 
 function placeSoup(): Soup {
   return new Soup(turn_state.findSpotWithoutWall());
-}
-
-function explodeBomb(k: number) {
-  let cur_bomb = turn_state.cur_collectables[k] as Bomb;
-  turn_state.grid.forEachV((pos, b) => {
-    let affected_hor = b.valid && pos.y === cur_bomb.pos.y;
-    let affected_ver = b.valid && pos.x === cur_bomb.pos.x;
-    let affected = cur_bomb.dir === 'both'
-      ? affected_hor || affected_ver
-      : cur_bomb.dir === 'hor'
-        ? affected_hor
-        : affected_ver;
-    if (affected && b.t !== turn) {
-      b.valid = false;
-    }
-  })
-  cur_screen_shake.actualMag = 5.0;
-  turn_state.cur_collectables[k] = placeBomb(cur_bomb.dir);
-  remaining_sopa += CONFIG.SOPA_PER_BOMB;
-  score += multiplier;
-  bounceText('score');
-  vibrateBomb();
-  collected_stuff_particles.push({ center: cur_bomb.pos, text: '+' + multiplier.toString(), turn: turn });
-  SOUNDS.bomb.play();
-  exploding_cross_particles.push({ center: cur_bomb.pos, turn: turn, dir: cur_bomb.dir });
 }
 
 function startTickTockSound(): void {
