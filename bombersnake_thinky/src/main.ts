@@ -472,12 +472,14 @@ class TurnState {
     const new_turn = this.turn + 1;
     let new_score = this.score;
 
-    let new_block = new_grid.getV(modVec2(turn_state.head_pos.add(delta), BOARD_SIZE));
+    let new_block = new_grid.getV(modVec2(this.head_pos.add(delta), BOARD_SIZE));
     new_block.in_dir = delta.scale(-1);
     new_block.out_dir = Vec2.zero;
     new_block.t = new_turn;
     let collision = new_block.valid;
     new_block.valid = true;
+
+    new_grid.getV(this.head_pos).out_dir = delta;
 
     let cur_collectables = new_collectables;
     // collect collectables
@@ -503,7 +505,7 @@ class TurnState {
         cur_screen_shake.actualMag = 5.0;
         cur_collectables[k] = placeBomb(cur_bomb.dir);
         remaining_sopa += CONFIG.SOPA_PER_BOMB;
-        new_score += multiplier;
+        new_score += multiplier!;
         bounceText('score');
         vibrateBomb();
         collected_stuff_particles.push({ center: cur_bomb.pos, text: '+' + multiplier.toString(), turn: new_turn });
@@ -580,8 +582,8 @@ class TurnState {
         Math.floor(Math.random() * BOARD_SIZE.x),
         Math.floor(Math.random() * BOARD_SIZE.y)
       );
-      valid = !turn_state.grid.getV(pos).valid;
-      let head_block = turn_state.getHead();
+      valid = !this.grid.getV(pos).valid;
+      let head_block = this.getHead();
       valid = valid && !pos.equal(head_block.pos.add(head_block.in_dir)) && !this.cur_collectables.some(x => x.pos.equal(pos));
     } while (!valid);
     return pos;
@@ -590,9 +592,10 @@ class TurnState {
 
 let game_state: "loading_menu" | "main_menu" | "pause_menu" | "playing" | "lost" | "leaderboard";
 let turn_state: TurnState;
+let prev_turns: TurnState[];
 let started_at_timestamp: number;
 let remaining_sopa: number;
-let input_queue: Vec2[];
+let input_queue: (Vec2 | 'undo')[];
 let turn_offset: number; // always between 0..1
 let exploding_cross_particles: { center: Vec2, turn: number, dir: 'both' | 'hor' | 'ver' }[];
 let collected_stuff_particles: { center: Vec2, text: string, turn: number }[];
@@ -662,7 +665,8 @@ const MAPS: Grid2D<boolean>[] = [
     .......X........
     .......X........
   `,
-].map(s => Grid2D.fromAscii(s).map((p, c) => c !== '.'));
+// ].map(s => Grid2D.fromAscii(s).map((p, c) => c !== '.'));
+].map(s => Grid2D.fromAscii(s).map((p, c) => false));
 
 // TODO: ask droqen for a new table
 class LeaderboardData {
@@ -952,6 +956,7 @@ function restartGame() {
       { pos: new Vec2(8, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(0, 0), t: 2 },
     ], [new Bomb(BOARD_SIZE.sub(Vec2.both(2)), 'both')]);
   }
+  prev_turns = [];
   started_at_timestamp = last_timestamp;
   remaining_sopa = CONFIG.SOPA;
   leaderboard_data = null;
@@ -1021,6 +1026,7 @@ if (CONFIG.START_ON_BORDER) {
     { pos: new Vec2(8, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(0, 0), t: 2 },
   ], collectables);
 }
+prev_turns = [];
 remaining_sopa = CONFIG.SOPA;
 leaderboard_data = null;
 input_queue = [];
@@ -1315,6 +1321,10 @@ function every_frame(cur_timestamp: number) {
       ));
     }
 
+    if (input.keyboard.wasPressed(KeyCode.KeyZ)) {
+      input_queue.push('undo');
+    }
+
     turn_offset += delta_time / CONFIG.TURN_DURATION;
 
     if (input.keyboard.wasPressed(KeyCode.Escape) || (input.mouse.wasPressed(MouseButton.Left) && settings_overlapped)) {
@@ -1333,6 +1343,10 @@ function every_frame(cur_timestamp: number) {
     let next_input: Vec2 | null = null;
     while (input_queue.length > 0) {
       let maybe_next_input = input_queue.shift()!;
+      if (maybe_next_input === 'undo') {
+        turn_state = prev_turns.pop() ?? turn_state;
+        continue;
+      }
       if (Math.abs(maybe_next_input.x) + Math.abs(maybe_next_input.y) !== 1
         || maybe_next_input.equal(last_block.in_dir)) {
         break;
@@ -1362,9 +1376,9 @@ function every_frame(cur_timestamp: number) {
     if (turn_state.turn == 1) {
       last_block.in_dir = delta.scale(-1);
     }
-    last_block.out_dir = delta;
 
     let collision = false;
+    prev_turns.push(turn_state);
     [turn_state, collision] = turn_state.doThing(delta);
 
     if (!CONFIG.CHEAT_INMORTAL && collision) {
@@ -1381,6 +1395,7 @@ function every_frame(cur_timestamp: number) {
 
   chores(delta_time);
 
+  console.log(turn_state.getHead().out_dir);
   draw(false);
 
   animation_id = requestAnimationFrame(every_frame);
