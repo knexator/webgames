@@ -426,7 +426,6 @@ function cloneBlock(b: Block): Block {
 
 class TurnState {
 
-  // TODO: bring the turn, remaining_sopa, etc
   private constructor(
     public readonly grid: Grid2D<Block>,
     public readonly head_pos: Vec2,
@@ -434,6 +433,7 @@ class TurnState {
     public readonly turn: number,
     public readonly score: number,
     public readonly remaining_sopa: number,
+    public readonly multiplier: number,
   ) { }
 
   addInitialObstacleAt(p: Vec2) {
@@ -459,7 +459,7 @@ class TurnState {
     });
     const head_pos = blocks[blocks.length - 1].pos;
 
-    return new TurnState(grid, head_pos, collectables, turn, 0, CONFIG.SOPA);
+    return new TurnState(grid, head_pos, collectables, turn, 0, CONFIG.SOPA, 1);
   }
 
   getHead() {
@@ -472,6 +472,7 @@ class TurnState {
     const new_turn = this.turn + 1;
     let new_score = this.score;
     let new_sopa = this.remaining_sopa;
+    let new_multiplier = this.multiplier;
 
     let new_block = new_grid.getV(modVec2(this.head_pos.add(delta), BOARD_SIZE));
     new_block.in_dir = delta.scale(-1);
@@ -509,23 +510,23 @@ class TurnState {
         cur_screen_shake.actualMag = 5.0;
         cur_collectables[k] = placeBomb(cur_bomb.dir);
         new_sopa += CONFIG.SOPA_PER_BOMB;
-        new_score += multiplier!;
+        new_score += new_multiplier!;
         bounceText('score');
         vibrateBomb();
-        collected_stuff_particles.push({ center: cur_bomb.pos, text: '+' + multiplier.toString(), turn: new_turn });
+        collected_stuff_particles.push({ center: cur_bomb.pos, text: '+' + new_multiplier.toString(), turn: new_turn });
         SOUNDS.bomb.play();
         exploding_cross_particles.push({ center: cur_bomb.pos, turn: new_turn, dir: cur_bomb.dir });
 
       } else if (cur_collectable instanceof Multiplier) {
-        multiplier += 1;
+        new_multiplier += 1;
         bounceText('multiplier');
-        collected_stuff_particles.push({ center: cur_collectable.pos, text: 'x' + multiplier.toString(), turn: new_turn });
+        collected_stuff_particles.push({ center: cur_collectable.pos, text: 'x' + new_multiplier.toString(), turn: new_turn });
         cur_collectables[k] = placeMultiplier();
         SOUNDS.star.play();
       } else if (cur_collectable instanceof Clock) {
         const clock = cur_collectable;
         if (clock.active) {
-          let clock_score = CONFIG.CLOCK_VALUE * multiplier;
+          let clock_score = CONFIG.CLOCK_VALUE * new_multiplier;
           collected_stuff_particles.push({ center: cur_collectable.pos, text: '+' + clock_score.toString(), turn: new_turn });
           clock.remaining_turns = 0;
           new_score += clock_score;
@@ -575,7 +576,7 @@ class TurnState {
       }
     }
 
-    return [new TurnState(new_grid, new_block.pos, new_collectables, new_turn, new_score, new_sopa), collision]
+    return [new TurnState(new_grid, new_block.pos, new_collectables, new_turn, new_score, new_sopa, new_multiplier), collision]
   }
 
   findSpotWithoutWall(): Vec2 {
@@ -593,11 +594,6 @@ class TurnState {
     return pos;
   }
 }
-// TODO: move
-let multiplier: number;
-let exploding_cross_particles: { center: Vec2, turn: number, dir: 'both' | 'hor' | 'ver' }[];
-let collected_stuff_particles: { center: Vec2, text: string, turn: number }[];
-
 let game_state: "loading_menu" | "main_menu" | "pause_menu" | "playing" | "lost" | "leaderboard";
 let turn_state: TurnState;
 let prev_turns: TurnState[];
@@ -606,6 +602,8 @@ let input_queue: (Vec2 | 'undo')[];
 let turn_offset: number; // always between 0..1
 let tick_or_tock: boolean;
 let touch_input_base_point: Vec2 | null;
+let exploding_cross_particles: { center: Vec2, turn: number, dir: 'both' | 'hor' | 'ver' }[];
+let collected_stuff_particles: { center: Vec2, text: string, turn: number }[];
 let haptic: boolean;
 let game_speed: number; // TODO: delete
 let min_game_speed: number; // TODO: delete
@@ -969,7 +967,6 @@ function restartGame() {
   turn_offset = 0.99; // always between 0..1
   exploding_cross_particles = [];
   collected_stuff_particles = [];
-  multiplier = 1;
   tick_or_tock = false;
   touch_input_base_point = null;
 }
@@ -1035,7 +1032,6 @@ input_queue = [];
 turn_offset = 0.99; // always between 0..1
 exploding_cross_particles = [];
 collected_stuff_particles = [];
-multiplier = 1;
 tick_or_tock = false;
 touch_input_base_point = null;
 game_speed = is_phone ? 0 : 1;
@@ -1959,7 +1955,7 @@ function draw(is_loading: boolean) {
   ctx.fillStyle = "white";
   ctx.textAlign = "left";
   ctx.textBaseline = "bottom";
-  fillJumpyText('multiplier', `x${multiplier}`, (16.5 - .5 * Math.floor(Math.log10(multiplier))) * TILE_SIZE, 1.15 * TILE_SIZE);
+  fillJumpyText('multiplier', `x${turn_state.multiplier}`, (16.5 - .5 * Math.floor(Math.log10(turn_state.multiplier))) * TILE_SIZE, 1.15 * TILE_SIZE);
 
   ctx.fillStyle = game_state === 'lost'
     ? blinking(1000, last_timestamp, COLORS.TEXT_WIN_SCORE, COLORS.TEXT_WIN_SCORE_2)
