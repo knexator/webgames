@@ -433,6 +433,7 @@ class TurnState {
     public readonly cur_collectables: Collectable[],
     public readonly turn: number,
     public readonly score: number,
+    public readonly remaining_sopa: number,
   ) { }
 
   addInitialObstacleAt(p: Vec2) {
@@ -458,19 +459,19 @@ class TurnState {
     });
     const head_pos = blocks[blocks.length - 1].pos;
 
-    return new TurnState(grid, head_pos, collectables, turn, 0);
+    return new TurnState(grid, head_pos, collectables, turn, 0, CONFIG.SOPA);
   }
 
   getHead() {
     return this.grid.getV(this.head_pos);
   }
 
-  // TODO: don't modify the current state
   doThing(delta: Vec2): [TurnState, boolean] {
     const new_grid = this.grid.map((_, v) => cloneBlock(v));
     const new_collectables = this.cur_collectables.slice();
     const new_turn = this.turn + 1;
     let new_score = this.score;
+    let new_sopa = this.remaining_sopa;
 
     let new_block = new_grid.getV(modVec2(this.head_pos.add(delta), BOARD_SIZE));
     new_block.in_dir = delta.scale(-1);
@@ -479,6 +480,9 @@ class TurnState {
     let collision = new_block.valid;
     new_block.valid = true;
 
+    if (!delta.equal(this.getHead().in_dir.scale(-1))) {
+      new_sopa -= 1;
+    }
     new_grid.getV(this.head_pos).out_dir = delta;
 
     let cur_collectables = new_collectables;
@@ -504,7 +508,7 @@ class TurnState {
         })
         cur_screen_shake.actualMag = 5.0;
         cur_collectables[k] = placeBomb(cur_bomb.dir);
-        remaining_sopa += CONFIG.SOPA_PER_BOMB;
+        new_sopa += CONFIG.SOPA_PER_BOMB;
         new_score += multiplier!;
         bounceText('score');
         vibrateBomb();
@@ -530,7 +534,7 @@ class TurnState {
           stopTickTockSound();
         }
       } else if (cur_collectable instanceof Soup) {
-        remaining_sopa = CONFIG.SOPA;
+        new_sopa = CONFIG.SOPA;
         collected_stuff_particles.push({ center: cur_collectable.pos, text: 'soup', turn: new_turn });
         cur_collectables[k] = placeSoup();
         SOUNDS.menu2.play();
@@ -571,7 +575,7 @@ class TurnState {
       }
     }
 
-    return [new TurnState(new_grid, new_block.pos, new_collectables, new_turn, new_score), collision]
+    return [new TurnState(new_grid, new_block.pos, new_collectables, new_turn, new_score, new_sopa), collision]
   }
 
   findSpotWithoutWall(): Vec2 {
@@ -589,17 +593,17 @@ class TurnState {
     return pos;
   }
 }
+// TODO: move
+let multiplier: number;
+let exploding_cross_particles: { center: Vec2, turn: number, dir: 'both' | 'hor' | 'ver' }[];
+let collected_stuff_particles: { center: Vec2, text: string, turn: number }[];
 
 let game_state: "loading_menu" | "main_menu" | "pause_menu" | "playing" | "lost" | "leaderboard";
 let turn_state: TurnState;
 let prev_turns: TurnState[];
 let started_at_timestamp: number;
-let remaining_sopa: number;
 let input_queue: (Vec2 | 'undo')[];
 let turn_offset: number; // always between 0..1
-let exploding_cross_particles: { center: Vec2, turn: number, dir: 'both' | 'hor' | 'ver' }[];
-let collected_stuff_particles: { center: Vec2, text: string, turn: number }[];
-let multiplier: number;
 let tick_or_tock: boolean;
 let touch_input_base_point: Vec2 | null;
 let haptic: boolean;
@@ -958,7 +962,6 @@ function restartGame() {
   }
   prev_turns = [];
   started_at_timestamp = last_timestamp;
-  remaining_sopa = CONFIG.SOPA;
   leaderboard_data = null;
   lost_menu.buttons = [lost_button_submit, lost_button_restart];
   scores_view = 'global';
@@ -1027,7 +1030,6 @@ if (CONFIG.START_ON_BORDER) {
   ], collectables);
 }
 prev_turns = [];
-remaining_sopa = CONFIG.SOPA;
 leaderboard_data = null;
 input_queue = [];
 turn_offset = 0.99; // always between 0..1
@@ -1364,22 +1366,10 @@ function every_frame(cur_timestamp: number) {
       continue;
     }
 
-    if (!delta.equal(last_block.in_dir.scale(-1))) {
-      remaining_sopa -= 1;
-    }
-
-    turn_offset -= 1
-    // turn += 1
-    //SOUNDS.step.play();
-
-    // assert: turn == last_block.t + time_direction
-    if (turn_state.turn == 1) {
-      last_block.in_dir = delta.scale(-1);
-    }
-
     let collision = false;
     prev_turns.push(turn_state);
     [turn_state, collision] = turn_state.doThing(delta);
+    turn_offset -= 1
 
     if (!CONFIG.CHEAT_INMORTAL && collision) {
       SOUNDS.crash.play();
@@ -1980,7 +1970,7 @@ function draw(is_loading: boolean) {
   if (game_state !== 'loading_menu' && game_state !== 'main_menu') {
     drawImageCentered(TEXTURES.settings, new Vec2(-TILE_SIZE * 1.2, TILE_SIZE * .6), settings_overlapped ? .8 : .7);
     drawImageCentered(TEXTURES.speed, new Vec2(TILE_SIZE * .4, TILE_SIZE * .6));
-    ctx.fillText((remaining_sopa).toString(), TILE_SIZE * .9, TILE_SIZE * 1.175);
+    ctx.fillText((turn_state.remaining_sopa).toString(), TILE_SIZE * .9, TILE_SIZE * 1.175);
     drawImageCentered(TEXTURES.note, new Vec2(TILE_SIZE * 2.3, TILE_SIZE * .6), .9);
     ctx.fillText(music_track.toString(), TILE_SIZE * 2.6, TILE_SIZE * 1.175);
   }
