@@ -528,7 +528,7 @@ class TurnState {
         if (clock.active) {
           let clock_score = CONFIG.CLOCK_VALUE * new_multiplier;
           collected_stuff_particles.push({ center: cur_collectable.pos, text: '+' + clock_score.toString(), turn: new_turn });
-          clock.remaining_turns = 0;
+          cur_collectables[k] = clock.noRemainingTurns();
           new_score += clock_score;
           bounceText('score');
           SOUNDS.clock.play();
@@ -555,21 +555,7 @@ class TurnState {
       } else if (cur_collectable instanceof Soup) {
         // nothing
       } else if (cur_collectable instanceof Clock) {
-        const clock = cur_collectable;
-        clock.remaining_turns -= 1;
-        if (clock.remaining_turns <= 0) {
-          if (clock.active) {
-            clock.active = false;
-            clock.remaining_turns = CONFIG.CLOCK_FREQUENCY;
-            stopTickTockSound();
-            //SOUNDS.clock_end.play();
-          } else {
-            clock.pos = this.findSpotWithoutWall();
-            clock.active = true;
-            clock.remaining_turns = CONFIG.CLOCK_DURATION;
-            startTickTockSound();
-          }
-        }
+        cur_collectables[k] = cur_collectable.update();
       } else {
         const _: never = cur_collectable;
         throw new Error();
@@ -667,7 +653,7 @@ const MAPS: Grid2D<boolean>[] = [
     .......X........
     .......X........
   `,
-// ].map(s => Grid2D.fromAscii(s).map((p, c) => c !== '.'));
+  // ].map(s => Grid2D.fromAscii(s).map((p, c) => c !== '.'));
 ].map(s => Grid2D.fromAscii(s).map((p, c) => false));
 
 // TODO: ask droqen for a new table
@@ -985,14 +971,27 @@ class Multiplier {
 }
 
 class Clock {
-  public pos: Vec2;
-  public active: boolean;
-  public remaining_turns: number;
+  constructor(
+    public pos: Vec2,
+    public active: boolean,
+    public remaining_turns: number,
+  ) { }
 
-  constructor() {
-    this.pos = turn_state.findSpotWithoutWall();
-    this.active = false;
-    this.remaining_turns = CONFIG.CLOCK_FREQUENCY;
+  noRemainingTurns(): Clock {
+    return new Clock(this.pos, this.active, 0);
+  }
+
+  update(): Clock {
+    if (this.remaining_turns > 1) {
+      return new Clock(this.pos, this.active, this.remaining_turns - 1);
+    }
+    if (this.active) {
+      stopTickTockSound();
+      return new Clock(this.pos, false, CONFIG.CLOCK_FREQUENCY);
+    } else {
+      startTickTockSound();
+      return new Clock(turn_state.findSpotWithoutWall(), true, CONFIG.CLOCK_DURATION);
+    }
   }
 }
 
@@ -1149,6 +1148,10 @@ function placeSoup(): Soup {
   return new Soup(turn_state.findSpotWithoutWall());
 }
 
+function placeClock(): Clock {
+  return new Clock(turn_state.findSpotWithoutWall(), false, CONFIG.CLOCK_FREQUENCY);
+}
+
 function startTickTockSound(): void {
   tick_or_tock = false;
   SOUNDS.tick.play();
@@ -1268,7 +1271,7 @@ function every_frame(cur_timestamp: number) {
       for (let k = cur_collectables.filter(x => x instanceof Soup).length; k < CONFIG.N_SOUP; k++) {
         cur_collectables.push(placeSoup());
       }
-      cur_collectables.push(new Clock());
+      cur_collectables.push(placeClock());
     }
   } else if (game_state === "leaderboard") {
     doGenericMenu(leaderboard_menu, canvas_mouse_pos, raw_mouse_pos);
