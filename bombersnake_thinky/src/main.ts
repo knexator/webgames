@@ -62,11 +62,13 @@ const textures_async = await Promise.all(["bomb", "clock", "heart", "star"].flat
   .concat([loadImage("logoX"), loadImage("logoBSKY")])
   .concat([loadImage("settings"), loadImage("note"), loadImage("speed")])
   .concat([loadImage("bomb_hor"), loadImage("bomb_ver")])
+  .concat([loadImage("big_cup")])
 );
 const TEXTURES = {
   bomb_both: textures_async[0],
   bomb_hor: textures_async[33],
   bomb_ver: textures_async[34],
+  big_cup: textures_async[35],
   clock: textures_async[2],
   heart: textures_async[4],
   multiplier: textures_async[6],
@@ -385,6 +387,8 @@ const COLORS = {
   SHADOW: "#000000",
   SCARF_OUT: "#2d3ba4",
   SCARF_IN: "#6647d1",
+  // SCARF_OUT: "#C15000",
+  // SCARF_IN: "#C15000",
   HEAD: "#85ce36",
   HIGHLIGHT_BAR: "black",
   TEXT_WIN_SCORE: "white",
@@ -466,13 +470,14 @@ class TurnState {
     return this.grid.getV(this.head_pos);
   }
 
-  doThing(delta: Vec2): [TurnState, boolean] {
+  doThing(delta: Vec2): [TurnState, boolean, boolean] {
     const new_grid = this.grid.map((_, v) => cloneBlock(v));
     const new_collectables = this.cur_collectables.slice();
     const new_turn = this.turn + 1;
     let new_score = this.score;
     let new_sopa = this.remaining_sopa;
     let new_multiplier = this.multiplier;
+    let collected_sopa = false;
 
     let new_block = new_grid.getV(modVec2(this.head_pos.add(delta), BOARD_SIZE));
     new_block.in_dir = delta.scale(-1);
@@ -536,6 +541,7 @@ class TurnState {
         }
       } else if (cur_collectable instanceof Soup) {
         new_sopa = CONFIG.SOPA;
+        collected_sopa = true;
         collected_stuff_particles.push({ center: cur_collectable.pos, text: 'soup', turn: new_turn });
         cur_collectables[k] = placeSoup();
         SOUNDS.menu2.play();
@@ -562,7 +568,7 @@ class TurnState {
       }
     }
 
-    return [new TurnState(new_grid, new_block.pos, new_collectables, new_turn, new_score, new_sopa, new_multiplier), collision]
+    return [new TurnState(new_grid, new_block.pos, new_collectables, new_turn, new_score, new_sopa, new_multiplier), collision, collected_sopa];
   }
 
   findSpotWithoutWall(): Vec2 {
@@ -580,7 +586,7 @@ class TurnState {
     return pos;
   }
 }
-let game_state: "loading_menu" | "main_menu" | "pause_menu" | "playing" | "lost" | "leaderboard";
+let game_state: "loading_menu" | "main_menu" | "pause_menu" | "playing" | "soup_menu" | "lost" | "leaderboard";
 let turn_state: TurnState;
 let prev_turns: TurnState[];
 let started_at_timestamp: number;
@@ -597,6 +603,7 @@ let music_track: number;
 let last_lost_timestamp = 0;
 let settings_overlapped = false;
 let scores_view: 'global' | 'local' = 'global';
+let soup_decision: 'continue' | 'stop' | null = null;
 
 const MAPS: Grid2D<boolean>[] = [
   // `
@@ -864,6 +871,29 @@ const pause_menu: { focus: number, buttons: MenuButton[] } = {
     },
   ],
 };
+
+const soup_menu: { focus: number, buttons: MenuButton[] } = {
+  focus: 0,
+  buttons: [
+    {
+      multiple_choice: false,
+      get_text: () => `Continue`,
+      y_coord: .8,
+      callback: (dx: number) => {
+        soup_decision = 'continue';
+      }
+    },
+    {
+      multiple_choice: false,
+      get_text: () => `Stop`,
+      y_coord: .9,
+      callback: (dx: number) => {
+        soup_decision = 'stop';
+      }
+    }
+  ],
+};
+
 
 const lost_button_submit: MenuButton = {
   multiple_choice: false,
@@ -1331,6 +1361,16 @@ function every_frame(cur_timestamp: number) {
     if (input.keyboard.wasPressed(KeyCode.Escape) || (input.mouse.wasPressed(MouseButton.Left) && settings_overlapped)) {
       game_state = "pause_menu";
     }
+  } else if (game_state === "soup_menu") {
+    doGenericMenu(soup_menu, canvas_mouse_pos, raw_mouse_pos);
+    if (soup_decision !== null) {
+      if (soup_decision === 'continue') {
+        game_state = 'playing';
+      } else if (soup_decision === 'stop') {
+        lose();
+      }
+      soup_decision = null;
+    }
   } else {
     const _: never = game_state;
     throw new Error(`unhandled game state: ${game_state}`);
@@ -1366,9 +1406,14 @@ function every_frame(cur_timestamp: number) {
     }
 
     let collision = false;
+    let collected_sopa = false;
     prev_turns.push(turn_state);
-    [turn_state, collision] = turn_state.doThing(delta);
+    [turn_state, collision, collected_sopa] = turn_state.doThing(delta);
     turn_offset -= 1
+
+    if (collected_sopa) {
+      game_state = 'soup_menu';
+    }
 
     if (!CONFIG.CHEAT_INMORTAL && collision) {
       SOUNDS.crash.play();
@@ -1944,6 +1989,25 @@ function draw(is_loading: boolean) {
 
   } else if (game_state === "playing") {
     // nothing
+  } else if (game_state === "soup_menu") {
+    drawImageCentered(TEXTURES.big_cup, new Vec2(canvas_ctx.width / 2, menuYCoordOf("big cup") * 0.85));
+
+    soup_menu.buttons.forEach((button, k) => {
+      const y_coord = real_y(button.y_coord);
+      if (button.multiple_choice) {
+        drawCenteredShadowedTextWithColor(
+          (soup_menu.focus === k) ? COLORS.TEXT : COLORS.GRAY_TEXT,
+          button.get_text(), y_coord);
+        if (soup_menu.focus === k) {
+          drawMenuArrowNew(y_coord, false, button.get_text().length);
+          drawMenuArrowNew(y_coord, true, button.get_text().length);
+        }
+      } else {
+        drawCenteredShadowedTextWithColor(
+          (soup_menu.focus === k) ? COLORS.TEXT : COLORS.GRAY_TEXT,
+          button.get_text(), y_coord);
+      }
+    });
   } else {
     const _: never = game_state;
     throw new Error(`unhandled game state: ${game_state}`);
@@ -1995,9 +2059,12 @@ function real_y(y_coord: number) {
   return (TOP_OFFSET + MARGIN + BOARD_SIZE.y * y_coord) * TILE_SIZE;
 }
 
-function menuYCoordOf(setting: "start" | "logo" | "share"): number {
+function menuYCoordOf(setting: "start" | "logo" | "share" | "big cup"): number {
   let s = 0;
   switch (setting) {
+    case "big cup":
+      s = .5;
+      break;
     case "logo":
       s = .18;
       // s = .10 + Math.sin(last_timestamp * 1 / 1000) * .01;
@@ -2120,7 +2187,7 @@ function drawItem(top_left: Vec2, item: "bomb_both" | "bomb_hor" | "bomb_ver" | 
       for (let j = -1; j <= 1; j++) {
         ctx.drawImage(is_shadow
           ? TEXTURES.shadow[item]
-          : (CONFIG.WRAP_GRAY && (i !== 0 || j !== 0 || game_state === 'lost'))
+          : (CONFIG.WRAP_GRAY && (i !== 0 || j !== 0 || game_state === 'lost' || game_state === 'soup_menu'))
             ? TEXTURES.gray[item]
             : TEXTURES[item],
           (top_left.x + i * BOARD_SIZE.x) * TILE_SIZE, (top_left.y + j * BOARD_SIZE.y) * TILE_SIZE, TILE_SIZE, TILE_SIZE);
@@ -2167,7 +2234,7 @@ function setFill(normal: boolean, type: keyof typeof COLORS): void {
   if (!CONFIG.WRAP_GRAY) {
     normal = true;
   }
-  if (game_state !== 'lost' && normal) {
+  if (game_state !== 'lost' && game_state !== 'soup_menu' && normal) {
     ctx.fillStyle = COLORS[type];
   } else {
     ctx.fillStyle = GRAYSCALE[type];
