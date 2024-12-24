@@ -49,7 +49,7 @@ function loadImage(name: string): Promise<HTMLImageElement> {
 
 const song1Promise = loadSoundAsync(mp3Url("Song1"), 1, true);
 
-const textures_async = await Promise.all(["bomb", "clock", "heart", "star"].flatMap(name => [loadImage(name), loadImage(name + 'B')])
+const textures_async = await Promise.all(["bomb", "clock", "star", "star"].flatMap(name => [loadImage(name), loadImage(name + 'B')])
   .concat(["open", "KO", "closed"].map(s => loadImage("eye_" + s)))
   .concat(["left", "right"].map(s => loadImage("menu_arrow_" + s)))
   .concat([loadImage("side_arrow_W"), loadImage("side_arrow_R")])
@@ -59,7 +59,7 @@ const textures_async = await Promise.all(["bomb", "clock", "heart", "star"].flat
   .concat([loadImage(`cross`)])
   .concat("UDLR".split('').map(c => loadImage(`Cross${c}`)))
   .concat([loadImage("shareSG"), loadImage("shareSB")])
-  .concat([loadImage("logoX"), loadImage("logoBSKY")])
+  .concat([loadImage("star"), loadImage("star")])
   .concat([loadImage("settings"), loadImage("note"), loadImage("speed")])
   .concat([loadImage("bomb_hor"), loadImage("bomb_ver")])
   .concat([loadImage("big_cup")])
@@ -70,7 +70,6 @@ const TEXTURES = {
   bomb_ver: textures_async[34],
   big_cup: textures_async[35],
   clock: textures_async[2],
-  heart: textures_async[4],
   multiplier: textures_async[6],
   soup: textures_async[11],
   shadow: {
@@ -114,12 +113,6 @@ const TEXTURES = {
     D: textures_async[23],
     L: textures_async[24],
     R: textures_async[25],
-  },
-  share: {
-    vanilla: textures_async[26],
-    vanilla_shadow: textures_async[27],
-    twitter: textures_async[28],
-    bsky: textures_async[29],
   },
   settings: textures_async[30],
   note: textures_async[31],
