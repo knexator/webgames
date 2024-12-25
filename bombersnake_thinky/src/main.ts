@@ -653,8 +653,8 @@ const MAPS: Grid2D<boolean>[] = [
     .......X........
     .......X........
   `,
-  // ].map(s => Grid2D.fromAscii(s).map((p, c) => c !== '.'));
-].map(s => Grid2D.fromAscii(s).map((p, c) => false));
+].map(s => Grid2D.fromAscii(s).map((p, c) => c !== '.'));
+// ].map(s => Grid2D.fromAscii(s).map((p, c) => false));
 
 // TODO: ask droqen for a new table
 class LeaderboardData {
