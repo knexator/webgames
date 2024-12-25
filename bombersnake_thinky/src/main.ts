@@ -1325,17 +1325,17 @@ function every_frame(cur_timestamp: number) {
     //   restartGame();
     // }
   } else if (game_state === "playing") {
-    if ([
+    if (turn_offset == 1 && [
       KeyCode.KeyW, KeyCode.ArrowUp,
       KeyCode.KeyA, KeyCode.ArrowLeft,
       KeyCode.KeyS, KeyCode.ArrowDown,
       KeyCode.KeyD, KeyCode.ArrowRight,
-    ].some(k => input.keyboard.wasPressed(k))) {
+    ].some(k => input.keyboard.isDown(k))) {
       // if (game_state === "lost") {
       //   restart();
       // }
       function btnp(ks: KeyCode[]) {
-        return ks.some(k => input.keyboard.wasPressed(k));
+        return ks.some(k => input.keyboard.isDown(k));
       }
       input_queue.push(new Vec2(
         (btnp([KeyCode.KeyD, KeyCode.ArrowRight]) ? 1 : 0)
