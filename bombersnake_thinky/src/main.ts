@@ -259,6 +259,7 @@ if (is_phone) {
 }
 
 let CONFIG = {
+  LOSE_BOMB_EVERY_N_SOUPS: 5,
   SOPA: 6,
   SOPA_PER_BOMB: 0,
   HEAD_BOUNCE: 0,
@@ -295,6 +296,7 @@ let CONFIG = {
 
 const gui = new GUI();
 {
+  gui.add(CONFIG, "LOSE_BOMB_EVERY_N_SOUPS", 1, 100, 1);
   gui.add(CONFIG, "SOPA", 2, 10, 1);
   gui.add(CONFIG, "SOPA_PER_BOMB", 0, 1, 1);
   gui.add(CONFIG, "PAUSED");
@@ -431,6 +433,7 @@ class TurnState {
     public readonly score: number,
     public readonly remaining_sopa: number,
     public readonly multiplier: number,
+    public readonly soups_until_bomb_drop: number,
   ) { }
 
   addInitialObstacleAt(p: Vec2) {
@@ -456,7 +459,7 @@ class TurnState {
     });
     const head_pos = blocks[blocks.length - 1].pos;
 
-    return new TurnState(grid, head_pos, collectables, turn, 0, CONFIG.SOPA, 1);
+    return new TurnState(grid, head_pos, collectables, turn, 0, CONFIG.SOPA, 1, CONFIG.LOSE_BOMB_EVERY_N_SOUPS);
   }
 
   getHead() {
@@ -471,6 +474,7 @@ class TurnState {
     let new_sopa = this.remaining_sopa;
     let new_multiplier = this.multiplier;
     let collected_sopa = false;
+    let new_remaining_soups_until_bomb_drop = this.soups_until_bomb_drop;
 
     let new_block = new_grid.getV(modVec2(this.head_pos.add(delta), BOARD_SIZE));
     new_block.in_dir = delta.scale(-1);
@@ -506,7 +510,14 @@ class TurnState {
           }
         })
         cur_screen_shake.actualMag = 5.0;
-        cur_collectables[k] = placeBomb(cur_bomb.dir);
+        if (new_remaining_soups_until_bomb_drop >= 0) {
+          cur_collectables[k] = placeBomb(cur_bomb.dir);
+        } else {
+          // cur_collectables[k] = null;
+          cur_collectables.splice(k, 1);
+          new_remaining_soups_until_bomb_drop += CONFIG.LOSE_BOMB_EVERY_N_SOUPS;
+          k -= 1;
+        }
         new_sopa += CONFIG.SOPA_PER_BOMB;
         new_score += new_multiplier!;
         bounceText('score');
@@ -538,6 +549,7 @@ class TurnState {
         collected_stuff_particles.push({ center: cur_collectable.pos, text: 'soup', turn: new_turn });
         cur_collectables[k] = placeSoup();
         SOUNDS.menu2.play();
+        new_remaining_soups_until_bomb_drop -= 1;
       } else {
         const _: never = cur_collectable;
         throw new Error();
@@ -561,7 +573,7 @@ class TurnState {
       }
     }
 
-    return [new TurnState(new_grid, new_block.pos, new_collectables, new_turn, new_score, new_sopa, new_multiplier), collision, collected_sopa];
+    return [new TurnState(new_grid, new_block.pos, new_collectables, new_turn, new_score, new_sopa, new_multiplier, new_remaining_soups_until_bomb_drop), collision, collected_sopa];
   }
 
   findSpotWithoutWall(): Vec2 {
