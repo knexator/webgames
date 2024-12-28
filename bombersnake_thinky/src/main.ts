@@ -959,13 +959,13 @@ function restartGame() {
     turn_state = TurnState.initial(1, [
       { pos: new Vec2(0, BOARD_SIZE.y - 2), in_dir: new Vec2(-1, 0), out_dir: new Vec2(1, 0), t: 0 },
       { pos: new Vec2(1, BOARD_SIZE.y - 2), in_dir: new Vec2(-1, 0), out_dir: new Vec2(0, 0), t: 1 },
-    ], [new Bomb(BOARD_SIZE.sub(Vec2.both(2)), 'both')])
+    ], [])
   } else {
     turn_state = TurnState.initial(2, [
       { pos: new Vec2(6, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(1, 0), t: 0 },
       { pos: new Vec2(7, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(1, 0), t: 1 },
       { pos: new Vec2(8, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(0, 0), t: 2 },
-    ], [new Bomb(BOARD_SIZE.sub(Vec2.both(2)), 'both')]);
+    ], []);
   }
   prev_turns = [];
   started_at_timestamp = last_timestamp;
@@ -1034,7 +1034,7 @@ let collectables = RECORDING_GIF ? [
   new Bomb(new Vec2(11, 14), 'both'),
   new Bomb(new Vec2(12, 8), 'both'),
   new Bomb(new Vec2(5, 6), 'both')
-] : [new Bomb(BOARD_SIZE.sub(Vec2.both(2)), 'both')];
+] : [];
 
 if (CONFIG.START_ON_BORDER) {
   turn_state = TurnState.initial(1, [
@@ -1137,7 +1137,8 @@ Howler.volume(1);
 const INITIAL_VOLUME = objectMap(SOUNDS, x => x.volume());
 
 // TODO: move all of these into TurnState
-function placeBomb(dir: 'both' | 'hor' | 'ver'): Bomb {
+function placeBomb(old_dir: 'both' | 'hor' | 'ver'): Bomb {
+  const dir: 'both' | 'hor' | 'ver' = (old_dir === 'both') ? 'both' : (old_dir === 'hor') ? "ver" : 'hor';
   let candidates = fromCount(CONFIG.LUCK, _ => turn_state.findSpotWithoutWall());
   let visible_walls_at_each_candidate = candidates.map(pos => {
     let count = 0;
@@ -1283,10 +1284,10 @@ function every_frame(cur_timestamp: number) {
         cur_collectables.push(placeBomb('both'));
       }
       for (let k = cur_collectables.filter(x => x instanceof Bomb && x.dir === 'hor').length; k < CONFIG.N_BOMBS_HOR; k++) {
-        cur_collectables.push(placeBomb('hor'));
+        cur_collectables.push(placeBomb('ver'));
       }
       for (let k = cur_collectables.filter(x => x instanceof Bomb && x.dir === 'ver').length; k < CONFIG.N_BOMBS_VER; k++) {
-        cur_collectables.push(placeBomb('ver'));
+        cur_collectables.push(placeBomb('hor'));
       }
       for (let k = cur_collectables.filter(x => x instanceof Multiplier).length; k < CONFIG.N_MULTIPLIERS; k++) {
         cur_collectables.push(placeMultiplier());
