@@ -2405,5 +2405,3 @@ document.addEventListener('visibilitychange', function () {
     Howler.mute(false);
   }
 });
-
-Howler.mute(true);
