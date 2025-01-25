@@ -63,6 +63,8 @@ const textures_async = await Promise.all(["bomb", "clock", "star", "star"].flatM
   .concat([loadImage("settings"), loadImage("note"), loadImage("speed")])
   .concat([loadImage("bomb_hor"), loadImage("bomb_ver")])
   .concat([loadImage("big_cup")])
+  .concat([loadImage("cup"), loadImage("cupB")])
+  .concat([loadImage("bomb_horB"), loadImage("bomb_verB")])
 );
 const TEXTURES = {
   bomb_both: textures_async[0],
@@ -71,15 +73,15 @@ const TEXTURES = {
   big_cup: textures_async[35],
   clock: textures_async[2],
   multiplier: textures_async[6],
-  soup: textures_async[11],
+  soup: textures_async[36],
   shadow: {
     bomb_both: textures_async[1],
-    bomb_hor: textures_async[33],
-    bomb_ver: textures_async[34],
+    bomb_hor: textures_async[38],
+    bomb_ver: textures_async[39],
     clock: textures_async[3],
     heart: textures_async[5],
     multiplier: textures_async[7],
-    soup: textures_async[11],
+    soup: textures_async[37],
   },
   gray: {
     bomb_both: textures_async[18],
@@ -87,7 +89,7 @@ const TEXTURES = {
     bomb_ver: textures_async[34],
     clock: textures_async[19],
     multiplier: textures_async[20],
-    soup: textures_async[11],
+    soup: textures_async[36],
   },
   eye: {
     open: textures_async[8],
@@ -1595,7 +1597,6 @@ function draw(is_loading: boolean) {
     for (const cur_collectable of turn_state.cur_collectables) {
       if (cur_collectable instanceof Bomb) {
         const cur_bomb = cur_collectable;
-        if (cur_bomb.dir !== 'both') continue; // TODO: shadows for all
         // @ts-ignore
         drawItem(cur_bomb.pos.add(Vec2.both(CONFIG.SHADOW_DIST)), 'bomb_' + cur_bomb.dir, true);
       } else if (cur_collectable instanceof Multiplier) {
@@ -1609,6 +1610,7 @@ function draw(is_loading: boolean) {
         }
       } else if (cur_collectable instanceof Soup) {
         // TODO: shadow for soup
+        drawItem(cur_collectable.pos.add(Vec2.both(CONFIG.SHADOW_DIST)), 'soup', true);
       } else {
         const _: never = cur_collectable;
         throw new Error();
@@ -2403,3 +2405,5 @@ document.addEventListener('visibilitychange', function () {
     Howler.mute(false);
   }
 });
+
+Howler.mute(true);
