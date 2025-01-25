@@ -1996,7 +1996,7 @@ function draw(is_loading: boolean) {
   } else if (game_state === "playing") {
     // nothing
   } else if (game_state === "soup_menu") {
-    drawImageCentered(TEXTURES.big_cup, new Vec2(canvas_ctx.width / 2, menuYCoordOf("big cup") * 0.85));
+    drawImageCentered(TEXTURES.big_cup, new Vec2(canvas_ctx.width / 2, menuYCoordOf("big cup") * 0.85), 0.25);
 
     soup_menu.buttons.forEach((button, k) => {
       const y_coord = real_y(button.y_coord);
