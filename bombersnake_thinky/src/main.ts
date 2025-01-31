@@ -216,7 +216,7 @@ if (is_phone) {
         cross_back_to_normal = null;
       }
     }
-    if (game_state === 'pause_menu' || game_state === 'lost' || game_state === 'main_menu' || game_state === 'loading_menu' || game_state === 'leaderboard') {
+    if (game_state === 'pause_menu' || game_state === 'lost' || game_state === 'lost_happy' || game_state === 'main_menu' || game_state === 'loading_menu' || game_state === 'leaderboard') {
       const touch = ev.changedTouches.item(ev.changedTouches.length - 1)!;
       const place = touchPos(touch);
       const dir = roundToCardinalDirection(place);
@@ -555,6 +555,7 @@ class TurnState {
         SOUNDS.menu2.play();
         new_remaining_soups_until_bomb_drop -= 1;
       } else if (cur_collectable instanceof Ender) {
+        new_score += 123;
         collected_ender = true;
       } else {
         const _: never = cur_collectable;
@@ -600,7 +601,7 @@ class TurnState {
   }
 }
 // TODO: delete "soup_menu"
-let game_state: "loading_menu" | "main_menu" | "pause_menu" | "playing" | "soup_menu" | "lost" | "leaderboard";
+let game_state: "loading_menu" | "main_menu" | "pause_menu" | "playing" | "soup_menu" | "lost" | "lost_happy" | "leaderboard";
 let turn_state: TurnState;
 let prev_turns: TurnState[];
 let started_at_timestamp: number;
@@ -1337,7 +1338,7 @@ function every_frame(cur_timestamp: number) {
     if (input.keyboard.wasPressed(KeyCode.Escape)) {
       game_state = "main_menu";
     }
-  } else if (game_state === "lost") {
+  } else if (game_state === "lost" || game_state === "lost_happy") {
     doGenericMenu(lost_menu, canvas_mouse_pos, raw_mouse_pos);
 
     if (input.keyboard.wasPressed(KeyCode.Escape) || (input.mouse.wasPressed(MouseButton.Left) && settings_overlapped)) {
@@ -1440,7 +1441,7 @@ function every_frame(cur_timestamp: number) {
     turn_offset -= 1
 
     if (collected_ender) {
-      game_state = 'soup_menu';
+      lose(true);
     }
 
     if (!CONFIG.CHEAT_INMORTAL && collision) {
@@ -1733,7 +1734,7 @@ function draw(is_loading: boolean) {
       // eye
       let eye_texture = game_state === "lost"
         ? TEXTURES.eye.KO
-        : false
+        : game_state === "lost_happy"
           ? TEXTURES.eye.closed
           : TEXTURES.eye.open;
       if (cur_block.in_dir.equal(new Vec2(1, 0))) {
@@ -1938,7 +1939,7 @@ function draw(is_loading: boolean) {
           button.get_text(), y_coord);
       }
     });
-  } else if (game_state === "lost") {
+  } else if (game_state === "lost" || game_state === "lost_happy") {
 
     if (leaderboard_data === null) throw new Error("unreachable");
     let k = 0;
@@ -2123,9 +2124,9 @@ function percX(x: number): number {
   return (MARGIN + BOARD_SIZE.x * x) * TILE_SIZE;
 }
 
-function lose() {
+function lose(happy: boolean = false) {
   stopTickTockSound();
-  game_state = "lost";
+  game_state = happy ? "lost_happy" : "lost";
   last_lost_timestamp = last_timestamp;
   leaderboard_data = new LeaderboardData(turn_state.score, min_game_speed);
 
@@ -2265,7 +2266,7 @@ function setFill(normal: boolean, type: keyof typeof COLORS): void {
   if (!CONFIG.WRAP_GRAY) {
     normal = true;
   }
-  if (game_state !== 'lost' && game_state !== 'soup_menu' && normal) {
+  if (game_state !== 'lost' && game_state !== 'lost_happy' && game_state !== 'soup_menu' && normal) {
     ctx.fillStyle = COLORS[type];
   } else {
     ctx.fillStyle = GRAYSCALE[type];
