@@ -612,8 +612,6 @@ let touch_input_base_point: Vec2 | null;
 let exploding_cross_particles: { center: Vec2, turn: number, dir: 'both' | 'hor' | 'ver' }[];
 let collected_stuff_particles: { center: Vec2, text: string, turn: number }[];
 let haptic: boolean;
-let game_speed: number; // TODO: delete
-let min_game_speed: number; // TODO: delete
 let music_track: number;
 let last_lost_timestamp = 0;
 let settings_overlapped = false;
@@ -688,7 +686,7 @@ class LeaderboardData {
 
   public top_scores_per_speed: ('loading' | 'error' | { name: string, score: number, highlight?: boolean }[])[];
 
-  constructor(center: number | null, speed: number) {
+  constructor(center: number | null) {
     this.around_scores = 'loading';
     this.top_scores = 'loading';
     this.around_scores_local = 'loading';
@@ -697,30 +695,28 @@ class LeaderboardData {
     if (center === null) {
       this.fetchAndUpdateTopScoresMainMenu();
     } else {
-      this.fetchAndUpdate(center, speed + 1);
-      this.fetchAndUpdateTopScores(speed + 1);
+      this.fetchAndUpdate(center);
+      this.fetchAndUpdateTopScores();
     }
   }
 
   async fetchAndUpdateTopScoresMainMenu() {
     this.top_scores_per_speed = await Promise.all([
-      LeaderboardData.fetchTopScoresWithName(1, null),
-      LeaderboardData.fetchTopScoresWithName(2, null),
-      LeaderboardData.fetchTopScoresWithName(3, null),
+      LeaderboardData.fetchTopScoresWithName(null),
     ]);
   }
 
-  async fetchAndUpdate(center: number, mode: number) {
-    this.around_scores = await LeaderboardData.fetchAroundWithName(center, mode, null);
+  async fetchAndUpdate(center: number) {
+    this.around_scores = await LeaderboardData.fetchAroundWithName(center, null);
   }
 
-  async fetchAndUpdateTopScores(mode: number) {
-    this.top_scores = await LeaderboardData.fetchTopScoresWithName(mode, null);
+  async fetchAndUpdateTopScores() {
+    this.top_scores = await LeaderboardData.fetchTopScoresWithName(null);
   }
 
-  static async fetchAroundWithName(center: number, mode: number, pname: string | null): Promise<'error' | { name: string | null, highlight?: boolean, score: number }[]> {
+  static async fetchAroundWithName(center: number, pname: string | null): Promise<'error' | { name: string | null, highlight?: boolean, score: number }[]> {
     const corsProxy = 'https://cors-anywhere.herokuapp.com/';
-    let url = `https://php.droqen.com/storescore/bombsnack/do_get_nearby.php?score=${center}&mode=${mode}`;
+    let url = `https://php.droqen.com/storescore/bombsnack/do_get_nearby.php?score=${center}&mode=${1}`;
     if (pname !== null) {
       url += `&pname=${pname}`;
     }
@@ -751,9 +747,9 @@ class LeaderboardData {
     }
   }
 
-  static async fetchTopScoresWithName(mode: number, pname: string | null): Promise<'error' | { name: string, score: number }[]> {
+  static async fetchTopScoresWithName(pname: string | null): Promise<'error' | { name: string, score: number }[]> {
     const corsProxy = 'https://cors-anywhere.herokuapp.com/';
-    let url = `https://php.droqen.com/storescore/bombsnack/do_get_top10.php?mode=${mode}`;
+    let url = `https://php.droqen.com/storescore/bombsnack/do_get_top10.php?mode=${1}`;
     if (pname !== null) {
       url += `&pname=${pname}`;
     }
@@ -774,7 +770,7 @@ class LeaderboardData {
   }
 
 
-  async submit(mode: number, score: number) {
+  async submit(score: number) {
     if (this.submit_status !== 'none') return;
     if (this.around_scores === 'error') return;
     this.submit_status = 'submitting';
@@ -785,14 +781,14 @@ class LeaderboardData {
     }
     localStorage.setItem('bombsnack_name', name);
     const corsProxy = 'https://cors-anywhere.herokuapp.com/';
-    const url = `https://php.droqen.com/storescore/bombsnack/do_new_score.php?name=${name}&score=${score}&mode=${mode}`;
+    const url = `https://php.droqen.com/storescore/bombsnack/do_new_score.php?name=${name}&score=${score}&mode=${1}`;
     const true_url = DEBUG_CORS ? `${corsProxy}${url}` : url;
     const response = fetch(true_url);
     const asdf = this;
     await response;
     asdf.submit_status = 'submitted';
-    const top_promise = LeaderboardData.fetchTopScoresWithName(mode, name);
-    const around_promise = LeaderboardData.fetchAroundWithName(score, mode, name);
+    const top_promise = LeaderboardData.fetchTopScoresWithName(name);
+    const around_promise = LeaderboardData.fetchAroundWithName(score, name);
     const [a, b] = await Promise.all([top_promise, around_promise])
     this.top_scores_local = a;
     this.around_scores_local = b;
@@ -809,15 +805,6 @@ const main_menu: { focus: number, buttons: MenuButton[] } = {
   buttons: [
     {
       multiple_choice: true,
-      get_text: () => `Speed: ${game_speed + 1}`,
-      y_coord: .46,
-      callback: (dx: number) => {
-        game_speed = mod(game_speed + dx, SPEEDS.length);
-        CONFIG.TURN_DURATION = SPEEDS[game_speed];
-      }
-    },
-    {
-      multiple_choice: true,
       get_text: () => `Song: ${music_track === 0 ? 'None' : (SONGS[music_track] === null ? 'loading' : music_track)}`,
       y_coord: .55,
       callback: (dx: number) => {
@@ -830,7 +817,7 @@ const main_menu: { focus: number, buttons: MenuButton[] } = {
       get_text: () => 'Leaderboard',
       y_coord: .64,
       callback: (dx: number) => {
-        leaderboard_data = new LeaderboardData(null, game_speed);
+        leaderboard_data = new LeaderboardData(null);
         game_state = 'leaderboard';
       }
     },
@@ -840,7 +827,6 @@ const main_menu: { focus: number, buttons: MenuButton[] } = {
       y_coord: .8,
       callback: (dx: number) => {
         game_state = 'playing';
-        min_game_speed = game_speed;
       }
     },
   ],
@@ -857,16 +843,6 @@ const pause_menu: { focus: number, buttons: MenuButton[] } = {
         haptic = !haptic;
       }
     }] : []),
-    {
-      multiple_choice: true,
-      get_text: () => `Speed: ${game_speed + 1}`,
-      y_coord: .36,
-      callback: (dx: number) => {
-        game_speed = mod(game_speed + dx, SPEEDS.length);
-        CONFIG.TURN_DURATION = SPEEDS[game_speed];
-        min_game_speed = Math.min(min_game_speed, game_speed);
-      }
-    },
     {
       multiple_choice: true,
       get_text: () => `Song: ${music_track === 0 ? 'None' : (SONGS[music_track] === null ? 'loading' : music_track)}`,
@@ -925,7 +901,7 @@ const lost_button_submit: MenuButton = {
   },
   y_coord: .9,
   callback: (dx: number) => {
-    leaderboard_data!.submit(game_speed + 1, turn_state.score);
+    leaderboard_data!.submit(turn_state.score);
     // restartGame();
   }
 }
@@ -957,14 +933,6 @@ const lost_menu: { focus: number, buttons: MenuButton[] } = {
 const leaderboard_menu: { focus: number, buttons: MenuButton[] } = {
   focus: 0,
   buttons: [{
-    multiple_choice: true,
-    get_text: () => `Speed: ${game_speed + 1}`,
-    y_coord: .8,
-    callback: (dx: number) => {
-      game_speed = mod(game_speed + dx, SPEEDS.length);
-      CONFIG.TURN_DURATION = SPEEDS[game_speed];
-    }
-  }, {
     multiple_choice: false,
     get_text: () => 'Back',
     y_coord: .91,
@@ -1084,7 +1052,6 @@ exploding_cross_particles = [];
 collected_stuff_particles = [];
 tick_or_tock = false;
 touch_input_base_point = null;
-game_speed = is_phone ? 0 : 1;
 haptic = true;
 music_track = 1;
 
@@ -1987,7 +1954,7 @@ function draw(is_loading: boolean) {
   } else if (game_state === "leaderboard") {
     if (leaderboard_data === null) throw new Error("unreachable");
     let k = 1;
-    const top_scores = leaderboard_data.top_scores_per_speed[game_speed];
+    const top_scores = leaderboard_data.top_scores_per_speed[0];
     if (top_scores === 'error') {
       drawCenteredShadowedText('Could not load leaderboard', real_y(.5));
     } else if (top_scores === 'loading') {
@@ -2128,7 +2095,7 @@ function lose(happy: boolean = false) {
   stopTickTockSound();
   game_state = happy ? "lost_happy" : "lost";
   last_lost_timestamp = last_timestamp;
-  leaderboard_data = new LeaderboardData(turn_state.score, min_game_speed);
+  leaderboard_data = new LeaderboardData(turn_state.score);
 
   // draw(false);
   // canvas_ctx.toBlob(async (blob) => {
