@@ -74,6 +74,7 @@ const TEXTURES = {
   clock: textures_async[2],
   multiplier: textures_async[6],
   soup: textures_async[36],
+  ender: textures_async[0],
   shadow: {
     bomb_both: textures_async[1],
     bomb_hor: textures_async[38],
@@ -82,6 +83,7 @@ const TEXTURES = {
     heart: textures_async[5],
     multiplier: textures_async[7],
     soup: textures_async[37],
+    ender: textures_async[1],
   },
   gray: {
     bomb_both: textures_async[18],
@@ -90,6 +92,7 @@ const TEXTURES = {
     clock: textures_async[19],
     multiplier: textures_async[20],
     soup: textures_async[36],
+    ender: textures_async[18],
   },
   eye: {
     open: textures_async[8],
@@ -475,7 +478,7 @@ class TurnState {
     let new_score = this.score;
     let new_sopa = this.remaining_sopa;
     let new_multiplier = this.multiplier;
-    let collected_sopa = false;
+    let collected_ender = false;
     let new_remaining_soups_until_bomb_drop = this.soups_until_bomb_drop;
 
     let new_block = new_grid.getV(modVec2(this.head_pos.add(delta), BOARD_SIZE));
@@ -547,11 +550,12 @@ class TurnState {
         }
       } else if (cur_collectable instanceof Soup) {
         new_sopa = CONFIG.SOPA;
-        collected_sopa = true;
         collected_stuff_particles.push({ center: cur_collectable.pos, text: 'soup', turn: new_turn });
         cur_collectables[k] = placeSoup();
         SOUNDS.menu2.play();
         new_remaining_soups_until_bomb_drop -= 1;
+      } else if (cur_collectable instanceof Ender) {
+        collected_ender = true;
       } else {
         const _: never = cur_collectable;
         throw new Error();
@@ -569,13 +573,15 @@ class TurnState {
         // nothing
       } else if (cur_collectable instanceof Clock) {
         cur_collectables[k] = cur_collectable.update();
+      } else if (cur_collectable instanceof Ender) {
+        // nothing
       } else {
         const _: never = cur_collectable;
         throw new Error();
       }
     }
 
-    return [new TurnState(new_grid, new_block.pos, new_collectables, new_turn, new_score, new_sopa, new_multiplier, new_remaining_soups_until_bomb_drop), collision, collected_sopa];
+    return [new TurnState(new_grid, new_block.pos, new_collectables, new_turn, new_score, new_sopa, new_multiplier, new_remaining_soups_until_bomb_drop), collision, collected_ender];
   }
 
   findSpotWithoutWall(): Vec2 {
@@ -593,6 +599,7 @@ class TurnState {
     return pos;
   }
 }
+// TODO: delete "soup_menu"
 let game_state: "loading_menu" | "main_menu" | "pause_menu" | "playing" | "soup_menu" | "lost" | "leaderboard";
 let turn_state: TurnState;
 let prev_turns: TurnState[];
@@ -994,6 +1001,12 @@ function restartGame() {
   touch_input_base_point = null;
 }
 
+class Ender {
+  constructor(
+    public pos: Vec2,
+  ) { }
+}
+
 class Bomb {
   constructor(
     public pos: Vec2,
@@ -1038,7 +1051,7 @@ class Soup {
   ) { }
 }
 
-type Collectable = Bomb | Multiplier | Clock | Soup;
+type Collectable = Bomb | Multiplier | Clock | Soup | Ender;
 
 // Loading menu
 game_state = "loading_menu";
@@ -1186,6 +1199,10 @@ function placeSoup(): Soup {
   return new Soup(turn_state.findSpotWithoutWall());
 }
 
+function placeEnder(): Soup {
+  return new Ender(turn_state.findSpotWithoutWall());
+}
+
 function placeClock(): Clock {
   return new Clock(turn_state.findSpotWithoutWall(), false, CONFIG.CLOCK_FREQUENCY);
 }
@@ -1309,6 +1326,9 @@ function every_frame(cur_timestamp: number) {
       for (let k = cur_collectables.filter(x => x instanceof Soup).length; k < CONFIG.N_SOUP; k++) {
         cur_collectables.push(placeSoup());
       }
+      for (let k = cur_collectables.filter(x => x instanceof Ender).length; k < 1; k++) {
+        cur_collectables.push(placeEnder());
+      }
       cur_collectables.push(placeClock());
     }
   } else if (game_state === "leaderboard") {
@@ -1414,12 +1434,12 @@ function every_frame(cur_timestamp: number) {
     }
 
     let collision = false;
-    let collected_sopa = false;
+    let collected_ender = false;
     prev_turns.push(turn_state);
-    [turn_state, collision, collected_sopa] = turn_state.doThing(delta);
+    [turn_state, collision, collected_ender] = turn_state.doThing(delta);
     turn_offset -= 1
 
-    if (collected_sopa) {
+    if (collected_ender) {
       game_state = 'soup_menu';
     }
 
@@ -1609,8 +1629,9 @@ function draw(is_loading: boolean) {
           drawItem(clock.pos.add(Vec2.both(CONFIG.SHADOW_DIST)), 'clock', true);
         }
       } else if (cur_collectable instanceof Soup) {
-        // TODO: shadow for soup
         drawItem(cur_collectable.pos.add(Vec2.both(CONFIG.SHADOW_DIST)), 'soup', true);
+      } else if (cur_collectable instanceof Ender) {
+        drawItem(cur_collectable.pos.add(Vec2.both(CONFIG.SHADOW_DIST)), 'ender', true);
       } else {
         const _: never = cur_collectable;
         throw new Error();
@@ -1800,6 +1821,8 @@ function draw(is_loading: boolean) {
       }
     } else if (cur_collectable instanceof Soup) {
       drawItem(cur_collectable.pos, 'soup');
+    } else if (cur_collectable instanceof Ender) {
+      drawItem(cur_collectable.pos, 'ender');
     } else {
       const _: never = cur_collectable;
       throw new Error();
@@ -2187,7 +2210,7 @@ function rotQuarterB(value: Vec2): Vec2 {
   return new Vec2(-value.y, value.x);
 }
 
-function drawItem(top_left: Vec2, item: "bomb_both" | "bomb_hor" | "bomb_ver" | "multiplier" | "clock" | "soup", is_shadow: boolean = false) {
+function drawItem(top_left: Vec2, item: "bomb_both" | "bomb_hor" | "bomb_ver" | "multiplier" | "clock" | "soup" | "ender", is_shadow: boolean = false) {
   if (!CONFIG.WRAP_ITEMS) {
     ctx.drawImage(is_shadow ? TEXTURES.shadow[item] : TEXTURES[item], top_left.x * TILE_SIZE, top_left.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
   } else {
