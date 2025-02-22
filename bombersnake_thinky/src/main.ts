@@ -283,8 +283,8 @@ let CONFIG = {
   N_MULTIPLIERS: 1,
   N_SOUP: 1,
   CLOCK_VALUE: 4,
-  CLOCK_DURATION: 25,
-  CLOCK_FREQUENCY: 35,
+  CLOCK_DURATION: 3,
+  CLOCK_FREQUENCY: 5,
   TICKTOCK_SPEED: 400,
   MUSIC_DURING_TICKTOCK: .25,
   LUCK: 5,
@@ -500,7 +500,8 @@ class TurnState {
     let collision = new_block.valid;
     new_block.valid = true;
 
-    if (!delta.equal(this.getHead().in_dir.scale(-1))) {
+    const turned = !delta.equal(this.getHead().in_dir.scale(-1));
+    if (turned) {
       new_sopa -= 1;
       bounceText('temperature');
     }
@@ -591,7 +592,7 @@ class TurnState {
       } else if (cur_collectable instanceof Soup) {
         // nothing
       } else if (cur_collectable instanceof Clock) {
-        cur_collectables[k] = cur_collectable.update();
+        cur_collectables[k] = cur_collectable.update(turned);
       } else if (cur_collectable instanceof Ender) {
         // nothing
       } else {
@@ -1012,22 +1013,24 @@ class Clock {
     public pos: Vec2,
     public active: boolean,
     public remaining_turns: number,
+    public hands_moving: boolean,
   ) { }
 
   noRemainingTurns(): Clock {
-    return new Clock(this.pos, this.active, 0);
+    return new Clock(this.pos, this.active, 0, false);
   }
 
-  update(): Clock {
+  update(advance: boolean): Clock {
+    if (!advance && this.active) return new Clock(this.pos, this.active, this.remaining_turns, false);
     if (this.remaining_turns > 1) {
-      return new Clock(this.pos, this.active, this.remaining_turns - 1);
+      return new Clock(this.pos, this.active, this.remaining_turns - 1, true);
     }
     if (this.active) {
       stopTickTockSound();
-      return new Clock(this.pos, false, CONFIG.CLOCK_FREQUENCY);
+      return new Clock(this.pos, false, CONFIG.CLOCK_FREQUENCY, true);
     } else {
       startTickTockSound();
-      return new Clock(turn_state.findSpotWithoutWall(), true, CONFIG.CLOCK_DURATION);
+      return new Clock(turn_state.findSpotWithoutWall(), true, CONFIG.CLOCK_DURATION, true);
     }
   }
 }
@@ -1190,7 +1193,7 @@ function placeEnder(): Soup {
 }
 
 function placeClock(): Clock {
-  return new Clock(turn_state.findSpotWithoutWall(), false, CONFIG.CLOCK_FREQUENCY);
+  return new Clock(turn_state.findSpotWithoutWall(), false, CONFIG.CLOCK_FREQUENCY, true);
 }
 
 function startTickTockSound(): void {
@@ -1791,7 +1794,7 @@ function draw(is_loading: boolean) {
             ctx.beginPath();
             const center = clock.pos.add(Vec2.both(.5)).add(new Vec2(i * BOARD_SIZE.x, j * BOARD_SIZE.y));
             const hand_delta = Vec2.fromTurns(
-              remap(clock.remaining_turns - turn_offset, 0, CONFIG.CLOCK_DURATION, -1 / 4, -5 / 4)
+              remap(clock.remaining_turns - (clock.hands_moving ? turn_offset : 1), 0, CONFIG.CLOCK_DURATION, -1 / 4, -5 / 4)
             ).scale(.3);
             moveTo(center.scale(TILE_SIZE));
             lineTo(center.add(hand_delta).scale(TILE_SIZE));
