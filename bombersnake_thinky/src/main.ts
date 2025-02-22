@@ -65,9 +65,10 @@ const textures_async = await Promise.all(["bomb", "clock", "star", "star"].flatM
   .concat([loadImage("big_cup")])
   .concat([loadImage("cup"), loadImage("cupB")])
   .concat([loadImage("bomb_horB"), loadImage("bomb_verB")])
+  .concat([loadImage("undoUI")])
 );
 const TEXTURES = {
-  undo: textures_async[2], // TODO
+  undoUI: textures_async[40],
   bomb_both: textures_async[0],
   bomb_hor: textures_async[33],
   bomb_ver: textures_async[34],
@@ -2385,7 +2386,7 @@ function fillJumpyText(id: string, text: string, x: number, y: number) {
   else if (id === 'undos') {
     ctx.translate(x, y);
     ctx.scale(1 + v * .2, 1 + v * .2);
-    ctx.drawImage(TEXTURES.undo, -1.1 * TILE_SIZE, -1.05 * TILE_SIZE);
+    ctx.drawImage(TEXTURES.undoUI, -1.1 * TILE_SIZE, -1.05 * TILE_SIZE);
     ctx.fillText(text, 0, 0);
   }
   else {
