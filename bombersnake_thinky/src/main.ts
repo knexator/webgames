@@ -265,7 +265,7 @@ if (is_phone) {
 }
 
 let CONFIG = {
-  LOSE_BOMB_EVERY_N_SOUPS: 5,
+  LOSE_BOMB_EVERY_N_SOUPS: 1,
   SOPA: 6,
   SOPA_PER_BOMB: 0,
   HEAD_BOUNCE: 0,
@@ -436,7 +436,7 @@ class TurnState {
   }
 
   totalBombCount() {
-    return this.cur_collectables.filter(x => x instanceof Bomb).length;
+    return this.n_bombs;
   }
 
   private constructor(
@@ -448,6 +448,7 @@ class TurnState {
     public readonly remaining_sopa: number,
     public readonly multiplier: number,
     public readonly soups_until_bomb_drop: number,
+    public readonly n_bombs: number,
   ) { }
 
   addInitialObstacleAt(p: Vec2) {
@@ -473,7 +474,7 @@ class TurnState {
     });
     const head_pos = blocks[blocks.length - 1].pos;
 
-    return new TurnState(grid, head_pos, collectables, turn, 0, CONFIG.SOPA, 1, CONFIG.LOSE_BOMB_EVERY_N_SOUPS);
+    return new TurnState(grid, head_pos, collectables, turn, 0, CONFIG.SOPA, 1, CONFIG.LOSE_BOMB_EVERY_N_SOUPS, CONFIG.N_BOMBS + CONFIG.N_BOMBS_HOR + CONFIG.N_BOMBS_VER);
   }
 
   getHead() {
@@ -489,6 +490,7 @@ class TurnState {
     let new_multiplier = this.multiplier;
     let collected_ender = false;
     let new_remaining_soups_until_bomb_drop = this.soups_until_bomb_drop;
+    let new_n_bombs = this.n_bombs;
 
     let new_block = new_grid.getV(modVec2(this.head_pos.add(delta), BOARD_SIZE));
     new_block.in_dir = delta.scale(-1);
@@ -499,6 +501,7 @@ class TurnState {
 
     if (!delta.equal(this.getHead().in_dir.scale(-1))) {
       new_sopa -= 1;
+      bounceText('temperature');
     }
     new_grid.getV(this.head_pos).out_dir = delta;
 
@@ -524,12 +527,10 @@ class TurnState {
           }
         })
         cur_screen_shake.actualMag = 5.0;
-        if (new_remaining_soups_until_bomb_drop >= 0) {
+        if (cur_collectables.filter(x => x instanceof Bomb).length <= this.n_bombs) {
           cur_collectables[k] = placeBomb(cur_bomb.dir);
         } else {
-          // cur_collectables[k] = null;
           cur_collectables.splice(k, 1);
-          new_remaining_soups_until_bomb_drop += CONFIG.LOSE_BOMB_EVERY_N_SOUPS;
           k -= 1;
         }
         new_sopa += CONFIG.SOPA_PER_BOMB;
@@ -559,12 +560,19 @@ class TurnState {
         }
       } else if (cur_collectable instanceof Soup) {
         new_sopa = CONFIG.SOPA;
+        bounceText('temperature');
         collected_stuff_particles.push({ center: cur_collectable.pos, text: 'soup', turn: new_turn });
         cur_collectables[k] = placeSoup();
         SOUNDS.menu2.play();
         new_remaining_soups_until_bomb_drop -= 1;
+        if (new_remaining_soups_until_bomb_drop <= 0) {
+          bounceText('bomb_count');
+          new_remaining_soups_until_bomb_drop = CONFIG.LOSE_BOMB_EVERY_N_SOUPS;
+          new_n_bombs -= 1;
+        }
       } else if (cur_collectable instanceof Ender) {
         new_score += 123;
+        bounceText('score');
         collected_ender = true;
       } else {
         const _: never = cur_collectable;
@@ -591,7 +599,7 @@ class TurnState {
       }
     }
 
-    return [new TurnState(new_grid, new_block.pos, new_collectables, new_turn, new_score, new_sopa, new_multiplier, new_remaining_soups_until_bomb_drop), collision, collected_ender];
+    return [new TurnState(new_grid, new_block.pos, new_collectables, new_turn, new_score, new_sopa, new_multiplier, new_remaining_soups_until_bomb_drop, new_n_bombs), collision, collected_ender];
   }
 
   findSpotWithoutWall(): Vec2 {
@@ -1434,7 +1442,6 @@ function every_frame(cur_timestamp: number) {
 
   chores(delta_time);
 
-  console.log(turn_state.getHead().out_dir);
   draw(false);
 
   animation_id = requestAnimationFrame(every_frame);
