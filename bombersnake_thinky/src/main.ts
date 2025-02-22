@@ -67,6 +67,7 @@ const textures_async = await Promise.all(["bomb", "clock", "star", "star"].flatM
   .concat([loadImage("bomb_horB"), loadImage("bomb_verB")])
 );
 const TEXTURES = {
+  undo: textures_async[2], // TODO
   bomb_both: textures_async[0],
   bomb_hor: textures_async[33],
   bomb_ver: textures_async[34],
@@ -429,6 +430,14 @@ function cloneBlock(b: Block): Block {
 }
 
 class TurnState {
+  remainingUndos() {
+    return 3;
+    throw new Error("TODO");
+  }
+
+  totalBombCount() {
+    return this.cur_collectables.filter(x => x instanceof Bomb).length;
+  }
 
   private constructor(
     public readonly grid: Grid2D<Block>,
@@ -2021,20 +2030,22 @@ function draw(is_loading: boolean) {
   ctx.fillStyle = "white";
   ctx.textAlign = "left";
   ctx.textBaseline = "bottom";
-  fillJumpyText('multiplier', `x${turn_state.multiplier}`, (16.5 - .5 * Math.floor(Math.log10(turn_state.multiplier))) * TILE_SIZE, 1.15 * TILE_SIZE);
 
-  ctx.fillStyle = game_state === 'lost'
-    ? blinking(1000, last_timestamp, COLORS.TEXT_WIN_SCORE, COLORS.TEXT_WIN_SCORE_2)
-    : COLORS.TEXT;
-  fillJumpyText('score', `Score: ${turn_state.score}`, (5.9 - .25 * Math.floor(Math.log10(Math.max(1, turn_state.score)))) * TILE_SIZE, 1.15 * TILE_SIZE);
-  // ctx.drawImage(TEXTURES.multiplier, 12.5 * TILE_SIZE, 0, TILE_SIZE, TILE_SIZE);
+  if (true || game_state !== 'loading_menu' && game_state !== 'main_menu') {
+    // drawImageCentered(TEXTURES.settings, new Vec2(-TILE_SIZE * 1.2, TILE_SIZE * .6), settings_overlapped ? .8 : .7);
 
-  if (game_state !== 'loading_menu' && game_state !== 'main_menu') {
-    drawImageCentered(TEXTURES.settings, new Vec2(-TILE_SIZE * 1.2, TILE_SIZE * .6), settings_overlapped ? .8 : .7);
-    drawImageCentered(TEXTURES.speed, new Vec2(TILE_SIZE * .4, TILE_SIZE * .6));
-    ctx.fillText((turn_state.remaining_sopa).toString(), TILE_SIZE * .9, TILE_SIZE * 1.175);
-    drawImageCentered(TEXTURES.note, new Vec2(TILE_SIZE * 2.3, TILE_SIZE * .6), .9);
-    ctx.fillText(music_track.toString(), TILE_SIZE * 2.6, TILE_SIZE * 1.175);
+    fillJumpyText('bomb_count', turn_state.totalBombCount().toString(), -TILE_SIZE * 0.8, 1.15 * TILE_SIZE);
+
+    fillJumpyText('temperature', turn_state.remaining_sopa.toString(), TILE_SIZE * 3, 1.15 * TILE_SIZE);
+
+    fillJumpyText('multiplier', `x${turn_state.multiplier}`, (13.5 - .5 * Math.floor(Math.log10(turn_state.multiplier))) * TILE_SIZE, 1.15 * TILE_SIZE);
+
+    ctx.fillStyle = (game_state === 'lost' || game_state === 'lost_happy')
+      ? blinking(1000, last_timestamp, COLORS.TEXT_WIN_SCORE, COLORS.TEXT_WIN_SCORE_2)
+      : COLORS.TEXT;
+    fillJumpyText('score', `Score: ${turn_state.score}`, (5.9 - .25 * Math.floor(Math.log10(Math.max(1, turn_state.score)))) * TILE_SIZE, 1.15 * TILE_SIZE);
+
+    fillJumpyText('undos', turn_state.remainingUndos().toString(), 17 * TILE_SIZE, 1.15 * TILE_SIZE);
   }
 
   // extra arrows
@@ -2344,13 +2355,34 @@ function fillJumpyText(id: string, text: string, x: number, y: number) {
   if (id === 'multiplier') {
     ctx.translate(x, y);
     ctx.scale(1 + v * .2, 1 + v * .2);
-    ctx.drawImage(TEXTURES.multiplier, (12.5 - 13.6) * TILE_SIZE, -TILE_SIZE, TILE_SIZE, TILE_SIZE);
+    ctx.drawImage(TEXTURES.multiplier, (12.5 - 13.6) * TILE_SIZE, -1.05 * TILE_SIZE, TILE_SIZE, TILE_SIZE);
     ctx.fillText(text, 0, 0);
   }
   else if (id === 'score') {
     ctx.translate(x + TILE_SIZE * 2, y);
     ctx.scale(1 + v * .2, 1 + v * .2);
     ctx.fillText(text, -TILE_SIZE * 2, 0);
+  }
+  else if (id === 'bomb_count') {
+    ctx.translate(x, y);
+    ctx.scale(1 + v * .2, 1 + v * .2);
+    ctx.drawImage(TEXTURES.bomb_ver, -0.9 * TILE_SIZE, -1.05 * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+    ctx.fillText(text, 0, 0);
+  }
+  else if (id === 'temperature') {
+    ctx.translate(x, y);
+    ctx.scale(1 + v * .2, 1 + v * .2);
+    ctx.drawImage(TEXTURES.speed, -2.2 * TILE_SIZE, -1.05 * TILE_SIZE);
+    ctx.fillText(text, 0, 0);
+  }
+  else if (id === 'undos') {
+    ctx.translate(x, y);
+    ctx.scale(1 + v * .2, 1 + v * .2);
+    ctx.drawImage(TEXTURES.undo, -1.1 * TILE_SIZE, -1.05 * TILE_SIZE);
+    ctx.fillText(text, 0, 0);
+  }
+  else {
+    throw new Error(`unimplemented: ${id}`);
   }
 
   ctx.restore();
