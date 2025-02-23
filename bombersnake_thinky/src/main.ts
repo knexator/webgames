@@ -56,14 +56,14 @@ const textures_async = await Promise.all(["bomb", "clock", "star", "star"].flatM
   .concat([loadImage("title4"), loadImage("title4A")])
   .concat([loadImage("pause")])
   .concat([loadImage("bomb_G"), loadImage("clock_G"), loadImage("star_G")]) // 20
-  .concat([loadImage(`cross`)])
+  .concat([loadImage(`Cross`)])
   .concat("UDLR".split('').map(c => loadImage(`Cross${c}`)))
   .concat([loadImage("shareSG"), loadImage("shareSB")])
   .concat([loadImage("star"), loadImage("star")])
   .concat([loadImage("settings"), loadImage("note"), loadImage("speed")])
   .concat([loadImage("bomb_hor"), loadImage("bomb_ver")])
   .concat([loadImage("big_cup")])
-  .concat([loadImage("cup"), loadImage("cupB")])
+  .concat([loadImage("cup"), loadImage("cup_B")])
   .concat([loadImage("bomb_horB"), loadImage("bomb_verB")])
   .concat([loadImage("undoUI")])
 );
