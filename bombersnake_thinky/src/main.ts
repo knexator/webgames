@@ -49,7 +49,7 @@ function loadImage(name: string): Promise<HTMLImageElement> {
 
 const song1Promise = loadSoundAsync(mp3Url("Song1"), 1, true);
 
-const textures_async = await Promise.all(["bomb", "clock", "star", "star"].flatMap(name => [loadImage(name), loadImage(name + 'B')])
+const textures_async = await Promise.all(["mask", "clock", "star", "star"].flatMap(name => [loadImage(name), loadImage(name + '_B')])
   .concat(["open", "KO", "closed"].map(s => loadImage("eye_" + s)))
   .concat(["left", "right"].map(s => loadImage("menu_arrow_" + s)))
   .concat([loadImage("side_arrow_W"), loadImage("side_arrow_R")])
@@ -63,7 +63,7 @@ const textures_async = await Promise.all(["bomb", "clock", "star", "star"].flatM
   .concat([loadImage("settings"), loadImage("note"), loadImage("speed")])
   .concat([loadImage("bomb_hor"), loadImage("bomb_ver")])
   .concat([loadImage("big_cup")])
-  .concat([loadImage("cup"), loadImage("cup_B")])
+  .concat([loadImage("cup"), loadImage("cup_B"), loadImage("cup_G")])
   .concat([loadImage("bomb_horB"), loadImage("bomb_verB")])
   .concat([loadImage("undoUI")])
 );
