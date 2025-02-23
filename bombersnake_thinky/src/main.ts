@@ -64,7 +64,7 @@ const textures_async = await Promise.all(["mask", "clock", "star", "star"].flatM
   .concat([loadImage("bomb_hor"), loadImage("bomb_ver")])
   .concat([loadImage("big_cup")])
   .concat([loadImage("cup"), loadImage("cup_B"), loadImage("cup_G")])
-  .concat([loadImage("bomb_horB"), loadImage("bomb_verB")])
+  .concat([loadImage("bomb_hor_B"), loadImage("bomb_ver_B")])
   .concat([loadImage("undoUI")])
 );
 const TEXTURES = {
