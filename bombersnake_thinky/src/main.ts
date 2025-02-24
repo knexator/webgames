@@ -9,6 +9,7 @@ import * as noise from './kommon/noise';
 import { Grid2D } from "./kommon/grid2D";
 import JSON5 from 'json5';
 
+console.log('hola');
 
 // TODO: animated scarf not rounded right after corner
 // TODO: proper loading of assets
@@ -63,9 +64,10 @@ const textures_async = await Promise.all(["mask", "clock", "star", "star"].flatM
   .concat([loadImage("settings"), loadImage("note"), loadImage("speed")])
   .concat([loadImage("bomb_hor"), loadImage("bomb_ver")])
   .concat([loadImage("big_cup")])
-  .concat([loadImage("cup"), loadImage("cup_B"), loadImage("cup_G")])
+  .concat([loadImage("cup"), loadImage("cup_B")])
   .concat([loadImage("bomb_hor_B"), loadImage("bomb_ver_B")])
   .concat([loadImage("undoUI")])
+  .concat([loadImage("cup_G")])
 );
 const TEXTURES = {
   undoUI: textures_async[40],
@@ -93,7 +95,7 @@ const TEXTURES = {
     bomb_ver: textures_async[34],
     clock: textures_async[19],
     multiplier: textures_async[20],
-    soup: textures_async[36],
+    soup: textures_async[41],
     ender: textures_async[18],
   },
   eye: {
@@ -1220,6 +1222,7 @@ function stopTickTockSound(): void {
 last_timestamp = 0;
 // main loop; game logic lives here
 function every_frame(cur_timestamp: number) {
+  console.log('fhola');
   // in seconds
   let delta_time = (cur_timestamp - last_timestamp) / 1000;
   last_timestamp = cur_timestamp;
