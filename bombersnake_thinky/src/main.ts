@@ -271,6 +271,7 @@ if (is_phone) {
 }
 
 let CONFIG = {
+  MAX_UNDOS: 3,
   LOSE_BOMB_EVERY_N_SOUPS: 1,
   SOPA: 6,
   SOPA_PER_BOMB: 0,
@@ -436,10 +437,25 @@ function cloneBlock(b: Block): Block {
   return { pos: b.pos, in_dir: b.in_dir, out_dir: b.out_dir, t: b.t, valid: b.valid, is_ice: b.is_ice };
 }
 
+function shouldConsumeUndo(old_state: TurnState, turn_state: TurnState) {
+  if (old_state.cur_collectables.length != turn_state.cur_collectables.length) return true;
+  if (old_state.score != turn_state.score) return true;
+  for (let k = 0; k < old_state.cur_collectables.length; k++) {
+    const cur_collectable_a = old_state.cur_collectables[k];
+    const cur_collectable_b = turn_state.cur_collectables[k];
+    if (cur_collectable_a.constructor != cur_collectable_b.constructor) return true;
+    if (!cur_collectable_a.pos.equal(cur_collectable_b.pos)) return true;
+
+    if (cur_collectable_a instanceof Bomb && cur_collectable_b instanceof Bomb) {
+      if (cur_collectable_a.dir != cur_collectable_b.dir) return true;
+    }
+    // TODO: handle clock
+  }
+}
+
 class TurnState {
   remainingUndos() {
-    return 3;
-    throw new Error("TODO");
+    return this.cur_undos;
   }
 
   totalBombCount() {
@@ -456,6 +472,7 @@ class TurnState {
     public readonly multiplier: number,
     public readonly soups_until_bomb_drop: number,
     public readonly n_bombs: number,
+    public cur_undos: number,
   ) { }
 
   addInitialObstacleAt(p: Vec2) {
@@ -483,7 +500,7 @@ class TurnState {
     });
     const head_pos = blocks[blocks.length - 1].pos;
 
-    return new TurnState(grid, head_pos, collectables, turn, 0, CONFIG.SOPA, 1, CONFIG.LOSE_BOMB_EVERY_N_SOUPS, CONFIG.N_BOMBS + CONFIG.N_BOMBS_HOR + CONFIG.N_BOMBS_VER);
+    return new TurnState(grid, head_pos, collectables, turn, 0, CONFIG.SOPA, 1, CONFIG.LOSE_BOMB_EVERY_N_SOUPS, CONFIG.N_BOMBS + CONFIG.N_BOMBS_HOR + CONFIG.N_BOMBS_VER, 0);
   }
 
   getHead() {
@@ -500,6 +517,7 @@ class TurnState {
     let collected_ender = false;
     let new_remaining_soups_until_bomb_drop = this.soups_until_bomb_drop;
     let new_n_bombs = this.n_bombs;
+    let new_cur_undos = this.cur_undos;
 
     let new_block = new_grid.getV(modVec2(this.head_pos.add(delta), BOARD_SIZE));
     new_block.in_dir = delta.scale(-1);
@@ -565,6 +583,8 @@ class TurnState {
           collected_stuff_particles.push({ center: cur_collectable.pos, text: '+' + clock_score.toString(), turn: new_turn });
           cur_collectables[k] = placeClock();
           new_score += clock_score;
+          new_cur_undos += 1;
+          new_cur_undos = Math.min(new_cur_undos, CONFIG.MAX_UNDOS);
           bounceText('score');
           SOUNDS.clock.play();
           stopTickTockSound();
@@ -610,7 +630,7 @@ class TurnState {
       }
     }
 
-    return [new TurnState(new_grid, new_block.pos, new_collectables, new_turn, new_score, new_sopa, new_multiplier, new_remaining_soups_until_bomb_drop, new_n_bombs), collision, collected_ender];
+    return [new TurnState(new_grid, new_block.pos, new_collectables, new_turn, new_score, new_sopa, new_multiplier, new_remaining_soups_until_bomb_drop, new_n_bombs, new_cur_undos), collision, collected_ender];
   }
 
   findSpotWithoutWall(): Vec2 {
@@ -1407,7 +1427,13 @@ function every_frame(cur_timestamp: number) {
     while (input_queue.length > 0) {
       let maybe_next_input = input_queue.shift()!;
       if (maybe_next_input === 'undo') {
-        turn_state = prev_turns.pop() ?? turn_state;
+        if (turn_state.cur_undos > 0 && prev_turns.length > 0) {
+          const old_state = turn_state;
+          turn_state = prev_turns.pop()!;
+          if (shouldConsumeUndo(old_state, turn_state)) {
+            turn_state.cur_undos = old_state.cur_undos - 1;
+          }
+        }
         continue;
       }
       if (Math.abs(maybe_next_input.x) + Math.abs(maybe_next_input.y) !== 1
