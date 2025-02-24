@@ -556,7 +556,7 @@ class TurnState {
         if (clock.active) {
           let clock_score = CONFIG.CLOCK_VALUE * new_multiplier;
           collected_stuff_particles.push({ center: cur_collectable.pos, text: '+' + clock_score.toString(), turn: new_turn });
-          cur_collectables[k] = clock.noRemainingTurns();
+          cur_collectables[k] = placeClock();
           new_score += clock_score;
           bounceText('score');
           SOUNDS.clock.play();
@@ -1017,10 +1017,6 @@ class Clock {
     public remaining_turns: number,
     public hands_moving: boolean,
   ) { }
-
-  noRemainingTurns(): Clock {
-    return new Clock(this.pos, this.active, 0, false);
-  }
 
   update(advance: boolean): Clock {
     if (!advance && this.active) return new Clock(this.pos, this.active, this.remaining_turns, false);
