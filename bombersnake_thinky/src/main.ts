@@ -764,7 +764,7 @@ class LeaderboardData {
 
   static async fetchAroundWithName(center: number, pname: string | null): Promise<'error' | { name: string | null, highlight?: boolean, score: number }[]> {
     const corsProxy = 'https://cors-anywhere.herokuapp.com/';
-    let url = `https://php.droqen.com/storescore/bombsnack/do_get_nearby.php?score=${center}&mode=${1}`;
+    let url = `https://php.droqen.com/storescore/bombsnack/do_get_nearby.php?score=${center}&mode=${10}`;
     if (pname !== null) {
       url += `&pname=${pname}`;
     }
@@ -797,7 +797,7 @@ class LeaderboardData {
 
   static async fetchTopScoresWithName(pname: string | null): Promise<'error' | { name: string, score: number }[]> {
     const corsProxy = 'https://cors-anywhere.herokuapp.com/';
-    let url = `https://php.droqen.com/storescore/bombsnack/do_get_top10.php?mode=${1}`;
+    let url = `https://php.droqen.com/storescore/bombsnack/do_get_top10.php?mode=${10}`;
     if (pname !== null) {
       url += `&pname=${pname}`;
     }
@@ -829,7 +829,7 @@ class LeaderboardData {
     }
     localStorage.setItem('bombsnack_name', name);
     const corsProxy = 'https://cors-anywhere.herokuapp.com/';
-    const url = `https://php.droqen.com/storescore/bombsnack/do_new_score.php?name=${name}&score=${score}&mode=${1}`;
+    const url = `https://php.droqen.com/storescore/bombsnack/do_new_score.php?name=${name}&score=${score}&mode=${10}`;
     const true_url = DEBUG_CORS ? `${corsProxy}${url}` : url;
     const response = fetch(true_url);
     const asdf = this;
