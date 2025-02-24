@@ -9,8 +9,6 @@ import * as noise from './kommon/noise';
 import { Grid2D } from "./kommon/grid2D";
 import JSON5 from 'json5';
 
-console.log('hola');
-
 // TODO: animated scarf not rounded right after corner
 // TODO: proper loading of assets
 
@@ -68,8 +66,13 @@ const textures_async = await Promise.all(["mask", "clock", "star", "star"].flatM
   .concat([loadImage("bomb_hor_B"), loadImage("bomb_ver_B")])
   .concat([loadImage("undoUI")])
   .concat([loadImage("cup_G")])
+  .concat([loadImage("ice_strip_1"), loadImage("ice_strip_2")])
 );
 const TEXTURES = {
+  ice: {
+    a: textures_async[42],
+    b: textures_async[43],
+  },
   undoUI: textures_async[40],
   bomb_both: textures_async[0],
   bomb_hor: textures_async[33],
@@ -426,10 +429,11 @@ type Block = {
   out_dir: Vec2;
   t: number;
   valid: boolean;
+  is_ice: boolean;
 };
 
 function cloneBlock(b: Block): Block {
-  return { pos: b.pos, in_dir: b.in_dir, out_dir: b.out_dir, t: b.t, valid: b.valid };
+  return { pos: b.pos, in_dir: b.in_dir, out_dir: b.out_dir, t: b.t, valid: b.valid, is_ice: b.is_ice };
 }
 
 class TurnState {
@@ -461,11 +465,12 @@ class TurnState {
       out_dir: Vec2.zero,
       t: -1,
       pos: p,
+      is_ice: true,
     })
   }
 
-  static initial(turn: number, blocks: Omit<Block, 'valid'>[], collectables: Collectable[]): TurnState {
-    const grid = Grid2D.initV(BOARD_SIZE, pos => ({ valid: false, in_dir: Vec2.zero, out_dir: Vec2.zero, t: 0, pos: pos }));
+  static initial(turn: number, blocks: Omit<Omit<Block, 'valid'>, 'is_ice'>[], collectables: Collectable[]): TurnState {
+    const grid = Grid2D.initV(BOARD_SIZE, pos => ({ valid: false, in_dir: Vec2.zero, out_dir: Vec2.zero, t: 0, pos: pos, is_ice: false }));
     blocks.forEach(v => {
       grid.setV(v.pos, {
         valid: true,
@@ -473,6 +478,7 @@ class TurnState {
         out_dir: v.out_dir,
         t: v.t,
         pos: v.pos,
+        is_ice: false,
       });
     });
     const head_pos = blocks[blocks.length - 1].pos;
@@ -501,6 +507,7 @@ class TurnState {
     new_block.t = new_turn;
     let collision = new_block.valid;
     new_block.valid = true;
+    new_block.is_ice = false;
 
     const turned = !delta.equal(this.getHead().in_dir.scale(-1));
     if (turned) {
@@ -1218,7 +1225,6 @@ function stopTickTockSound(): void {
 last_timestamp = 0;
 // main loop; game logic lives here
 function every_frame(cur_timestamp: number) {
-  console.log('fhola');
   // in seconds
   let delta_time = (cur_timestamp - last_timestamp) / 1000;
   last_timestamp = cur_timestamp;
@@ -1670,6 +1676,10 @@ function draw(is_loading: boolean) {
   // snake body
   turn_state.grid.forEachV((_, cur_block) => {
     if (!cur_block.valid) return;
+    if (cur_block.is_ice) {
+      drawTexturedTile(cur_block.pos, mod(cur_block.pos.x + cur_block.pos.y, 2) == 0 ? TEXTURES.ice.a : TEXTURES.ice.b);
+      return;
+    }
     let fill: keyof typeof COLORS = mod(cur_block.t, 2) == 1 ? "SNAKE_HEAD" : "SNAKE_WALL";
     const is_scarf = CONFIG.SCARF === "full" && turn - cur_block.t === 1;
     if (is_scarf) {
@@ -2212,6 +2222,15 @@ function drawItem(top_left: Vec2, item: "bomb_both" | "bomb_hor" | "bomb_ver" | 
             : TEXTURES[item],
           (top_left.x + i * BOARD_SIZE.x) * TILE_SIZE, (top_left.y + j * BOARD_SIZE.y) * TILE_SIZE, TILE_SIZE, TILE_SIZE);
       }
+    }
+  }
+}
+
+function drawTexturedTile(top_left: Vec2, texture: HTMLImageElement) {
+  for (let i = -1; i <= 1; i++) {
+    for (let j = -1; j <= 1; j++) {
+      ctx.drawImage(texture,
+        (top_left.x + i * BOARD_SIZE.x) * TILE_SIZE, (top_left.y + j * BOARD_SIZE.y) * TILE_SIZE, TILE_SIZE, TILE_SIZE);
     }
   }
 }
