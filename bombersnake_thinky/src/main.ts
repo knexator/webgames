@@ -67,6 +67,7 @@ const textures_async = await Promise.all(["mask", "clock", "star", "star"].flatM
   .concat([loadImage("undoUI")])
   .concat([loadImage("cup_G")])
   .concat([loadImage("ice_strip_1"), loadImage("ice_strip_2")])
+  .concat([loadImage("bomb_hor_G"), loadImage("bomb_ver_G")])
 );
 const TEXTURES = {
   ice: {
@@ -94,8 +95,8 @@ const TEXTURES = {
   },
   gray: {
     bomb_both: textures_async[18],
-    bomb_hor: textures_async[33],
-    bomb_ver: textures_async[34],
+    bomb_hor: textures_async[44],
+    bomb_ver: textures_async[45],
     clock: textures_async[19],
     multiplier: textures_async[20],
     soup: textures_async[41],
