@@ -593,6 +593,7 @@ class TurnState {
           new_score += clock_score;
           new_cur_undos += 1;
           new_cur_undos = Math.min(new_cur_undos, CONFIG.MAX_UNDOS);
+          bounceText('undos');
           bounceText('score');
           SOUNDS.clock.play();
           stopTickTockSound();
@@ -1449,6 +1450,7 @@ function every_frame(cur_timestamp: number) {
           turn_state = prev_turns.pop()!;
           if (shouldConsumeUndo(old_state, turn_state)) {
             turn_state.cur_undos = old_state.cur_undos - 1;
+            bounceText('undos');
           }
         }
         continue;
