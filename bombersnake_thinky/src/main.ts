@@ -277,7 +277,7 @@ if (is_phone) {
 }
 
 let CONFIG = {
-  STARTING_UNDOS: 3,
+  STARTING_UNDOS: 1,
   MAX_UNDOS: 3,
   LOSE_BOMB_EVERY_N_SOUPS: 1,
   SOPA: 6,
