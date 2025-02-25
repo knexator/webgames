@@ -68,11 +68,16 @@ const textures_async = await Promise.all(["mask", "clock", "star", "star"].flatM
   .concat([loadImage("cup_G")])
   .concat([loadImage("ice_strip_1"), loadImage("ice_strip_2")])
   .concat([loadImage("bomb_hor_G"), loadImage("bomb_ver_G")])
+  .concat([loadImage("ice_strip_1_G"), loadImage("ice_strip_2_G")])
 );
 const TEXTURES = {
   ice: {
     a: textures_async[42],
     b: textures_async[43],
+    gray: {
+      a: textures_async[46],
+      b: textures_async[47],
+    }
   },
   undoUI: textures_async[40],
   bomb_both: textures_async[0],
@@ -1713,7 +1718,7 @@ function draw(is_loading: boolean) {
   turn_state.grid.forEachV((_, cur_block) => {
     if (!cur_block.valid) return;
     if (cur_block.is_ice) {
-      drawTexturedTile(cur_block.pos, mod(cur_block.pos.x + cur_block.pos.y, 2) == 0 ? TEXTURES.ice.a : TEXTURES.ice.b);
+      drawIceTile(cur_block.pos);
       return;
     }
     let fill: keyof typeof COLORS = mod(cur_block.t, 2) == 1 ? "SNAKE_HEAD" : "SNAKE_WALL";
@@ -2262,10 +2267,14 @@ function drawItem(top_left: Vec2, item: "bomb_both" | "bomb_hor" | "bomb_ver" | 
   }
 }
 
-function drawTexturedTile(top_left: Vec2, texture: HTMLImageElement) {
+function drawIceTile(top_left: Vec2) {
+  const is_a = mod(top_left.x + top_left.y, 2) == 0
   for (let i = -1; i <= 1; i++) {
     for (let j = -1; j <= 1; j++) {
-      ctx.drawImage(texture,
+      const asdf = (CONFIG.WRAP_GRAY && (i !== 0 || j !== 0 || game_state === 'lost' || game_state === 'soup_menu'))
+        ? TEXTURES.ice.gray
+        : TEXTURES.ice;
+      ctx.drawImage(is_a ? asdf.a : asdf.b,
         (top_left.x + i * BOARD_SIZE.x) * TILE_SIZE, (top_left.y + j * BOARD_SIZE.y) * TILE_SIZE, TILE_SIZE, TILE_SIZE);
     }
   }
