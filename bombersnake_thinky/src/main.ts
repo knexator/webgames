@@ -277,6 +277,7 @@ if (is_phone) {
 }
 
 let CONFIG = {
+  STARTING_UNDOS: 3,
   MAX_UNDOS: 3,
   LOSE_BOMB_EVERY_N_SOUPS: 1,
   SOPA: 6,
@@ -506,7 +507,7 @@ class TurnState {
     });
     const head_pos = blocks[blocks.length - 1].pos;
 
-    return new TurnState(grid, head_pos, collectables, turn, 0, CONFIG.SOPA, 1, CONFIG.LOSE_BOMB_EVERY_N_SOUPS, CONFIG.N_BOMBS + CONFIG.N_BOMBS_HOR + CONFIG.N_BOMBS_VER, 0);
+    return new TurnState(grid, head_pos, collectables, turn, 0, CONFIG.SOPA, 1, CONFIG.LOSE_BOMB_EVERY_N_SOUPS, CONFIG.N_BOMBS + CONFIG.N_BOMBS_HOR + CONFIG.N_BOMBS_VER, CONFIG.STARTING_UNDOS);
   }
 
   getHead() {
