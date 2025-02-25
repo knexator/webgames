@@ -279,15 +279,17 @@ if (is_phone) {
 let CONFIG = {
   STARTING_UNDOS: 1,
   MAX_UNDOS: 3,
-  LOSE_BOMB_EVERY_N_SOUPS: 1,
-  SOPA: 6,
+  START_UNDOS: 1,
+  LOSE_BOMB_EVERY_N_SOUPS: 4,
+  MIN_AMOUNT_BOMBS: 4,
+  SOPA: 8,
   SOPA_PER_BOMB: 0,
   HEAD_BOUNCE: 0,
   EYE_BOUNCE: 0,
   SHARE_BUTTON_SCALE: 1.5,
   PAUSED: false,
-  TURN_DURATION: .16,
-  ANIM_PERC: 0.2,
+  TURN_DURATION: .2,
+  ANIM_PERC: 0.4,
   BORDER_ARROWS: false,
   CHEAT_INMORTAL: false,
   N_BOMBS: 0,
@@ -297,7 +299,7 @@ let CONFIG = {
   N_SOUP: 1,
   CLOCK_VALUE: 4,
   CLOCK_DURATION: 3,
-  CLOCK_FREQUENCY: 5,
+  CLOCK_FREQUENCY: 40,
   TICKTOCK_SPEED: 400,
   MUSIC_DURING_TICKTOCK: .25,
   LUCK: 5,
@@ -1134,22 +1136,22 @@ const sounds_async = await Promise.all([
 ]);
 
 const async_songs = [
-  loadSoundAsync(mp3Url("Song2"), 0.35, true),
-  loadSoundAsync(mp3Url("Song3"), 0.35, true),
-  loadSoundAsync(mp3Url("Song4"), 0.35, true),
-  loadSoundAsync(mp3Url("Song5"), 0.40, true),
-  loadSoundAsync(mp3Url("Song6"), 0.40, true),
-  loadSoundAsync(mp3Url("Song7"), 0.35, true),
+  loadSoundAsync(mp3Url("Song2"), 0.5, true),
+  loadSoundAsync(mp3Url("Song3"), 0.5, true),
+  loadSoundAsync(mp3Url("Song4"), 0.5, true),
+  loadSoundAsync(mp3Url("Song5"), 0.5, true),
+  loadSoundAsync(mp3Url("Song6"), 0.5, true),
+  loadSoundAsync(mp3Url("Song7"), 0.5, true),
 ];
 
 const INITIAL_VOLUME_SONGS = [
   0, 1,
-  0.35,
-  0.35,
-  0.35,
-  0.40,
-  0.40,
-  0.35,
+  0.5,
+  0.5,
+  0.5,
+  0.50,
+  0.5,
+  0.5,
 ];
 
 const SONGS = [null, sounds_async[0], ...async_songs.map(_ => null)];
