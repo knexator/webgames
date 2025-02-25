@@ -607,7 +607,7 @@ class TurnState {
         cur_collectables[k] = placeSoup();
         SOUNDS.menu2.play();
         new_remaining_soups_until_bomb_drop -= 1;
-        if (new_remaining_soups_until_bomb_drop <= 0) {
+        if (new_remaining_soups_until_bomb_drop <= 0 && new_n_bombs > CONFIG.MIN_AMOUNT_BOMBS) {
           bounceText('bomb_count');
           new_remaining_soups_until_bomb_drop = CONFIG.LOSE_BOMB_EVERY_N_SOUPS;
           new_n_bombs -= 1;
