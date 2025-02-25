@@ -537,6 +537,7 @@ class TurnState {
     if (turned) {
       new_sopa -= 1;
       bounceText('temperature');
+      collected_stuff_particles.push({ center: this.getHead().pos, text: new_sopa.toString(), turn: new_turn, duration: 1 });
     }
     new_grid.getV(this.head_pos).out_dir = delta;
 
@@ -664,7 +665,7 @@ let turn_offset: number; // always between 0..1
 let tick_or_tock: boolean;
 let touch_input_base_point: Vec2 | null;
 let exploding_cross_particles: { center: Vec2, turn: number, dir: 'both' | 'hor' | 'ver' }[];
-let collected_stuff_particles: { center: Vec2, text: string, turn: number }[];
+let collected_stuff_particles: { center: Vec2, text: string, turn: number, duration?: number }[];
 let haptic: boolean;
 let music_track: number;
 let last_lost_timestamp = 0;
@@ -1869,6 +1870,7 @@ function draw(is_loading: boolean) {
 
   // won points particles
   collected_stuff_particles = collected_stuff_particles.filter(particle => {
+    if (turn + turn_offset - particle.turn > (particle.duration ?? 3)) return false;
     let t = remap(turn + turn_offset, particle.turn, particle.turn + 3, 0, 1);
     if (t > 1) return false;
     let dx = particle.center.x > BOARD_SIZE.x - 2 ? -1 : 1;
