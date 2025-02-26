@@ -69,6 +69,7 @@ const textures_async = await Promise.all(["mask", "clock", "star", "star"].flatM
   .concat([loadImage("ice_strip_1"), loadImage("ice_strip_2")])
   .concat([loadImage("bomb_hor_G"), loadImage("bomb_ver_G")])
   .concat([loadImage("ice_strip_1_G"), loadImage("ice_strip_2_G")])
+  .concat([loadImage("mask_G")])
 );
 const TEXTURES = {
   ice: {
@@ -105,7 +106,7 @@ const TEXTURES = {
     clock: textures_async[19],
     multiplier: textures_async[20],
     soup: textures_async[41],
-    ender: textures_async[18],
+    ender: textures_async[48],
   },
   eye: {
     open: textures_async[8],
