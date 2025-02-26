@@ -2144,7 +2144,7 @@ function draw(is_loading: boolean) {
 
     // fillJumpyText('bomb_count', turn_state.totalBombCount().toString(), -TILE_SIZE * 0.8, 1.15 * TILE_SIZE);
 
-    fillJumpyText('temperature', turn_state.remaining_sopa.toString(), TILE_SIZE * 3, 1.15 * TILE_SIZE);
+    fillJumpyText('temperature', turn_state.remaining_sopa.toString(), TILE_SIZE * .5, 1.15 * TILE_SIZE);
 
     fillJumpyText('multiplier', `x${turn_state.multiplier}`, (13.5 - .5 * Math.floor(Math.log10(turn_state.multiplier))) * TILE_SIZE, 1.15 * TILE_SIZE);
 
