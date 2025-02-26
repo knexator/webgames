@@ -465,6 +465,8 @@ function shouldConsumeUndo(old_state: TurnState, turn_state: TurnState) {
   }
 }
 
+var death_block: Block | null = null;
+
 class TurnState {
   remainingUndos() {
     return this.cur_undos;
@@ -499,6 +501,7 @@ class TurnState {
   }
 
   static initial(turn: number, blocks: Omit<Omit<Block, 'valid'>, 'is_ice'>[], collectables: Collectable[]): TurnState {
+    death_block = null;
     const grid = Grid2D.initV(BOARD_SIZE, pos => ({ valid: false, in_dir: Vec2.zero, out_dir: Vec2.zero, t: 0, pos: pos, is_ice: false }));
     blocks.forEach(v => {
       grid.setV(v.pos, {
@@ -519,6 +522,14 @@ class TurnState {
     return this.grid.getV(this.head_pos);
   }
 
+  forEachVPlusDeathBlock(callback: (pos: Vec2, element: Block) => void): void {
+    if (death_block !== null) {
+      callback(death_block.pos, death_block);
+    }
+    this.grid.forEachV(callback);
+  }
+
+
   doThing(delta: Vec2): [TurnState, boolean, boolean] {
     const new_grid = this.grid.map((_, v) => cloneBlock(v));
     const new_collectables = this.cur_collectables.slice();
@@ -532,10 +543,13 @@ class TurnState {
     let new_cur_undos = this.cur_undos;
 
     let new_block = new_grid.getV(modVec2(this.head_pos.add(delta), BOARD_SIZE));
+    let collision = new_block.valid;
+    if (collision) {
+      death_block = cloneBlock(new_block);
+    }
     new_block.in_dir = delta.scale(-1);
     new_block.out_dir = Vec2.zero;
     new_block.t = new_turn;
-    let collision = new_block.valid;
     new_block.valid = true;
     new_block.is_ice = false;
 
@@ -674,9 +688,9 @@ let touch_input_base_point: Vec2 | null;
 let exploding_cross_particles: { center: Vec2, turn: number, dir: 'both' | 'hor' | 'ver' }[];
 let collected_stuff_particles: { center: Vec2, text: string, turn: number, duration?: number }[];
 let snow_particles: { pos: Vec2, vel: Vec2, radius: number }[] = fromCount(40, _ => {
-  return { 
-    pos: new Vec2(randomFloat(-1, 1), randomFloat(-1, 1)), 
-    vel: new Vec2(.2, .2).rotateTurns(randomCentered(0.05)), 
+  return {
+    pos: new Vec2(randomFloat(-1, 1), randomFloat(-1, 1)),
+    vel: new Vec2(.2, .2).rotateTurns(randomCentered(0.05)),
     radius: randomFloat(.01, .02)
   };
 });
@@ -1020,6 +1034,7 @@ const leaderboard_menu: { focus: number, buttons: MenuButton[] } = {
 };
 
 function restartGame() {
+  death_block = null;
   stopTickTockSound();
   game_state = "main_menu";
   if (CONFIG.START_ON_BORDER) {
@@ -1599,7 +1614,7 @@ function updateSnowParticles(dt: number) {
     flake.pos = flake.pos.add(flake.vel.scale(dt));
     if (flake.pos.y > 1) {
       flake.pos = new Vec2(randomFloat(-1, 1), flake.pos.y - 2);
-    } else if(flake.pos.x > 1) {
+    } else if (flake.pos.x > 1) {
       flake.pos = new Vec2(flake.pos.x - 2, randomFloat(-1, 1));
     }
     // flake.vel = flake.vel.rotateTurns(randomCentered(.1 * dt));
@@ -1627,7 +1642,7 @@ function draw(is_loading: boolean) {
 
   let turn = turn_state.turn;
   if (CONFIG.SHADOW) {
-    turn_state.grid.forEachV((_, cur_block) => {
+    turn_state.forEachVPlusDeathBlock((_, cur_block) => {
       if (!cur_block.valid) return;
       const is_scarf = CONFIG.SCARF === "full" && turn - cur_block.t === 1;
       if (cur_block.in_dir.equal(cur_block.out_dir.scale(-1))) {
@@ -1749,7 +1764,7 @@ function draw(is_loading: boolean) {
   });
 
   // snake body
-  turn_state.grid.forEachV((_, cur_block) => {
+  turn_state.forEachVPlusDeathBlock((_, cur_block) => {
     if (!cur_block.valid) return;
     if (CONFIG.ENABLE_ICE && cur_block.is_ice) {
       drawIceTile(cur_block.pos);
