@@ -2,7 +2,7 @@ import * as twgl from "twgl.js"
 import GUI from "lil-gui";
 import { Input, KeyCode, Mouse, MouseButton } from "./kommon/input";
 import { DefaultMap, deepcopy, fromCount, fromRange, objectMap, repeat, zip2 } from "./kommon/kommon";
-import { mod, towards as approach, lerp, inRange, clamp, argmax, argmin, max, remap, clamp01, randomInt, randomFloat, randomChoice, doSegmentsIntersect, closestPointOnSegment, roundTo } from "./kommon/math";
+import { mod, towards as approach, lerp, inRange, clamp, argmax, argmin, max, remap, clamp01, randomInt, randomFloat, randomChoice, doSegmentsIntersect, closestPointOnSegment, roundTo, wrap, randomCentered } from "./kommon/math";
 import { Howl } from "howler"
 import { Vec2 } from "./kommon/vec2"
 import * as noise from './kommon/noise';
@@ -670,6 +670,9 @@ let tick_or_tock: boolean;
 let touch_input_base_point: Vec2 | null;
 let exploding_cross_particles: { center: Vec2, turn: number, dir: 'both' | 'hor' | 'ver' }[];
 let collected_stuff_particles: { center: Vec2, text: string, turn: number, duration?: number }[];
+let snow_particles: { pos: Vec2, vel: Vec2, radius: number }[] = fromCount(80, _ => {
+  return { pos: new Vec2(randomFloat(-1, 1), randomFloat(-1, 1)), vel: new Vec2(.6, .6), radius: randomFloat(.005, .02) };
+});
 let haptic: boolean;
 let music_track: number;
 let last_lost_timestamp = 0;
@@ -1273,6 +1276,8 @@ function every_frame(cur_timestamp: number) {
   ctx.fillStyle = COLORS.WEB_BG;
   ctx.fillRect(0, 0, canvas_ctx.width, canvas_ctx.height);
 
+  updateSnowParticles(delta_time);
+
   if (input.keyboard.wasPressed(KeyCode.KeyT)) {
     fetch(`http://dreamlo.com/lb/-HkIeRvNC0GMueaYC7mG2gSvfvURE4n0CJLwwfSGkTAQ/add/player${Math.floor(cur_timestamp / 1000)}/101`);
     fetch(`http://dreamlo.com/lb/6659f0d0778d3c3fe0b504ff/json`).then(res => {
@@ -1576,6 +1581,18 @@ function doGenericMenu(menu: { focus: number, buttons: MenuButton[] }, canvas_mo
   }
 
   return user_clicked_something;
+}
+
+function updateSnowParticles(dt: number) {
+  snow_particles.forEach(flake => {
+    flake.pos = flake.pos.add(flake.vel.scale(dt));
+    if (flake.pos.y > 1) {
+      flake.pos = new Vec2(randomFloat(-1, 1), flake.pos.y - 2);
+    } else if(flake.pos.x > 1) {
+      flake.pos = new Vec2(flake.pos.x - 2, randomFloat(-1, 1));
+    }
+    flake.vel = flake.vel.rotateTurns(randomCentered(.1 * dt));
+  });
 }
 
 function draw(is_loading: boolean) {
@@ -1894,6 +1911,20 @@ function draw(is_loading: boolean) {
   });
 
   ctx.resetTransform();
+
+  // snow particles
+  ctx.fillStyle = "white";
+  // ctx.globalAlpha = 0.5;
+  snow_particles.forEach(flake => {
+    ctx.beginPath();
+    drawCircleScreenCoords(new Vec2(
+      remap(flake.pos.x, -0.5, 0.5, 0, canvas_ctx.width),
+      remap(flake.pos.y, -0.5, 0.5, 0, canvas_ctx.height),
+    ), flake.radius * canvas_ctx.width);
+    ctx.fill();
+    console.log(flake.pos);
+  });
+  // ctx.globalAlpha = 1;
 
   // draw borders to hide stuff
   ctx.fillStyle = COLORS.WEB_BG;
@@ -2375,14 +2406,12 @@ function fillCircle(center: Vec2, radius: number, type: keyof typeof COLORS) {
 }
 
 function drawCircleNoWrap(center: Vec2, radius: number) {
-  ctx.moveTo(
-    (center.x + radius) * TILE_SIZE,
-    center.y * TILE_SIZE,
-  );
-  ctx.arc(
-    center.x * TILE_SIZE,
-    center.y * TILE_SIZE,
-    radius * TILE_SIZE, 0, 2 * Math.PI);
+  drawCircleScreenCoords(center.scale(TILE_SIZE), radius * TILE_SIZE);
+}
+
+function drawCircleScreenCoords(center: Vec2, radius: number) {
+  ctx.moveTo(center.x + radius, center.y);
+  ctx.arc(center.x, center.y, radius, 0, 2 * Math.PI);
 }
 
 function anyBlockAt(pos: Vec2): boolean {
