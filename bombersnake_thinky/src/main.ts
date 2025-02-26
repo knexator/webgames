@@ -1923,7 +1923,6 @@ function draw(is_loading: boolean) {
       remap(flake.pos.y, -0.5, 0.5, 0, canvas_ctx.height),
     ), flake.radius * canvas_ctx.width);
     ctx.fill();
-    console.log(flake.pos);
   });
   // ctx.globalAlpha = 1;
 
