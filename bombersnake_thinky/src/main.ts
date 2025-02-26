@@ -672,7 +672,11 @@ let touch_input_base_point: Vec2 | null;
 let exploding_cross_particles: { center: Vec2, turn: number, dir: 'both' | 'hor' | 'ver' }[];
 let collected_stuff_particles: { center: Vec2, text: string, turn: number, duration?: number }[];
 let snow_particles: { pos: Vec2, vel: Vec2, radius: number }[] = fromCount(80, _ => {
-  return { pos: new Vec2(randomFloat(-1, 1), randomFloat(-1, 1)), vel: new Vec2(.6, .6), radius: randomFloat(.005, .02) };
+  return { 
+    pos: new Vec2(randomFloat(-1, 1), randomFloat(-1, 1)), 
+    vel: new Vec2(.6, .6).rotateTurns(randomCentered(0.05)), 
+    radius: randomFloat(.005, .02)
+  };
 });
 let haptic: boolean;
 let music_track: number;
@@ -1592,7 +1596,7 @@ function updateSnowParticles(dt: number) {
     } else if(flake.pos.x > 1) {
       flake.pos = new Vec2(flake.pos.x - 2, randomFloat(-1, 1));
     }
-    flake.vel = flake.vel.rotateTurns(randomCentered(.1 * dt));
+    // flake.vel = flake.vel.rotateTurns(randomCentered(.1 * dt));
   });
 }
 
