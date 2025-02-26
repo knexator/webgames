@@ -285,7 +285,6 @@ let CONFIG = {
   HACK_NEVER_FREEZE: false,
   STARTING_UNDOS: 1,
   MAX_UNDOS: 3,
-  START_UNDOS: 1,
   LOSE_BOMB_EVERY_N_SOUPS: 4,
   MIN_AMOUNT_BOMBS: 4,
   SOPA: 8,
@@ -1489,6 +1488,9 @@ function every_frame(cur_timestamp: number) {
           turn_state = prev_turns.pop()!;
           if (shouldConsumeUndo(old_state, turn_state)) {
             turn_state.cur_undos = old_state.cur_undos - 1;
+            prev_turns.forEach(x => {
+              x.cur_undos -= 1;
+            })
             bounceText('undos');
           }
         }
