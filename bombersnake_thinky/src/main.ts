@@ -494,7 +494,7 @@ class TurnState {
       out_dir: Vec2.zero,
       t: -1,
       pos: p,
-      is_ice: CONFIG.ENABLE_ICE,
+      is_ice: true,
     })
   }
 
@@ -1743,11 +1743,11 @@ function draw(is_loading: boolean) {
   // snake body
   turn_state.grid.forEachV((_, cur_block) => {
     if (!cur_block.valid) return;
-    if (cur_block.is_ice) {
+    if (CONFIG.ENABLE_ICE && cur_block.is_ice) {
       drawIceTile(cur_block.pos);
       return;
     }
-    let fill: keyof typeof COLORS = mod(cur_block.t, 2) == 1 ? "SNAKE_HEAD" : "SNAKE_WALL";
+    let fill: keyof typeof COLORS = (cur_block.is_ice ? mod(cur_block.pos.x + cur_block.pos.y, 2) : mod(cur_block.t, 2) == 1) ? "SNAKE_HEAD" : "SNAKE_WALL";
     const is_scarf = CONFIG.SCARF === "full" && turn - cur_block.t === 1;
     if (is_scarf) {
       fill = "SCARF_IN";
