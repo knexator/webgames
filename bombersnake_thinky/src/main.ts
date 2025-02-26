@@ -278,6 +278,8 @@ if (is_phone) {
 }
 
 let CONFIG = {
+  ENABLE_ICE: false,
+  HACK_NEVER_FREEZE: false,
   STARTING_UNDOS: 1,
   MAX_UNDOS: 3,
   START_UNDOS: 1,
@@ -492,7 +494,7 @@ class TurnState {
       out_dir: Vec2.zero,
       t: -1,
       pos: p,
-      is_ice: true,
+      is_ice: CONFIG.ENABLE_ICE,
     })
   }
 
@@ -1481,6 +1483,11 @@ function every_frame(cur_timestamp: number) {
       delta = next_input;
       // randomChoice([SOUNDS.move1, SOUNDS.move2]).play();
     } else {
+      continue;
+    }
+
+    const turned = !delta.equal(turn_state.getHead().in_dir.scale(-1));
+    if (!CONFIG.HACK_NEVER_FREEZE && turn_state.remaining_sopa <= 0 && turned) {
       continue;
     }
 
