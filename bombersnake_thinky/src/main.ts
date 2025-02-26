@@ -672,7 +672,7 @@ class TurnState {
       );
       valid = !this.grid.getV(pos).valid;
       let head_block = this.getHead();
-      valid = valid && !pos.equal(head_block.pos.add(head_block.in_dir)) && !this.cur_collectables.some(x => x.pos.equal(pos));
+      valid = valid && !pos.equal(head_block.pos) && !pos.equal(head_block.pos.add(head_block.in_dir)) && !this.cur_collectables.some(x => x.pos.equal(pos));
     } while (!valid);
     return pos;
   }
