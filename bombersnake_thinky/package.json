@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "update": "tsc && vite build && butler push ./dist pinchazumos/bombsnack:html",
+    "update": "tsc && vite build && butler push ./dist pinchazumos/bombsnack-chill:html",
     "ghpages_build": "tsc && vite build --mode include_frame"
   },
   "devDependencies": {

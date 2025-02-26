@@ -683,7 +683,7 @@ let snow_particles: { pos: Vec2, vel: Vec2, radius: number }[] = fromCount(40, _
 let haptic: boolean;
 let music_track: number;
 let last_lost_timestamp = 0;
-let settings_overlapped = false;
+let undo_overlapped = false;
 let scores_view: 'global' | 'local' = 'global';
 let soup_decision: 'continue' | 'stop' | null = null;
 
@@ -1304,8 +1304,8 @@ function every_frame(cur_timestamp: number) {
   const raw_mouse_pos = new Vec2(input.mouse.clientX - rect.left, input.mouse.clientY - rect.top);
   const canvas_mouse_pos = raw_mouse_pos.sub(Vec2.both(MARGIN * TILE_SIZE).addY(TOP_OFFSET * TILE_SIZE));
 
-  settings_overlapped = canvas_mouse_pos.sub(
-    new Vec2(-TILE_SIZE * 1.1, -TILE_SIZE * 2.5)).mag() < TILE_SIZE * .7;
+  undo_overlapped = canvas_mouse_pos.sub(
+    new Vec2(TILE_SIZE * 16.5, -TILE_SIZE * 2.5)).mag() < TILE_SIZE * .7;
 
   if (game_state === "loading_menu") {
     // turn_offset += delta_time / CONFIG.TURN_DURATION;
@@ -1377,7 +1377,7 @@ function every_frame(cur_timestamp: number) {
   } else if (game_state === "lost" || game_state === "lost_happy") {
     doGenericMenu(lost_menu, canvas_mouse_pos, raw_mouse_pos);
 
-    if (input.keyboard.wasPressed(KeyCode.Escape) || (input.mouse.wasPressed(MouseButton.Left) && settings_overlapped)) {
+    if (input.keyboard.wasPressed(KeyCode.Escape)) {
       restartGame();
       game_state = "main_menu";
     }
@@ -1421,9 +1421,13 @@ function every_frame(cur_timestamp: number) {
       input_queue.push('undo');
     }
 
+    if (input.mouse.wasPressed(MouseButton.Left) && undo_overlapped) {
+      input_queue.push('undo');
+    }
+
     turn_offset += delta_time / CONFIG.TURN_DURATION;
 
-    if (input.keyboard.wasPressed(KeyCode.Escape) || (input.mouse.wasPressed(MouseButton.Left) && settings_overlapped)) {
+    if (input.keyboard.wasPressed(KeyCode.Escape)) {
       game_state = "pause_menu";
     }
   } else if (game_state === "soup_menu") {
@@ -1564,10 +1568,6 @@ function doGenericMenu(menu: { focus: number, buttons: MenuButton[] }, canvas_mo
   if ((input.mouse.clientX !== input.mouse.prev_clientX || input.mouse.clientY !== input.mouse.prev_clientY)
     && (canvas_mouse_pos.y + TILE_SIZE * TOP_OFFSET) < (BOARD_SIZE.y + MARGIN * 2) * TILE_SIZE) {
     menu.focus = argmin(menu.buttons.map(button => Math.abs(raw_mouse_pos.y - real_y(button.y_coord))));
-  }
-
-  if (settings_overlapped) {
-    menu.focus = menu.buttons.length - 1;
   }
 
   if (input.mouse.wasPressed(MouseButton.Left) && (canvas_mouse_pos.y + TILE_SIZE * TOP_OFFSET) < (BOARD_SIZE.y + MARGIN * 2) * TILE_SIZE) {
@@ -2133,9 +2133,8 @@ function draw(is_loading: boolean) {
   ctx.textBaseline = "bottom";
 
   if (true || game_state !== 'loading_menu' && game_state !== 'main_menu') {
-    // drawImageCentered(TEXTURES.settings, new Vec2(-TILE_SIZE * 1.2, TILE_SIZE * .6), settings_overlapped ? .8 : .7);
 
-    fillJumpyText('bomb_count', turn_state.totalBombCount().toString(), -TILE_SIZE * 0.8, 1.15 * TILE_SIZE);
+    // fillJumpyText('bomb_count', turn_state.totalBombCount().toString(), -TILE_SIZE * 0.8, 1.15 * TILE_SIZE);
 
     fillJumpyText('temperature', turn_state.remaining_sopa.toString(), TILE_SIZE * 3, 1.15 * TILE_SIZE);
 
@@ -2490,7 +2489,7 @@ function fillJumpyText(id: string, text: string, x: number, y: number) {
   else if (id === 'undos') {
     ctx.translate(x, y);
     ctx.scale(1 + v * .2, 1 + v * .2);
-    ctx.drawImage(TEXTURES.undoUI, -1.1 * TILE_SIZE, -1.05 * TILE_SIZE);
+    drawImageCentered(TEXTURES.undoUI, new Vec2(-0.6 * TILE_SIZE, -.55 * TILE_SIZE), undo_overlapped ? 1.2 : 1.1);
     ctx.fillText(text, 0, 0);
   }
   else {
