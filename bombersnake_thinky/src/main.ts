@@ -278,6 +278,7 @@ if (is_phone) {
 }
 
 let CONFIG = {
+  CLOCK_ONLY_ADVANCES_ON_TURNS: false,
   ENABLE_ICE: false,
   HACK_NEVER_FREEZE: false,
   STARTING_UNDOS: 1,
@@ -649,7 +650,7 @@ class TurnState {
       } else if (cur_collectable instanceof Soup) {
         // nothing
       } else if (cur_collectable instanceof Clock) {
-        cur_collectables[k] = cur_collectable.update(turned);
+        cur_collectables[k] = cur_collectable.update(CONFIG.CLOCK_ONLY_ADVANCES_ON_TURNS ? turned : true);
       } else if (cur_collectable instanceof Ender) {
         // nothing
       } else {
