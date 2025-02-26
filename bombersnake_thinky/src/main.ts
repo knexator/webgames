@@ -671,11 +671,11 @@ let tick_or_tock: boolean;
 let touch_input_base_point: Vec2 | null;
 let exploding_cross_particles: { center: Vec2, turn: number, dir: 'both' | 'hor' | 'ver' }[];
 let collected_stuff_particles: { center: Vec2, text: string, turn: number, duration?: number }[];
-let snow_particles: { pos: Vec2, vel: Vec2, radius: number }[] = fromCount(80, _ => {
+let snow_particles: { pos: Vec2, vel: Vec2, radius: number }[] = fromCount(40, _ => {
   return { 
     pos: new Vec2(randomFloat(-1, 1), randomFloat(-1, 1)), 
-    vel: new Vec2(.6, .6).rotateTurns(randomCentered(0.05)), 
-    radius: randomFloat(.005, .02)
+    vel: new Vec2(.2, .2).rotateTurns(randomCentered(0.05)), 
+    radius: randomFloat(.01, .02)
   };
 });
 let haptic: boolean;
