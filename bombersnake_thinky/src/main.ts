@@ -923,6 +923,14 @@ const pause_menu: { focus: number, buttons: MenuButton[] } = {
     },
     {
       multiple_choice: false,
+      get_text: () => `Restart`,
+      y_coord: .7,
+      callback: (dx: number) => {
+        restartGame();
+      }
+    },
+    {
+      multiple_choice: false,
       get_text: () => `Resume`,
       y_coord: .8,
       callback: (dx: number) => {
