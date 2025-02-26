@@ -168,6 +168,7 @@ container.style.width = `${TILE_SIZE * (BOARD_SIZE.x + MARGIN * 2)}px`
 container.style.height = `${TILE_SIZE * (BOARD_SIZE.y + MARGIN * 2 + TOP_OFFSET)}px`
 twgl.resizeCanvasToDisplaySize(canvas_ctx);
 
+var dpad_pressed: Vec2 | null = null;
 let menu_fake_key: KeyCode | null = null;
 let cross_back_to_normal: number | null = null;
 const dpad = document.querySelector("#dpad") as HTMLImageElement;
@@ -222,7 +223,7 @@ if (is_phone) {
       const touch = ev.changedTouches.item(ev.changedTouches.length - 1)!;
       const place = touchPos(touch);
       const dir = roundToCardinalDirection(place);
-      input_queue.push(dir);
+      dpad_pressed = dir;
       vibrate();
       dpad.src = TEXTURES.cross[dirToImage(dir)].src;
       if (cross_back_to_normal !== null) {
@@ -254,7 +255,7 @@ if (is_phone) {
       const touch = ev.changedTouches.item(ev.changedTouches.length - 1)!;
       const place = touchPos(touch);
       const dir = roundToCardinalDirection(place);
-      input_queue.push(dir);
+      dpad_pressed = dir;
       dpad.src = TEXTURES.cross[dirToImage(dir)].src;
       if (cross_back_to_normal !== null) {
         clearTimeout(cross_back_to_normal);
@@ -264,6 +265,7 @@ if (is_phone) {
     return absorbEvent(ev);
   });
   dpad.addEventListener("touchend", ev => {
+    dpad_pressed = null;
     if (cross_back_to_normal === null) {
       cross_back_to_normal = setTimeout(() => {
         dpad.src = TEXTURES.cross.none.src;
@@ -1439,6 +1441,10 @@ function every_frame(cur_timestamp: number) {
         (btnp([KeyCode.KeyS, KeyCode.ArrowDown]) ? 1 : 0)
         - (btnp([KeyCode.KeyW, KeyCode.ArrowUp]) ? 1 : 0),
       ));
+    }
+
+    if (turn_offset == 1 && dpad_pressed !== null) {
+      input_queue.push(dpad_pressed);
     }
 
     if (input.keyboard.wasPressed(KeyCode.KeyZ)) {
