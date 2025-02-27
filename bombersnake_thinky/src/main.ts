@@ -52,7 +52,7 @@ const textures_async = await Promise.all(["mask", "clock", "star", "star"].flatM
   .concat(["open", "KO", "closed"].map(s => loadImage("eye_" + s)))
   .concat(["left", "right"].map(s => loadImage("menu_arrow_" + s)))
   .concat([loadImage("side_arrow_W"), loadImage("side_arrow_R")])
-  .concat([loadImage("title4"), loadImage("title4A")])
+  .concat([loadImage("titleChillA"), loadImage("titleChillB")])
   .concat([loadImage("pause")])
   .concat([loadImage("bomb_G"), loadImage("clock_G"), loadImage("star_G")]) // 20
   .concat([loadImage(`Cross`)])
