@@ -302,8 +302,8 @@ let CONFIG = {
   N_BOMBS_VER: 4,
   N_MULTIPLIERS: 1,
   N_SOUP: 1,
-  CLOCK_VALUE: 4,
-  CLOCK_DURATION: 3,
+  CLOCK_VALUE: 3,
+  CLOCK_DURATION: 30,
   CLOCK_FREQUENCY: 40,
   TICKTOCK_SPEED: 400,
   MUSIC_DURING_TICKTOCK: .25,
@@ -622,7 +622,7 @@ class TurnState {
       } else if (cur_collectable instanceof Soup) {
         new_sopa = CONFIG.SOPA;
         bounceText('temperature');
-        collected_stuff_particles.push({ center: cur_collectable.pos, text: 'soup', turn: new_turn });
+        collected_stuff_particles.push({ center: cur_collectable.pos, text: 'Hot Cocoa', turn: new_turn });
         cur_collectables[k] = placeSoup();
         SOUNDS.menu2.play();
         new_remaining_soups_until_bomb_drop -= 1;
@@ -1458,7 +1458,6 @@ function every_frame(cur_timestamp: number) {
 
     if (input.keyboard.wasPressed(KeyCode.Escape)) {
       game_state = "pause_menu";
-      pause_menu.focus = pause_menu.buttons.length - 1;
     }
   } else if (game_state === "soup_menu") {
     doGenericMenu(soup_menu, canvas_mouse_pos, raw_mouse_pos);
@@ -1563,7 +1562,7 @@ function doGenericMenu(menu: { focus: number, buttons: MenuButton[] }, canvas_mo
     KeyCode.KeyA, KeyCode.ArrowLeft,
     KeyCode.KeyS, KeyCode.ArrowDown,
     KeyCode.KeyD, KeyCode.ArrowRight,
-    KeyCode.Space, KeyCode.Enter,
+    KeyCode.Space
   ].some(k => input.keyboard.wasPressed(k))) {
     if (menu_fake_key !== null) console.log('had a fake key');
     function btnp(ks: KeyCode[]) {
@@ -1574,7 +1573,7 @@ function doGenericMenu(menu: { focus: number, buttons: MenuButton[] }, canvas_mo
       return ks.some(k => input.keyboard.wasPressed(k));
     }
     let delta = new Vec2(
-      (btnp([KeyCode.KeyD, KeyCode.ArrowRight, KeyCode.Space, KeyCode.Enter]) ? 1 : 0)
+      (btnp([KeyCode.KeyD, KeyCode.ArrowRight, KeyCode.Space]) ? 1 : 0)
       - (btnp([KeyCode.KeyA, KeyCode.ArrowLeft]) ? 1 : 0),
       (btnp([KeyCode.KeyS, KeyCode.ArrowDown]) ? 1 : 0)
       - (btnp([KeyCode.KeyW, KeyCode.ArrowUp]) ? 1 : 0)
@@ -1589,7 +1588,7 @@ function doGenericMenu(menu: { focus: number, buttons: MenuButton[] }, canvas_mo
         SOUNDS.menu1.play();
         button.callback(delta.x);
       }
-      else if (menu_fake_key === KeyCode.Space || btnp([KeyCode.Space, KeyCode.Enter])) {
+      else if (menu_fake_key === KeyCode.Space || btnp([KeyCode.Space])) {
         SOUNDS.menu2.play();
         button.callback(delta.x);
       }
