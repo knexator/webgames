@@ -558,6 +558,7 @@ class TurnState {
     const turned = !delta.equal(this.getHead().in_dir.scale(-1));
     if (turned) {
       new_sopa -= 1;
+      SOUNDS.menu1.play();
       bounceText('temperature');
       collected_stuff_particles.push({ center: this.getHead().pos, text: new_sopa.toString(), turn: new_turn, duration: 1 });
     }
