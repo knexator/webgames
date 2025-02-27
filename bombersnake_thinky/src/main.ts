@@ -1458,6 +1458,7 @@ function every_frame(cur_timestamp: number) {
 
     if (input.keyboard.wasPressed(KeyCode.Escape)) {
       game_state = "pause_menu";
+      pause_menu.focus = pause_menu.buttons.length - 1;
     }
   } else if (game_state === "soup_menu") {
     doGenericMenu(soup_menu, canvas_mouse_pos, raw_mouse_pos);
