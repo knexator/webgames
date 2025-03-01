@@ -1447,25 +1447,21 @@ function every_frame(cur_timestamp: number) {
     //   restartGame();
     // }
   } else if (game_state === "playing") {
-    if (turn_offset == 1 && [
-      KeyCode.KeyW, KeyCode.ArrowUp,
-      KeyCode.KeyA, KeyCode.ArrowLeft,
-      KeyCode.KeyS, KeyCode.ArrowDown,
-      KeyCode.KeyD, KeyCode.ArrowRight,
-    ].some(k => input.keyboard.isDown(k))) {
-      // if (game_state === "lost") {
-      //   restart();
-      // }
-      function btnp(ks: KeyCode[]) {
-        return ks.some(k => input.keyboard.isDown(k));
+    const btnp = (turn_offset == 1) 
+      ? (ks: KeyCode[]) => ks.some(k => input.keyboard.isDown(k))
+      : (ks: KeyCode[]) => ks.some(k => input.keyboard.wasPressed(k));
+
+    ([
+      [[KeyCode.KeyW, KeyCode.ArrowUp], new Vec2(0, -1)],
+      [[KeyCode.KeyS, KeyCode.ArrowDown], new Vec2(0, 1)],
+      [[KeyCode.KeyA, KeyCode.ArrowLeft], new Vec2(-1, 0)],
+      [[KeyCode.KeyD, KeyCode.ArrowRight], new Vec2(1, 0)],
+    ] as [KeyCode[], Vec2][]).forEach(([keys, dir]) => {
+      if (btnp(keys)) {
+        turn_offset = .99;
+        input_queue.push(dir);
       }
-      input_queue.push(new Vec2(
-        (btnp([KeyCode.KeyD, KeyCode.ArrowRight]) ? 1 : 0)
-        - (btnp([KeyCode.KeyA, KeyCode.ArrowLeft]) ? 1 : 0),
-        (btnp([KeyCode.KeyS, KeyCode.ArrowDown]) ? 1 : 0)
-        - (btnp([KeyCode.KeyW, KeyCode.ArrowUp]) ? 1 : 0),
-      ));
-    }
+    })
 
     if (turn_offset == 1 && dpad_pressed !== null) {
       input_queue.push(dpad_pressed);
