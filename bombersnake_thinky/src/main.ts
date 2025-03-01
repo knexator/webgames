@@ -1462,6 +1462,7 @@ function every_frame(cur_timestamp: number) {
 
     if (input.keyboard.wasPressed(KeyCode.Escape)) {
       game_state = "pause_menu";
+      pause_menu.focus = pause_menu.buttons.length - 1;
     }
   } else if (game_state === "soup_menu") {
     doGenericMenu(soup_menu, canvas_mouse_pos, raw_mouse_pos);
@@ -1566,7 +1567,7 @@ function doGenericMenu(menu: { focus: number, buttons: MenuButton[] }, canvas_mo
     KeyCode.KeyA, KeyCode.ArrowLeft,
     KeyCode.KeyS, KeyCode.ArrowDown,
     KeyCode.KeyD, KeyCode.ArrowRight,
-    KeyCode.Space
+    KeyCode.Space, KeyCode.Enter,
   ].some(k => input.keyboard.wasPressed(k))) {
     if (menu_fake_key !== null) console.log('had a fake key');
     function btnp(ks: KeyCode[]) {
@@ -1577,7 +1578,7 @@ function doGenericMenu(menu: { focus: number, buttons: MenuButton[] }, canvas_mo
       return ks.some(k => input.keyboard.wasPressed(k));
     }
     let delta = new Vec2(
-      (btnp([KeyCode.KeyD, KeyCode.ArrowRight, KeyCode.Space]) ? 1 : 0)
+      (btnp([KeyCode.KeyD, KeyCode.ArrowRight, KeyCode.Space, KeyCode.Enter]) ? 1 : 0)
       - (btnp([KeyCode.KeyA, KeyCode.ArrowLeft]) ? 1 : 0),
       (btnp([KeyCode.KeyS, KeyCode.ArrowDown]) ? 1 : 0)
       - (btnp([KeyCode.KeyW, KeyCode.ArrowUp]) ? 1 : 0)
@@ -1592,7 +1593,7 @@ function doGenericMenu(menu: { focus: number, buttons: MenuButton[] }, canvas_mo
         SOUNDS.menu1.play();
         button.callback(delta.x);
       }
-      else if (menu_fake_key === KeyCode.Space || btnp([KeyCode.Space])) {
+      else if (menu_fake_key === KeyCode.Space || btnp([KeyCode.Space, KeyCode.Enter])) {
         SOUNDS.menu2.play();
         button.callback(delta.x);
       }
