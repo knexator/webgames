@@ -302,9 +302,9 @@ let CONFIG = {
   N_BOMBS_VER: 4,
   N_MULTIPLIERS: 1,
   N_SOUP: 1,
-  CLOCK_VALUE: 4,
-  CLOCK_DURATION: 3,
-  CLOCK_FREQUENCY: 40,
+  CLOCK_VALUE: 3,
+  CLOCK_DURATION: 30,
+  CLOCK_FREQUENCY: 30,
   TICKTOCK_SPEED: 400,
   MUSIC_DURING_TICKTOCK: .25,
   LUCK: 5,
@@ -385,7 +385,7 @@ const GRAYSCALE = {
   GRIDLINE: "#2f324b",
   SHADOW: "#000000",
   SCARF_OUT: "#545454",
-  SCARF_IN: "rgb(50,50,140)",
+  SCARF_IN: "rgb(60,50,120)",
   HEAD: "rgb(50,75,70)",
   HIGHLIGHT_BAR: 'cyan',
   TEXT_WIN_SCORE: 'black',
@@ -411,7 +411,7 @@ const COLORS = {
   SCARF_IN: "#6647d1",
   // SCARF_OUT: "#C15000",
   // SCARF_IN: "#C15000",
-  HEAD: "#85ce36",
+  HEAD: "#80c535",
   HIGHLIGHT_BAR: "black",
   TEXT_WIN_SCORE: "white",
   TEXT_WIN_SCORE_2: "grey",
@@ -617,13 +617,13 @@ class TurnState {
           new_cur_undos = Math.min(new_cur_undos, CONFIG.MAX_UNDOS);
           bounceText('undos');
           bounceText('score');
-          SOUNDS.clock.play();
+          SOUNDS.clock_get.play();
           stopTickTockSound();
         }
       } else if (cur_collectable instanceof Soup) {
         new_sopa = CONFIG.SOPA;
         bounceText('temperature');
-        collected_stuff_particles.push({ center: cur_collectable.pos, text: 'soup', turn: new_turn });
+        collected_stuff_particles.push({ center: cur_collectable.pos, text: 'Hot Cocoa', turn: new_turn });
         cur_collectables[k] = placeSoup();
         SOUNDS.menu2.play();
         new_remaining_soups_until_bomb_drop -= 1;
@@ -633,7 +633,7 @@ class TurnState {
           new_n_bombs -= 1;
         }
       } else if (cur_collectable instanceof Ender) {
-        new_score += 123;
+        new_score += 10 * new_multiplier;
         bounceText('score');
         collected_ender = true;
       } else {
@@ -1099,9 +1099,11 @@ class Clock {
     }
     if (this.active) {
       stopTickTockSound();
+	  SOUNDS.clock.play();
+
       return new Clock(this.pos, false, CONFIG.CLOCK_FREQUENCY, true);
     } else {
-      startTickTockSound();
+      SOUNDS.clock.play();
       return new Clock(turn_state.findSpotWithoutWall(), true, CONFIG.CLOCK_DURATION, true);
     }
   }
@@ -1161,9 +1163,10 @@ const sounds_async = await Promise.all([
   loadSoundAsync(wavUrl("move2"), 0.25),
   loadSoundAsync(wavUrl("crash"), 0.5),
   loadSoundAsync(wavUrl("star"), 1.5),
-  loadSoundAsync(wavUrl("clock"), 1.2),
-  loadSoundAsync(mp3Url("tick"), 1),
-  loadSoundAsync(mp3Url("tock"), 1),
+  loadSoundAsync(mp3Url("clock"), 2),
+  loadSoundAsync(wavUrl("clock_get"), 1.5),
+  loadSoundAsync(mp3Url("tick"), 0),
+  loadSoundAsync(mp3Url("tock"), 0),
   loadSoundAsync(wavUrl("menu1"), .25),
   loadSoundAsync(wavUrl("menu2"), .25),
   loadSoundAsync(wavUrl("waffel"), 1.1),
@@ -1459,7 +1462,6 @@ function every_frame(cur_timestamp: number) {
 
     if (input.keyboard.wasPressed(KeyCode.Escape)) {
       game_state = "pause_menu";
-      pause_menu.focus = pause_menu.buttons.length - 1;
     }
   } else if (game_state === "soup_menu") {
     doGenericMenu(soup_menu, canvas_mouse_pos, raw_mouse_pos);
@@ -1564,7 +1566,7 @@ function doGenericMenu(menu: { focus: number, buttons: MenuButton[] }, canvas_mo
     KeyCode.KeyA, KeyCode.ArrowLeft,
     KeyCode.KeyS, KeyCode.ArrowDown,
     KeyCode.KeyD, KeyCode.ArrowRight,
-    KeyCode.Space, KeyCode.Enter,
+    KeyCode.Space
   ].some(k => input.keyboard.wasPressed(k))) {
     if (menu_fake_key !== null) console.log('had a fake key');
     function btnp(ks: KeyCode[]) {
@@ -1575,7 +1577,7 @@ function doGenericMenu(menu: { focus: number, buttons: MenuButton[] }, canvas_mo
       return ks.some(k => input.keyboard.wasPressed(k));
     }
     let delta = new Vec2(
-      (btnp([KeyCode.KeyD, KeyCode.ArrowRight, KeyCode.Space, KeyCode.Enter]) ? 1 : 0)
+      (btnp([KeyCode.KeyD, KeyCode.ArrowRight, KeyCode.Space]) ? 1 : 0)
       - (btnp([KeyCode.KeyA, KeyCode.ArrowLeft]) ? 1 : 0),
       (btnp([KeyCode.KeyS, KeyCode.ArrowDown]) ? 1 : 0)
       - (btnp([KeyCode.KeyW, KeyCode.ArrowUp]) ? 1 : 0)
@@ -1590,7 +1592,7 @@ function doGenericMenu(menu: { focus: number, buttons: MenuButton[] }, canvas_mo
         SOUNDS.menu1.play();
         button.callback(delta.x);
       }
-      else if (menu_fake_key === KeyCode.Space || btnp([KeyCode.Space, KeyCode.Enter])) {
+      else if (menu_fake_key === KeyCode.Space || btnp([KeyCode.Space])) {
         SOUNDS.menu2.play();
         button.callback(delta.x);
       }
