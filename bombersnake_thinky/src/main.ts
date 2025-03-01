@@ -765,12 +765,12 @@ const MAPS: Grid2D<boolean>[] = [
 // TODO: ask droqen for a new table
 class LeaderboardData {
   public around_scores: 'loading' | 'error' | { name: string | null, score: number, highlight?: boolean }[];
-  public top_scores: 'loading' | 'error' | { name: string, score: number, highlight?: boolean }[];
+  public top_scores: 'loading' | 'error' | { name: string | null, score: number, highlight?: boolean }[];
   public around_scores_local: 'loading' | 'error' | { name: string | null, score: number, highlight?: boolean }[];
-  public top_scores_local: 'loading' | 'error' | { name: string, score: number, highlight?: boolean }[];
+  public top_scores_local: 'loading' | 'error' | { name: string | null, score: number, highlight?: boolean }[];
   public submit_status: 'none' | 'submitting' | 'submitted' = 'none';
 
-  public top_scores_per_speed: ('loading' | 'error' | { name: string, score: number, highlight?: boolean }[])[];
+  public top_scores_per_speed: ('loading' | 'error' | { name: string | null, score: number, highlight?: boolean }[])[];
 
   constructor(center: number | null) {
     this.around_scores = 'loading';
@@ -782,13 +782,13 @@ class LeaderboardData {
       this.fetchAndUpdateTopScoresMainMenu();
     } else {
       this.fetchAndUpdate(center);
-      this.fetchAndUpdateTopScores();
+      this.fetchAndUpdateTopScores(center);
     }
   }
 
   async fetchAndUpdateTopScoresMainMenu() {
     this.top_scores_per_speed = await Promise.all([
-      LeaderboardData.fetchTopScoresWithName(null),
+      LeaderboardData.fetchTopScoresWithName(null, null),
     ]);
   }
 
@@ -796,8 +796,8 @@ class LeaderboardData {
     this.around_scores = await LeaderboardData.fetchAroundWithName(center, null);
   }
 
-  async fetchAndUpdateTopScores() {
-    this.top_scores = await LeaderboardData.fetchTopScoresWithName(null);
+  async fetchAndUpdateTopScores(score: number) {
+    this.top_scores = await LeaderboardData.fetchTopScoresWithName(score, null);
   }
 
   static async fetchAroundWithName(center: number, pname: string | null): Promise<'error' | { name: string | null, highlight?: boolean, score: number }[]> {
@@ -833,7 +833,7 @@ class LeaderboardData {
     }
   }
 
-  static async fetchTopScoresWithName(pname: string | null): Promise<'error' | { name: string, score: number }[]> {
+  static async fetchTopScoresWithName(center: number | null, pname: string | null): Promise<'error' | { name: string | null, highlight?: boolean, score: number }[]> {
     const corsProxy = 'https://cors-anywhere.herokuapp.com/';
     let url = `https://php.droqen.com/storescore/bombsnack/do_get_top10.php?mode=${10}`;
     if (pname !== null) {
@@ -848,7 +848,12 @@ class LeaderboardData {
       if (data.err !== 0) {
         return 'error';
       } else {
-        return data.scores;
+        let result: { name: string | null, score: number, highlight?: boolean }[] = data.scores;
+        if (center == null) return result;
+        result.push({ name: pname, score: center, highlight: true });
+        result = result.sort((a, b) => b.score - a.score);
+        result.pop();
+        return result;
       }
     } catch (error) {
       return 'error';
@@ -873,7 +878,7 @@ class LeaderboardData {
     const asdf = this;
     await response;
     asdf.submit_status = 'submitted';
-    const top_promise = LeaderboardData.fetchTopScoresWithName(name);
+    const top_promise = LeaderboardData.fetchTopScoresWithName(score, name);
     const around_promise = LeaderboardData.fetchAroundWithName(score, name);
     const [a, b] = await Promise.all([top_promise, around_promise])
     this.top_scores_local = a;
