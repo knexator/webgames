@@ -1099,7 +1099,7 @@ class Clock {
     }
     if (this.active) {
       stopTickTockSound();
-	  SOUNDS.clock.play();
+      SOUNDS.clock.play();
 
       return new Clock(this.pos, false, CONFIG.CLOCK_FREQUENCY, true);
     } else {
@@ -1233,9 +1233,24 @@ function placeBomb(old_dir: 'both' | 'hor' | 'ver'): Bomb {
   let candidates = fromCount(CONFIG.LUCK, _ => turn_state.findSpotWithoutWall());
   let visible_walls_at_each_candidate = candidates.map(pos => {
     let count = 0;
-    turn_state.grid.forEachV((pos, b) => {
-      if (b.valid && (pos.x === pos.x || pos.y === pos.y)) {
-        count += 1;
+    turn_state.grid.forEachV((pos2, b) => {
+      if (!b.valid) return;
+      switch (dir) {
+        case "both":
+          if (pos.x === pos2.x || pos.y === pos2.y) {
+            count += 1;
+          }
+          break;
+        case "hor":
+          if (pos.y === pos2.y) {
+            count += 1;
+          }
+          break;
+        case "ver":
+          if (pos.x === pos2.x) {
+            count += 1;
+          }
+          break;
       }
     });
     turn_state.cur_collectables.forEach(c => {
