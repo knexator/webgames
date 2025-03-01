@@ -385,7 +385,7 @@ const GRAYSCALE = {
   GRIDLINE: "#2f324b",
   SHADOW: "#000000",
   SCARF_OUT: "#545454",
-  SCARF_IN: "rgb(50,50,140)",
+  SCARF_IN: "rgb(60,50,120)",
   HEAD: "rgb(50,75,70)",
   HIGHLIGHT_BAR: 'cyan',
   TEXT_WIN_SCORE: 'black',
