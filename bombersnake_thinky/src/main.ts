@@ -1164,12 +1164,12 @@ const sounds_async = await Promise.all([
   loadSoundAsync(wavUrl("crash"), 0.5),
   loadSoundAsync(wavUrl("star"), 1.5),
   loadSoundAsync(mp3Url("clock"), 2),
-  loadSoundAsync(wavUrl("clock_get"), 1.5),
   loadSoundAsync(mp3Url("tick"), 0),
   loadSoundAsync(mp3Url("tock"), 0),
   loadSoundAsync(wavUrl("menu1"), .25),
   loadSoundAsync(wavUrl("menu2"), .25),
   loadSoundAsync(wavUrl("waffel"), 1.1),
+  loadSoundAsync(wavUrl("clock_get"), 1.5),
 ]);
 
 const async_songs = [
@@ -1211,6 +1211,7 @@ const SOUNDS = {
   menu1: sounds_async[10],
   menu2: sounds_async[11],
   waffel: sounds_async[12],
+  clock_get: sounds_async[13],
 };
 
 function updateSong() {
