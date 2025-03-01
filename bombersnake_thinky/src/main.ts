@@ -304,7 +304,7 @@ let CONFIG = {
   N_SOUP: 1,
   CLOCK_VALUE: 3,
   CLOCK_DURATION: 30,
-  CLOCK_FREQUENCY: 40,
+  CLOCK_FREQUENCY: 30,
   TICKTOCK_SPEED: 400,
   MUSIC_DURING_TICKTOCK: .25,
   LUCK: 5,
@@ -411,7 +411,7 @@ const COLORS = {
   SCARF_IN: "#6647d1",
   // SCARF_OUT: "#C15000",
   // SCARF_IN: "#C15000",
-  HEAD: "#85ce36",
+  HEAD: "#80c535",
   HIGHLIGHT_BAR: "black",
   TEXT_WIN_SCORE: "white",
   TEXT_WIN_SCORE_2: "grey",
@@ -616,7 +616,7 @@ class TurnState {
           new_cur_undos = Math.min(new_cur_undos, CONFIG.MAX_UNDOS);
           bounceText('undos');
           bounceText('score');
-          SOUNDS.clock.play();
+          SOUNDS.clock_get.play();
           stopTickTockSound();
         }
       } else if (cur_collectable instanceof Soup) {
@@ -632,7 +632,7 @@ class TurnState {
           new_n_bombs -= 1;
         }
       } else if (cur_collectable instanceof Ender) {
-        new_score += 123;
+        new_score += 10 * new_multiplier;
         bounceText('score');
         collected_ender = true;
       } else {
@@ -1098,9 +1098,11 @@ class Clock {
     }
     if (this.active) {
       stopTickTockSound();
+	  SOUNDS.clock.play();
+
       return new Clock(this.pos, false, CONFIG.CLOCK_FREQUENCY, true);
     } else {
-      startTickTockSound();
+      SOUNDS.clock.play();
       return new Clock(turn_state.findSpotWithoutWall(), true, CONFIG.CLOCK_DURATION, true);
     }
   }
@@ -1160,9 +1162,10 @@ const sounds_async = await Promise.all([
   loadSoundAsync(wavUrl("move2"), 0.25),
   loadSoundAsync(wavUrl("crash"), 0.5),
   loadSoundAsync(wavUrl("star"), 1.5),
-  loadSoundAsync(wavUrl("clock"), 1.2),
-  loadSoundAsync(mp3Url("tick"), 1),
-  loadSoundAsync(mp3Url("tock"), 1),
+  loadSoundAsync(mp3Url("clock"), 2),
+  loadSoundAsync(wavUrl("clock_get"), 1.5),
+  loadSoundAsync(mp3Url("tick"), 0),
+  loadSoundAsync(mp3Url("tock"), 0),
   loadSoundAsync(wavUrl("menu1"), .25),
   loadSoundAsync(wavUrl("menu2"), .25),
   loadSoundAsync(wavUrl("waffel"), 1.1),
