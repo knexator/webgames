@@ -390,9 +390,11 @@ const GRAYSCALE = {
   HIGHLIGHT_BAR: 'cyan',
   TEXT_WIN_SCORE: 'black',
   TEXT_WIN_SCORE_2: "gray",
+  HOT_COCOA_TEXT: "#000000",
 };
 
 const COLORS = {
+  HOT_COCOA_TEXT: "#f09b2b",
   WEB_BG: "#417e62",
   BORDER: "#8ccbf2",
   BACKGROUND: "#7cbeed",
@@ -623,7 +625,7 @@ class TurnState {
       } else if (cur_collectable instanceof Soup) {
         new_sopa = CONFIG.SOPA;
         bounceText('temperature');
-        collected_stuff_particles.push({ center: cur_collectable.pos, text: 'Hot Cocoa', turn: new_turn });
+        collected_stuff_particles.push({ center: cur_collectable.pos, text: 'Hot Cocoa', turn: new_turn, color: COLORS.HOT_COCOA_TEXT });
         cur_collectables[k] = placeSoup();
         SOUNDS.menu2.play();
         new_remaining_soups_until_bomb_drop -= 1;
@@ -689,7 +691,7 @@ let turn_offset: number; // always between 0..1
 let tick_or_tock: boolean;
 let touch_input_base_point: Vec2 | null;
 let exploding_cross_particles: { center: Vec2, turn: number, dir: 'both' | 'hor' | 'ver' }[];
-let collected_stuff_particles: { center: Vec2, text: string, turn: number, duration?: number }[];
+let collected_stuff_particles: { center: Vec2, text: string, turn: number, duration?: number, color?: string }[];
 let snow_particles: { pos: Vec2, vel: Vec2, radius: number }[] = fromCount(40, _ => {
   return {
     pos: new Vec2(randomFloat(-1, 1), randomFloat(-1, 1)),
@@ -1961,7 +1963,7 @@ function draw(is_loading: boolean) {
     ctx.fillStyle = "black";
     ctx.fillText(particle.text, (particle.center.x + dx + CONFIG.SHADOW_DIST * 0.5) * TILE_SIZE, (particle.center.y + 1 - t * 1.5 + CONFIG.SHADOW_DIST * 0.5) * TILE_SIZE);
     // the text itself
-    ctx.fillStyle = COLORS.TEXT;
+    ctx.fillStyle = particle.color ?? COLORS.TEXT;
 
     ctx.fillText(particle.text, (particle.center.x + dx) * TILE_SIZE, (particle.center.y + 1 - t * 1.5) * TILE_SIZE);
     return true;
