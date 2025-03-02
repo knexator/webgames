@@ -70,8 +70,13 @@ const textures_async = await Promise.all(["mask", "clock", "star", "star"].flatM
   .concat([loadImage("bomb_hor_G"), loadImage("bomb_ver_G")])
   .concat([loadImage("ice_strip_1_G"), loadImage("ice_strip_2_G")])
   .concat([loadImage("mask_G")])
+  .concat([loadImage("smoke1"), loadImage("smoke2")])
 );
 const TEXTURES = {
+  smoke: {
+    a: textures_async[49],
+    b: textures_async[50],
+  },
   ice: {
     a: textures_async[42],
     b: textures_async[43],
@@ -280,6 +285,14 @@ if (is_phone) {
 }
 
 let CONFIG = {
+  SMOKE: {
+    OFFSET: new Vec2(-0.05, 0.05),
+    SIZE: new Vec2(2, 1.4),
+    ANIM_DURATION: 1.0,
+    TRANSPARENCY_DURATION: 3.0,
+    TRANSPARENCY_MIN: 0.1,
+    TRANSPARENCY_MAX: 0.9,
+  },
   CLOCK_ONLY_ADVANCES_ON_TURNS: false,
   ENABLE_ICE: false,
   HACK_NEVER_FREEZE: false,
@@ -2365,6 +2378,14 @@ function drawItem(top_left: Vec2, item: "bomb_both" | "bomb_hor" | "bomb_ver" | 
       }
     }
   }
+  if (item == 'soup' && !is_shadow) {
+    ctx.globalAlpha = lerp(CONFIG.SMOKE.TRANSPARENCY_MIN, CONFIG.SMOKE.TRANSPARENCY_MAX, 
+      pingpong(mod(last_timestamp / (CONFIG.SMOKE.TRANSPARENCY_DURATION * 1000), 1)));
+    drawImageCentered2((mod(last_timestamp / (CONFIG.SMOKE.ANIM_DURATION * 1000), 1) > 0.5) 
+      ? TEXTURES.smoke.a : TEXTURES.smoke.b,
+      top_left.addXY(0.5, -0.0).add(CONFIG.SMOKE.OFFSET).scale(TILE_SIZE), CONFIG.SMOKE.SIZE);
+    ctx.globalAlpha = 1;
+  }
 }
 
 function drawIceTile(top_left: Vec2) {
@@ -2510,6 +2531,12 @@ function drawImageCentered(image: HTMLImageElement, center: Vec2, scale: number 
   ctx.drawImage(image, offset.x, offset.y, display_size.x, display_size.y);
 }
 
+function drawImageCentered2(image: HTMLImageElement, center: Vec2, scale: Vec2) {
+  const display_size = new Vec2(image.width, image.height).mul(scale).scale(TILE_SIZE / 32);
+  const offset = center.sub(display_size.scale(.5));
+  ctx.drawImage(image, offset.x, offset.y, display_size.x, display_size.y);
+}
+
 function bounceText(id: string) {
   bouncyTexts.set(id, 1);
 }
@@ -2600,3 +2627,10 @@ document.addEventListener('visibilitychange', function () {
     Howler.mute(false);
   }
 });
+
+function pingpong(t: number): number {
+  if (inRange(t, 0, 0.5)) return remap(t, 0, 0.5, 0, 1);
+  if (inRange(t, 0.5, 1)) return remap(t, 0.5, 1, 1, 0);
+  throw new Error("bad value");
+}
+
