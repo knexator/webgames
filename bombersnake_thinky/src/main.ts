@@ -1409,6 +1409,7 @@ function every_frame(cur_timestamp: number) {
     // @ts-ignore
     if (game_state === 'playing') {
       // start game
+      started_at_timestamp = last_timestamp;
       randomChoice(MAPS).forEachV((p, w) => {
         if (w) {
           turn_state.addInitialObstacleAt(p);
@@ -1688,6 +1689,7 @@ function draw(is_loading: boolean) {
     }
   }
 
+  ctx.globalAlpha = clamp01(remap(last_timestamp - started_at_timestamp, 0, 200, 0, 1));
   let turn = turn_state.turn;
   if (CONFIG.SHADOW) {
     turn_state.forEachVPlusDeathBlock((_, cur_block) => {
