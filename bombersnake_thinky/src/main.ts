@@ -2544,7 +2544,7 @@ function fillJumpyText(id: string, text: string, x: number, y: number) {
   else if (id === 'temperature') {
     ctx.translate(x, y);
     ctx.scale(1 + v * .2, 1 + v * .2);
-    ctx.drawImage(TEXTURES.speed, -2.2 * TILE_SIZE, -1.05 * TILE_SIZE);
+    ctx.drawImage(TEXTURES.speed, -2.2 * TILE_SIZE, -1.05 * TILE_SIZE, TILE_SIZE * 2, TILE_SIZE);
     ctx.fillText(text, 0, 0);
   }
   else if (id === 'undos') {
