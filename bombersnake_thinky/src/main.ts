@@ -391,10 +391,12 @@ const GRAYSCALE = {
   TEXT_WIN_SCORE: 'black',
   TEXT_WIN_SCORE_2: "gray",
   HOT_COCOA_TEXT: "#000000",
+  TURN_PARTICLE_TEXT: "#000000",
 };
 
 const COLORS = {
   HOT_COCOA_TEXT: "#f09b2b",
+  TURN_PARTICLE_TEXT: "#4b9bf0",
   WEB_BG: "#417e62",
   BORDER: "#8ccbf2",
   BACKGROUND: "#7cbeed",
@@ -562,7 +564,7 @@ class TurnState {
       new_sopa -= 1;
       SOUNDS.menu1.play();
       bounceText('temperature');
-      collected_stuff_particles.push({ center: this.getHead().pos, text: new_sopa.toString(), turn: new_turn, duration: 1 });
+      collected_stuff_particles.push({ center: this.getHead().pos, text: new_sopa.toString(), turn: new_turn, duration: 1, color: COLORS.TURN_PARTICLE_TEXT, go_down: true });
     }
     new_grid.getV(this.head_pos).out_dir = delta;
 
@@ -691,7 +693,7 @@ let turn_offset: number; // always between 0..1
 let tick_or_tock: boolean;
 let touch_input_base_point: Vec2 | null;
 let exploding_cross_particles: { center: Vec2, turn: number, dir: 'both' | 'hor' | 'ver' }[];
-let collected_stuff_particles: { center: Vec2, text: string, turn: number, duration?: number, color?: string }[];
+let collected_stuff_particles: { center: Vec2, text: string, turn: number, duration?: number, color?: string, go_down?: boolean }[];
 let snow_particles: { pos: Vec2, vel: Vec2, radius: number }[] = fromCount(40, _ => {
   return {
     pos: new Vec2(randomFloat(-1, 1), randomFloat(-1, 1)),
@@ -1954,6 +1956,9 @@ function draw(is_loading: boolean) {
     if (turn + turn_offset - particle.turn > (particle.duration ?? 3)) return false;
     let t = remap(turn + turn_offset, particle.turn, particle.turn + 3, 0, 1);
     if (t > 1) return false;
+    if (particle.go_down ?? false) {
+      t *= -1;
+    }
     let dx = particle.center.x > BOARD_SIZE.x - 2 ? -1 : 1;
     ctx.font = `bold ${Math.floor((is_phone ? 35 : 25) * TILE_SIZE / 25)}px sans-serif`;
     // text outline:
