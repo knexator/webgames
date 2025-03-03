@@ -1123,8 +1123,8 @@ function restartGame() {
   game_state = "main_menu";
   if (CONFIG.START_ON_BORDER) {
     turn_state = TurnState.initial(1, [
-      { pos: new Vec2(0, BOARD_SIZE.y - 2), in_dir: new Vec2(-1, 0), out_dir: new Vec2(1, 0), t: 0 },
-      { pos: new Vec2(1, BOARD_SIZE.y - 2), in_dir: new Vec2(-1, 0), out_dir: new Vec2(0, 0), t: 1 },
+      { pos: new Vec2(0, BOARD_SIZE.y - 3), in_dir: new Vec2(-1, 0), out_dir: new Vec2(1, 0), t: 0 },
+      { pos: new Vec2(1, BOARD_SIZE.y - 3), in_dir: new Vec2(-1, 0), out_dir: new Vec2(0, 0), t: 1 },
     ], [])
   } else {
     turn_state = TurnState.initial(2, [
@@ -1211,8 +1211,8 @@ let collectables = RECORDING_GIF ? [
 
 if (CONFIG.START_ON_BORDER) {
   turn_state = TurnState.initial(1, [
-    { pos: new Vec2(0, BOARD_SIZE.y - 2), in_dir: new Vec2(-1, 0), out_dir: new Vec2(1, 0), t: 0 },
-    { pos: new Vec2(1, BOARD_SIZE.y - 2), in_dir: new Vec2(-1, 0), out_dir: new Vec2(0, 0), t: 1 },
+    { pos: new Vec2(0, BOARD_SIZE.y - 3), in_dir: new Vec2(-1, 0), out_dir: new Vec2(1, 0), t: 0 },
+    { pos: new Vec2(1, BOARD_SIZE.y - 3), in_dir: new Vec2(-1, 0), out_dir: new Vec2(0, 0), t: 1 },
   ], collectables);
 } else {
   turn_state = TurnState.initial(2, [
