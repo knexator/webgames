@@ -44,6 +44,14 @@ export function argmax(arr: number[]) {
     return res;
 }
 
+export function min(arr: number[]) {
+    if (arr.length === 0) {
+        return undefined
+    }
+    return arr[argmin(arr)!];
+}
+
+
 export function argmin(arr: number[]) {
     if (arr.length === 0) {
         throw new Error("cant argmin of empty array");

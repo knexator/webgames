@@ -2,7 +2,7 @@ import * as twgl from "twgl.js"
 import GUI from "lil-gui";
 import { Input, KeyCode, Mouse, MouseButton } from "./kommon/input";
 import { DefaultMap, deepcopy, fromCount, fromRange, objectMap, repeat, zip2 } from "./kommon/kommon";
-import { mod, towards as approach, lerp, inRange, clamp, argmax, argmin, max, remap, clamp01, randomInt, randomFloat, randomChoice, doSegmentsIntersect, closestPointOnSegment, roundTo, wrap, randomCentered } from "./kommon/math";
+import { mod, towards as approach, lerp, inRange, clamp, argmax, argmin, max, remap, clamp01, randomInt, randomFloat, randomChoice, doSegmentsIntersect, closestPointOnSegment, roundTo, wrap, randomCentered, min } from "./kommon/math";
 import { Howl } from "howler"
 import { Vec2 } from "./kommon/vec2"
 import * as noise from './kommon/noise';
@@ -285,6 +285,11 @@ if (is_phone) {
 }
 
 let CONFIG = {
+  TIRITAR: {
+    ENABLED: true,
+    SPEED: 0.01,
+    SCALE: 0.1,
+  },
   SMOKE: {
     OFFSET: new Vec2(-0.05, 0.05),
     SIZE: new Vec2(2, 1.4),
@@ -487,6 +492,19 @@ function shouldConsumeUndo(old_state: TurnState, turn_state: TurnState) {
 var death_block: Block | null = null;
 
 class TurnState {
+  getBlocksUntilLastTurn(): Block[] {
+    var cur = this.getHead();
+    const dir = cur.in_dir;
+    var result = [cur];
+    var k = this.grid.size.x;
+    while (cur.in_dir.equal(dir) && k > 0) {
+      k -= 1;
+      cur = this.grid.getV(modVec2(cur.pos.add(dir), this.grid.size));
+      result.push(cur);
+    }
+    return result;
+  }
+
   remainingUndos() {
     return this.cur_undos;
   }
@@ -1832,6 +1850,9 @@ function draw(is_loading: boolean) {
     return true;
   });
 
+  let last_turn_turn = (CONFIG.TIRITAR.ENABLED && turn_state.remaining_sopa === 0)
+    ? (min(turn_state.getBlocksUntilLastTurn().map(b => b.t)) ?? null)
+    : null;
   // snake body
   turn_state.forEachVPlusDeathBlock((_, cur_block) => {
     if (!cur_block.valid) return;
@@ -1844,13 +1865,22 @@ function draw(is_loading: boolean) {
     if (is_scarf) {
       fill = "SCARF_IN";
     }
+    var block_pos = cur_block.pos;
+    if (last_turn_turn !== null && cur_block.t >= last_turn_turn) {
+      // tiritar
+      let cur_shake_phase = cam_noise(last_timestamp * CONFIG.TIRITAR.SPEED, cur_block.pos.x, cur_block.pos.y) * Math.PI;
+      block_pos = block_pos.add(new Vec2(
+        Math.cos(cur_shake_phase),
+        Math.sin(cur_shake_phase),
+      ).scale(CONFIG.TIRITAR.SCALE));
+    }
     ctx.fillStyle = COLORS[fill];
     if (cur_block.in_dir.equal(cur_block.out_dir.scale(-1))) {
       if (is_scarf && turn_offset < CONFIG.ANIM_PERC) {
-        const center = cur_block.pos.addXY(.5, .5).add(cur_block.in_dir.scale(1 - turn_offset / CONFIG.ANIM_PERC));
+        const center = block_pos.addXY(.5, .5).add(cur_block.in_dir.scale(1 - turn_offset / CONFIG.ANIM_PERC));
         fillTileCenterSize(center, Vec2.both(1), fill);
       } else {
-        fillTile(cur_block.pos, fill);
+        fillTile(block_pos, fill);
       }
     } else if (cur_block.out_dir.equal(Vec2.zero)) {
       const bounce = Math.max((bouncyTexts.get('multiplier') ?? 0), (bouncyTexts.get('score') ?? 0))
@@ -1860,7 +1890,7 @@ function draw(is_loading: boolean) {
       }
       let rounded_size = Math.min(.5, CONFIG.ROUNDED_SIZE);
       // let rounded_size = .5;
-      let center = cur_block.pos.addXY(.5, .5);
+      let center = block_pos.addXY(.5, .5);
       if (turn_offset < CONFIG.ANIM_PERC) {
         center = center.add(cur_block.in_dir.scale(1 - turn_offset / CONFIG.ANIM_PERC));
       }
@@ -1898,7 +1928,7 @@ function draw(is_loading: boolean) {
         drawRotatedTexture(center, eye_texture,
           Math.atan2(-cur_block.in_dir.y, -cur_block.in_dir.x), 1 + CONFIG.EYE_BOUNCE * bounce);
       }
-      // drawTexture(cur_block.pos, game_state === "lost" ? textures.eye.KO : textures.eye.open);
+      // drawTexture(block_pos, game_state === "lost" ? textures.eye.KO : textures.eye.open);
       // ctx.beginPath();
       // ctx.fillStyle = "white";
       // drawCircle(center.add(cur_block.in_dir.scale(-.1)), .3);
@@ -1912,7 +1942,7 @@ function draw(is_loading: boolean) {
       ctx.translate(-real_center.x, -real_center.y);
 
     } else {
-      const center = cur_block.pos.addXY(.5, .5)
+      const center = block_pos.addXY(.5, .5)
       if (is_scarf && turn_offset < CONFIG.ANIM_PERC) {
         let anim_t = turn_offset / CONFIG.ANIM_PERC;
         // center = center.add(cur_block.in_dir.scale(1 - ));
@@ -1935,7 +1965,7 @@ function draw(is_loading: boolean) {
       )
       ctx.save();
       ctx.beginPath();
-      ctx.clip(tileRegion(cur_block.pos));
+      ctx.clip(tileRegion(block_pos));
       fillCircle(center.add(cur_block.in_dir.add(cur_block.out_dir).scale(CONFIG.ROUNDED_SIZE - .5)), CONFIG.ROUNDED_SIZE, fill);
       ctx.restore();
     }
