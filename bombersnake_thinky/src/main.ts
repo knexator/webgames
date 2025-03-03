@@ -2249,6 +2249,12 @@ function draw(is_loading: boolean) {
       : COLORS.TEXT;
     fillJumpyText('score', `Score: ${turn_state.score}`, (5.9 - .25 * Math.floor(Math.log10(Math.max(1, turn_state.score)))) * TILE_SIZE, 1.15 * TILE_SIZE);
 
+    const undo_blinking = (turn_state.cur_undos > 0 && prev_turns.length > 0)
+      && shouldConsumeUndo(turn_state, prev_turns[prev_turns.length - 1]);
+    if (undo_blinking) {
+      ctx.fillStyle = blinking(1000, last_timestamp, COLORS.TEXT_WIN_SCORE, COLORS.TEXT_WIN_SCORE_2)
+      bounceText('undos');
+    }
     fillJumpyText('undos', turn_state.remainingUndos().toString(), 17 * TILE_SIZE, 1.15 * TILE_SIZE);
   }
 
