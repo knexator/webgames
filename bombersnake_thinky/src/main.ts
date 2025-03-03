@@ -740,7 +740,7 @@ let undo_overlapped = false;
 let scores_view: 'global' | 'local' = 'global';
 let soup_decision: 'continue' | 'stop' | null = null;
 
-const MAPS: Grid2D<{in_dir: Vec2, out_dir: Vec2} | null>[] = [
+const MAPS: Grid2D<{ in_dir: Vec2, out_dir: Vec2 } | null>[] = [
   // `
   //   ................
   //   ................
@@ -835,15 +835,15 @@ const MAPS: Grid2D<{in_dir: Vec2, out_dir: Vec2} | null>[] = [
 ].map(s => Grid2D.fromAscii(s).map((p, c) => {
   switch (c) {
     case 'X':
-      return {in_dir: Vec2.zero, out_dir: Vec2.zero};
+      return { in_dir: Vec2.zero, out_dir: Vec2.zero };
     case '1':
-      return {in_dir: Vec2.yneg, out_dir: Vec2.xpos};
+      return { in_dir: Vec2.yneg, out_dir: Vec2.xpos };
     case '3':
-      return {in_dir: Vec2.xneg, out_dir: Vec2.yneg};
+      return { in_dir: Vec2.xneg, out_dir: Vec2.yneg };
     case '7':
-      return {in_dir: Vec2.xpos, out_dir: Vec2.ypos};
+      return { in_dir: Vec2.xpos, out_dir: Vec2.ypos };
     case '9':
-      return {in_dir: Vec2.ypos, out_dir: Vec2.xneg};
+      return { in_dir: Vec2.ypos, out_dir: Vec2.xneg };
   }
   return null;
 }));
@@ -1132,6 +1132,7 @@ const leaderboard_menu: { focus: number, buttons: MenuButton[] } = {
 };
 
 function restartGame() {
+  collected_stuff_particles = [];
   death_block = null;
   stopTickTockSound();
   game_state = "main_menu";
@@ -1616,6 +1617,11 @@ function every_frame(cur_timestamp: number) {
         if (turn_state.cur_undos > 0 && prev_turns.length > 0) {
           const old_state = turn_state;
           turn_state = prev_turns.pop()!;
+
+          collected_stuff_particles = collected_stuff_particles.filter(particle => {
+            return particle.turn <= turn_state.turn;
+          });
+
           if (shouldConsumeUndo(old_state, turn_state)) {
             turn_state.cur_undos = old_state.cur_undos - 1;
             prev_turns.forEach(x => {
@@ -2397,6 +2403,7 @@ function percX(x: number): number {
 }
 
 function lose(happy: boolean = false) {
+  collected_stuff_particles = [];
   stopTickTockSound();
   game_state = happy ? "lost_happy" : "lost";
   last_lost_timestamp = last_timestamp;
