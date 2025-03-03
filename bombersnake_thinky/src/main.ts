@@ -1890,7 +1890,7 @@ function draw(is_loading: boolean) {
     return true;
   });
 
-  let last_turn_turn = (CONFIG.TIRITAR.ENABLED && turn_state.remaining_sopa === 0)
+  let last_turn_turn = (CONFIG.TIRITAR.ENABLED && game_state === 'playing' && turn_state.remaining_sopa === 0)
     ? (min(turn_state.getBlocksUntilLastTurn().map(b => b.t)) ?? null)
     : null;
   // snake body
