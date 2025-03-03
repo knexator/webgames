@@ -1573,6 +1573,7 @@ function every_frame(cur_timestamp: number) {
 
     const turned = !delta.equal(turn_state.getHead().in_dir.scale(-1));
     if (!CONFIG.HACK_NEVER_FREEZE && turn_state.remaining_sopa <= 0 && turned) {
+      bounceText('temperature');
       continue;
     }
 
