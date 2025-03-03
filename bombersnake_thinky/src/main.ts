@@ -700,6 +700,7 @@ class TurnState {
 let game_state: "loading_menu" | "main_menu" | "pause_menu" | "playing" | "soup_menu" | "lost" | "lost_happy" | "leaderboard";
 let turn_state: TurnState;
 let prev_turns: TurnState[];
+let older_prev_turns: TurnState[] = [];
 let started_at_timestamp: number;
 let input_queue: (Vec2 | 'undo')[];
 let turn_offset: number; // always between 0..1
@@ -1018,6 +1019,7 @@ const lost_button_submit: MenuButton = {
   y_coord: .9,
   callback: (dx: number) => {
     leaderboard_data!.submit(turn_state.score);
+    older_prev_turns = [];
     // restartGame();
   }
 }
@@ -1028,6 +1030,7 @@ const lost_button_global_local: MenuButton = {
   y_coord: .9,
   callback: (dx: number) => {
     scores_view = scores_view === 'global' ? 'local' : 'global';
+    older_prev_turns = [];
   }
 }
 
@@ -1038,6 +1041,7 @@ const lost_button_restart: MenuButton = {
   callback: (dx: number) => {
     console.log('hola en restart');
     restartGame();
+    older_prev_turns = [];
   }
 }
 
@@ -1074,6 +1078,7 @@ function restartGame() {
       { pos: new Vec2(8, 8), in_dir: new Vec2(-1, 0), out_dir: new Vec2(0, 0), t: 2 },
     ], []);
   }
+  older_prev_turns = prev_turns;
   prev_turns = [];
   started_at_timestamp = last_timestamp;
   leaderboard_data = null;
@@ -1446,13 +1451,22 @@ function every_frame(cur_timestamp: number) {
     doGenericMenu(lost_menu, canvas_mouse_pos, raw_mouse_pos);
 
     if (input.keyboard.wasPressed(KeyCode.Escape)) {
+      older_prev_turns = [];
       restartGame();
       game_state = "main_menu";
     }
 
     if (input.keyboard.wasPressed(KeyCode.KeyR)) {
+      older_prev_turns = [];
       restartGame();
     }
+
+    if (input.keyboard.wasPressed(KeyCode.KeyZ) && prev_turns.length > 0) {
+      game_state = "playing";
+      turn_state = prev_turns.pop()!;
+      turn_offset = 1;
+    }
+
     // else if (input.keyboard.wasPressed(KeyCode.Escape) || (input.mouse.wasPressed(MouseButton.Left) && settings_overlapped)) {
     //   restartGame();
     //   game_state = "pause_menu";
@@ -1465,7 +1479,7 @@ function every_frame(cur_timestamp: number) {
     //   restartGame();
     // }
   } else if (game_state === "playing") {
-    const btnp = (turn_offset == 1) 
+    const btnp = (turn_offset == 1)
       ? (ks: KeyCode[]) => ks.some(k => input.keyboard.isDown(k))
       : (ks: KeyCode[]) => ks.some(k => input.keyboard.wasPressed(k));
 
@@ -1480,6 +1494,10 @@ function every_frame(cur_timestamp: number) {
         input_queue.push(dir);
       }
     })
+
+    if (input.keyboard.wasPressed(KeyCode.KeyR)) {
+      restartGame();
+    }
 
     if (turn_offset == 1 && dpad_pressed !== null) {
       input_queue.push(dpad_pressed);
@@ -2049,6 +2067,15 @@ function draw(is_loading: boolean) {
     drawCenteredShadowedText('By knexator & Pinchazumos', (MARGIN + TOP_OFFSET + BOARD_SIZE.y * 1.05) * TILE_SIZE);
   } else if (game_state === "main_menu") {
 
+    if (input.keyboard.wasPressed(KeyCode.KeyZ)) {
+      if (older_prev_turns.length > 0) {
+        prev_turns = older_prev_turns;
+        older_prev_turns = [];
+        turn_state = prev_turns[prev_turns.length - 1];
+        game_state = "playing";
+      }
+    }
+
     drawImageCentered((mod(last_timestamp / 600, 1) > 0.5) ? TEXTURES.logo.frame1 : TEXTURES.logo.frame2,
       new Vec2(canvas_ctx.width / 2, menuYCoordOf("logo")));
 
@@ -2381,9 +2408,9 @@ function drawItem(top_left: Vec2, item: "bomb_both" | "bomb_hor" | "bomb_ver" | 
     }
   }
   if (item == 'soup' && !is_shadow) {
-    ctx.globalAlpha = lerp(CONFIG.SMOKE.TRANSPARENCY_MIN, CONFIG.SMOKE.TRANSPARENCY_MAX, 
+    ctx.globalAlpha = lerp(CONFIG.SMOKE.TRANSPARENCY_MIN, CONFIG.SMOKE.TRANSPARENCY_MAX,
       pingpong(mod(last_timestamp / (CONFIG.SMOKE.TRANSPARENCY_DURATION * 1000), 1)));
-    drawImageCentered2((mod(last_timestamp / (CONFIG.SMOKE.ANIM_DURATION * 1000), 1) > 0.5) 
+    drawImageCentered2((mod(last_timestamp / (CONFIG.SMOKE.ANIM_DURATION * 1000), 1) > 0.5)
       ? TEXTURES.smoke.a : TEXTURES.smoke.b,
       top_left.addXY(0.5, -0.0).add(CONFIG.SMOKE.OFFSET).scale(TILE_SIZE), CONFIG.SMOKE.SIZE);
     ctx.globalAlpha = 1;
