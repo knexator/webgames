@@ -414,8 +414,8 @@ const GRAYSCALE = {
 
 const COLORS = {
   HOT_COCOA_TEXT: "#f09b2b",
-  TURN_PARTICLE_TEXT: "#4b9bf0",
-  WEB_BG: "#417e62",
+  TURN_PARTICLE_TEXT: "#0080ff",
+  WEB_BG: "#5a8ab2",
   BORDER: "#8ccbf2",
   BACKGROUND: "#7cbeed",
   BACKGROUND_2: "#99d4f1",
@@ -658,7 +658,7 @@ class TurnState {
       } else if (cur_collectable instanceof Soup) {
         new_sopa = CONFIG.SOPA;
         bounceText('temperature');
-        collected_stuff_particles.push({ center: cur_collectable.pos, text: 'Hot Cocoa', turn: new_turn, color: COLORS.HOT_COCOA_TEXT });
+        collected_stuff_particles.push({ center: cur_collectable.pos, text: '·8·', turn: new_turn, color: COLORS.HOT_COCOA_TEXT });
         cur_collectables[k] = placeSoup();
         SOUNDS.soup.play();
         new_remaining_soups_until_bomb_drop -= 1;
