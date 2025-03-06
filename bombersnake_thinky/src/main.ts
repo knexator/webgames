@@ -1,7 +1,7 @@
 import * as twgl from "twgl.js"
 import GUI from "lil-gui";
 import { Input, KeyCode, Mouse, MouseButton } from "./kommon/input";
-import { DefaultMap, deepcopy, fromCount, fromRange, objectMap, repeat, zip2 } from "./kommon/kommon";
+import { DefaultMap, deepcopy, fromCount, fromRange, last, objectMap, repeat, zip2 } from "./kommon/kommon";
 import { mod, towards as approach, lerp, inRange, clamp, argmax, argmin, max, remap, clamp01, randomInt, randomFloat, randomChoice, doSegmentsIntersect, closestPointOnSegment, roundTo, wrap, randomCentered, min } from "./kommon/math";
 import { Howl } from "howler"
 import { Vec2 } from "./kommon/vec2"
@@ -1986,9 +1986,11 @@ function draw(is_loading: boolean) {
         ? TEXTURES.eye.KO
         : game_state === "lost_happy"
           ? TEXTURES.eye.closed
-          : turn_state.remaining_sopa == 0
-            ? TEXTURES.eye.shiver
-            : TEXTURES.eye.open;
+          : prev_turns.length > 1 && shouldConsumeUndo(turn_state, last(prev_turns))
+            ? TEXTURES.eye.closed
+            : turn_state.remaining_sopa == 0
+              ? TEXTURES.eye.shiver
+              : TEXTURES.eye.open;
       if (cur_block.in_dir.equal(new Vec2(1, 0))) {
         drawFlippedTexture(center, eye_texture, 1 + CONFIG.EYE_BOUNCE * bounce);
       } else {

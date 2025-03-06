@@ -20,6 +20,11 @@ export function repeat<T>(n: number, thing: T): T[] {
     return Array(n).fill(thing);
 }
 
+export function last<T>(arr: T[]): T {
+    if (arr.length == 0) throw new Error("empty");
+    return arr[arr.length - 1];
+}
+
 export function fromRange<T>(lo: number, hi: number, callback: (index: number) => T): T[] {
     let count = hi - lo;
     let result = Array(count);
