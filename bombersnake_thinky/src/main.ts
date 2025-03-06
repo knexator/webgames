@@ -71,6 +71,7 @@ const textures_async = await Promise.all(["mask", "clock", "star", "star"].flatM
   .concat([loadImage("ice_strip_1_G"), loadImage("ice_strip_2_G")])
   .concat([loadImage("mask_G")])
   .concat([loadImage("smoke1"), loadImage("smoke2")])
+  .concat([loadImage("eye_shiver")])
 );
 const TEXTURES = {
   smoke: {
@@ -117,6 +118,7 @@ const TEXTURES = {
     open: textures_async[8],
     KO: textures_async[9],
     closed: textures_async[10],
+    shiver: textures_async[51],
   },
   menu_arrow: {
     left: textures_async[11],
@@ -1984,7 +1986,9 @@ function draw(is_loading: boolean) {
         ? TEXTURES.eye.KO
         : game_state === "lost_happy"
           ? TEXTURES.eye.closed
-          : TEXTURES.eye.open;
+          : turn_state.remaining_sopa == 0
+            ? TEXTURES.eye.shiver
+            : TEXTURES.eye.open;
       if (cur_block.in_dir.equal(new Vec2(1, 0))) {
         drawFlippedTexture(center, eye_texture, 1 + CONFIG.EYE_BOUNCE * bounce);
       } else {
