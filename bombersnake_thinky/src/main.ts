@@ -307,7 +307,7 @@ let CONFIG = {
   HACK_NEVER_FREEZE: false,
   STARTING_UNDOS: 1,
   MAX_UNDOS: 3,
-  LOSE_BOMB_EVERY_N_SOUPS: 4,
+  LOSE_BOMB_EVERY_N_SOUPS: 3,
   MIN_AMOUNT_BOMBS: 4,
   SOPA: 8,
   SOPA_PER_BOMB: 0,
@@ -326,7 +326,7 @@ let CONFIG = {
   N_SOUP: 1,
   CLOCK_VALUE: 3,
   CLOCK_DURATION: 30,
-  CLOCK_FREQUENCY: 30,
+  CLOCK_FREQUENCY: 20,
   TICKTOCK_SPEED: 400,
   MUSIC_DURING_TICKTOCK: .25,
   LUCK: 5,
@@ -418,7 +418,7 @@ const GRAYSCALE = {
 
 const COLORS = {
   HOT_COCOA_TEXT: "#f09b2b",
-  TURN_PARTICLE_TEXT: "#0080ff",
+  TURN_PARTICLE_TEXT: "#2299ff",
   WEB_BG: "#5a8ab2",
   BORDER: "#8ccbf2",
   BACKGROUND: "#7cbeed",
@@ -599,7 +599,7 @@ class TurnState {
       new_sopa -= 1;
       SOUNDS.menu1.play();
       bounceText('temperature');
-      collected_stuff_particles.push({ center: this.getHead().pos, text: new_sopa.toString(), turn: new_turn, duration: 1, color: COLORS.TURN_PARTICLE_TEXT, go_down: true });
+      collected_stuff_particles.push({ center: this.getHead().pos, text: new_sopa.toString()+"...", turn: new_turn, duration: 1, color: COLORS.TURN_PARTICLE_TEXT, go_down: true });
     }
     new_grid.getV(this.head_pos).out_dir = delta;
 
@@ -662,7 +662,7 @@ class TurnState {
       } else if (cur_collectable instanceof Soup) {
         new_sopa = CONFIG.SOPA;
         bounceText('temperature');
-        collected_stuff_particles.push({ center: cur_collectable.pos, text: '·8·', turn: new_turn, color: COLORS.HOT_COCOA_TEXT });
+        collected_stuff_particles.push({ center: cur_collectable.pos, text: '...8!', turn: new_turn, color: COLORS.HOT_COCOA_TEXT });
         cur_collectables[k] = placeSoup();
         SOUNDS.soup.play();
         new_remaining_soups_until_bomb_drop -= 1;
@@ -1272,7 +1272,7 @@ const sounds_async = await Promise.all([
   loadSoundAsync(mp3Url("tock"), 0),
   loadSoundAsync(wavUrl("menu1"), .25),
   loadSoundAsync(wavUrl("menu2"), .25),
-  loadSoundAsync(wavUrl("waffel"), 1.1),
+  loadSoundAsync(mp3Url("waffel_chill"), 1),
   loadSoundAsync(wavUrl("clock_get"), 1.5),
   loadSoundAsync(wavUrl("soup"), 1.2),
   loadSoundAsync(mp3Url("tick"), 1),
