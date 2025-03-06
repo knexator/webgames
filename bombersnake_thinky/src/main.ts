@@ -722,6 +722,7 @@ let older_prev_turns: TurnState[] = [];
 let started_at_timestamp: number;
 let input_queue: (Vec2 | 'undo')[];
 let turn_offset: number; // always between 0..1
+let time_of_last_input: number;
 let tick_or_tock: boolean;
 let touch_input_base_point: Vec2 | null;
 let exploding_cross_particles: { center: Vec2, turn: number, dir: 'both' | 'hor' | 'ver' }[];
@@ -1642,6 +1643,7 @@ function every_frame(cur_timestamp: number) {
     }
     let delta: Vec2;
 
+    time_of_last_input = last_timestamp;
     if (next_input !== null) {
       delta = next_input;
       // randomChoice([SOUNDS.move1, SOUNDS.move2]).play();
@@ -1929,10 +1931,11 @@ function draw(is_loading: boolean) {
     if (last_turn_turn !== null && cur_block.t >= last_turn_turn) {
       // tiritar
       let cur_shake_phase = cam_noise(last_timestamp * CONFIG.TIRITAR.SPEED, cur_block.pos.x, cur_block.pos.y) * Math.PI;
+      const t = clamp01(remap(last_timestamp - time_of_last_input, 0, 1000, 1, 0));
       block_pos = block_pos.add(new Vec2(
         Math.cos(cur_shake_phase),
         Math.sin(cur_shake_phase),
-      ).scale(CONFIG.TIRITAR.SCALE));
+      ).scale(CONFIG.TIRITAR.SCALE).scale(t));
     }
     ctx.fillStyle = COLORS[fill];
     if (cur_block.in_dir.equal(cur_block.out_dir.scale(-1))) {
