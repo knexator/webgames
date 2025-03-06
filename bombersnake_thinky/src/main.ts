@@ -72,6 +72,7 @@ const textures_async = await Promise.all(["mask", "clock", "star", "star"].flatM
   .concat([loadImage("mask_G")])
   .concat([loadImage("smoke1"), loadImage("smoke2")])
   .concat([loadImage("eye_shiver")])
+  .concat([loadImage("undoRED")])
 );
 const TEXTURES = {
   smoke: {
@@ -87,6 +88,7 @@ const TEXTURES = {
     }
   },
   undoUI: textures_async[40],
+  undoUI_RED: textures_async[52],
   bomb_both: textures_async[0],
   bomb_hor: textures_async[33],
   bomb_ver: textures_async[34],
@@ -723,6 +725,7 @@ let prev_turns: TurnState[];
 let older_prev_turns: TurnState[] = [];
 let started_at_timestamp: number;
 let input_queue: (Vec2 | 'undo')[];
+let waiting_for_second_undo: boolean = false;
 let turn_offset: number; // always between 0..1
 let time_of_last_input: number;
 let tick_or_tock: boolean;
@@ -1135,6 +1138,7 @@ const leaderboard_menu: { focus: number, buttons: MenuButton[] } = {
 };
 
 function restartGame() {
+  waiting_for_second_undo = false;
   collected_stuff_particles = [];
   death_block = null;
   stopTickTockSound();
@@ -1271,7 +1275,8 @@ const sounds_async = await Promise.all([
   loadSoundAsync(wavUrl("waffel"), 1.1),
   loadSoundAsync(wavUrl("clock_get"), 1.5),
   loadSoundAsync(wavUrl("soup"), 1.2),
-
+  loadSoundAsync(mp3Url("tick"), 1),
+  loadSoundAsync(mp3Url("tock"), 1),
 ]);
 
 const async_songs = [
@@ -1314,7 +1319,9 @@ const SOUNDS = {
   menu2: sounds_async[11],
   waffel: sounds_async[12],
   clock_get: sounds_async[13],
-  soup: sounds_async[14]
+  soup: sounds_async[14],
+  undo_tick: sounds_async[15],
+  undo_tock: sounds_async[16],
 };
 
 function updateSong() {
@@ -1389,6 +1396,13 @@ function placeEnder(): Soup {
 function placeClock(): Clock {
   return new Clock(turn_state.findSpotWithoutWall(), false, CONFIG.CLOCK_FREQUENCY, true);
 }
+
+var undo_tick_or_tock = false;
+function playNextUndoSound() {
+  (undo_tick_or_tock ? SOUNDS.undo_tick : SOUNDS.undo_tock).play();
+  undo_tick_or_tock = !undo_tick_or_tock;
+}
+
 
 function startTickTockSound(): void {
   tick_or_tock = false;
@@ -1617,23 +1631,36 @@ function every_frame(cur_timestamp: number) {
     while (input_queue.length > 0) {
       let maybe_next_input = input_queue.shift()!;
       if (maybe_next_input === 'undo') {
-        if (turn_state.cur_undos > 0 && prev_turns.length > 0) {
+        bounceText('undos');
+        if (waiting_for_second_undo) {
+          waiting_for_second_undo = false;
           const old_state = turn_state;
           turn_state = prev_turns.pop()!;
 
+          turn_state.cur_undos = old_state.cur_undos - 1;
+          prev_turns.forEach(x => {
+            x.cur_undos -= 1;
+          })
+        } else if (turn_state.cur_undos > 0 && prev_turns.length > 0) {
+          const old_state = turn_state;
+          const new_state = last(prev_turns);
+
           collected_stuff_particles = collected_stuff_particles.filter(particle => {
-            return particle.turn <= turn_state.turn;
+            return particle.turn <= new_state.turn;
           });
 
-          if (shouldConsumeUndo(old_state, turn_state)) {
-            turn_state.cur_undos = old_state.cur_undos - 1;
-            prev_turns.forEach(x => {
-              x.cur_undos -= 1;
-            })
-            bounceText('undos');
+          if (shouldConsumeUndo(old_state, new_state)) {
+            SOUNDS.undo_tick.play();
+            waiting_for_second_undo = true;
+          } else {
+            playNextUndoSound();
+            turn_state = new_state;
+            prev_turns.pop();
           }
         }
         continue;
+      } else {
+        waiting_for_second_undo = false;
       }
       if (Math.abs(maybe_next_input.x) + Math.abs(maybe_next_input.y) !== 1
         || maybe_next_input.equal(last_block.in_dir)) {
@@ -2348,8 +2375,9 @@ function draw(is_loading: boolean) {
       : COLORS.TEXT;
     fillJumpyText('score', `Score: ${turn_state.score}`, (5.9 - .25 * Math.floor(Math.log10(Math.max(1, turn_state.score)))) * TILE_SIZE, 1.15 * TILE_SIZE);
 
-    const undo_blinking = (turn_state.cur_undos > 0 && prev_turns.length > 0)
-      && shouldConsumeUndo(turn_state, prev_turns[prev_turns.length - 1]);
+    const undo_blinking = waiting_for_second_undo;
+    // (turn_state.cur_undos > 0 && prev_turns.length > 0)
+    // && shouldConsumeUndo(turn_state, prev_turns[prev_turns.length - 1]);
     if (undo_blinking) {
       ctx.fillStyle = blinking(1000, last_timestamp, COLORS.TEXT_WIN_SCORE, COLORS.TEXT_WIN_SCORE_2)
       bounceText('undos');
@@ -2713,7 +2741,7 @@ function fillJumpyText(id: string, text: string, x: number, y: number) {
   else if (id === 'undos') {
     ctx.translate(x, y);
     ctx.scale(1 + v * .2, 1 + v * .2);
-    drawImageCentered(TEXTURES.undoUI, new Vec2(-0.6 * TILE_SIZE, -.55 * TILE_SIZE), undo_overlapped ? 1.2 : 1.1);
+    drawImageCentered(waiting_for_second_undo ? TEXTURES.undoUI_RED : TEXTURES.undoUI, new Vec2(-0.6 * TILE_SIZE, -.55 * TILE_SIZE), undo_overlapped ? 1.2 : 1.1);
     ctx.fillText(text, 0, 0);
   }
   else {
