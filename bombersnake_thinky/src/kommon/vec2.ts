@@ -77,6 +77,10 @@ export class Vec2 {
         );
     }
 
+    perp(): Vec2 {
+        return new Vec2(-this.y, this.x);
+    }
+
     rotate(radians: number): Vec2 {
         let c = Math.cos(radians);
         let s = Math.sin(radians);

@@ -1957,14 +1957,16 @@ function draw(is_loading: boolean) {
       fill = "SCARF_IN";
     }
     var block_pos = cur_block.pos;
-    if (last_turn_turn !== null && cur_block.t >= last_turn_turn) {
+    if (last_turn_turn !== null && cur_block.t > last_turn_turn) {
       // tiritar
       let cur_shake_phase = cam_noise(last_timestamp * CONFIG.TIRITAR.SPEED, cur_block.pos.x, cur_block.pos.y) * Math.PI;
       const t = clamp01(remap(last_timestamp - time_of_last_input, 0, 1000, 1, 0));
-      block_pos = block_pos.add(new Vec2(
-        Math.cos(cur_shake_phase),
-        Math.sin(cur_shake_phase),
-      ).scale(CONFIG.TIRITAR.SCALE).scale(t));
+      block_pos = block_pos.add(
+      // new Vec2(
+        // Math.cos(cur_shake_phase),
+        // Math.sin(cur_shake_phase),
+      // ).scale(CONFIG.TIRITAR.SCALE).scale(t));
+      cur_block.in_dir.perp().scale(cur_shake_phase * CONFIG.TIRITAR.SCALE).scale(t));
     }
     ctx.fillStyle = COLORS[fill];
     if (cur_block.in_dir.equal(cur_block.out_dir.scale(-1))) {
