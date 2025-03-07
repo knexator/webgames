@@ -528,6 +528,7 @@ class TurnState {
     public readonly soups_until_bomb_drop: number,
     public readonly n_bombs: number,
     public cur_undos: number,
+    public readonly picked_something: boolean,
   ) { }
 
   addInitialObstacleAt(p: Vec2, in_dir: Vec2, out_dir: Vec2) {
@@ -556,7 +557,7 @@ class TurnState {
     });
     const head_pos = blocks[blocks.length - 1].pos;
 
-    return new TurnState(grid, head_pos, collectables, turn, 0, CONFIG.SOPA, 1, CONFIG.LOSE_BOMB_EVERY_N_SOUPS, CONFIG.N_BOMBS + CONFIG.N_BOMBS_HOR + CONFIG.N_BOMBS_VER, CONFIG.STARTING_UNDOS);
+    return new TurnState(grid, head_pos, collectables, turn, 0, CONFIG.SOPA, 1, CONFIG.LOSE_BOMB_EVERY_N_SOUPS, CONFIG.N_BOMBS + CONFIG.N_BOMBS_HOR + CONFIG.N_BOMBS_VER, CONFIG.STARTING_UNDOS, false);
   }
 
   getHead() {
@@ -582,6 +583,7 @@ class TurnState {
     let new_remaining_soups_until_bomb_drop = this.soups_until_bomb_drop;
     let new_n_bombs = this.n_bombs;
     let new_cur_undos = this.cur_undos;
+    let new_picked_something = false;
 
     let new_block = new_grid.getV(modVec2(this.head_pos.add(delta), BOARD_SIZE));
     let collision = new_block.valid;
@@ -638,13 +640,14 @@ class TurnState {
         collected_stuff_particles.push({ center: cur_bomb.pos, text: '+' + new_multiplier.toString(), turn: new_turn });
         SOUNDS.bomb.play();
         exploding_cross_particles.push({ center: cur_bomb.pos, turn: new_turn, dir: cur_bomb.dir });
-
+        new_picked_something = true;
       } else if (cur_collectable instanceof Multiplier) {
         new_multiplier += 1;
         bounceText('multiplier');
         collected_stuff_particles.push({ center: cur_collectable.pos, text: 'x' + new_multiplier.toString(), turn: new_turn });
         cur_collectables[k] = placeMultiplier();
         SOUNDS.star.play();
+        new_picked_something = true;
       } else if (cur_collectable instanceof Clock) {
         const clock = cur_collectable;
         if (clock.active) {
@@ -658,6 +661,7 @@ class TurnState {
           bounceText('score');
           SOUNDS.clock_get.play();
           stopTickTockSound();
+          new_picked_something = true;
         }
       } else if (cur_collectable instanceof Soup) {
         new_sopa = CONFIG.SOPA;
@@ -666,6 +670,7 @@ class TurnState {
         cur_collectables[k] = placeSoup();
         SOUNDS.soup.play();
         new_remaining_soups_until_bomb_drop -= 1;
+        new_picked_something = true;
         if (new_remaining_soups_until_bomb_drop <= 0 && new_n_bombs > CONFIG.MIN_AMOUNT_BOMBS) {
           bounceText('bomb_count');
           new_remaining_soups_until_bomb_drop = CONFIG.LOSE_BOMB_EVERY_N_SOUPS;
@@ -675,6 +680,7 @@ class TurnState {
         new_score += 10 * new_multiplier;
         bounceText('score');
         collected_ender = true;
+        new_picked_something = true;
       } else {
         const _: never = cur_collectable;
         throw new Error();
@@ -700,7 +706,7 @@ class TurnState {
       }
     }
 
-    return [new TurnState(new_grid, new_block.pos, new_collectables, new_turn, new_score, new_sopa, new_multiplier, new_remaining_soups_until_bomb_drop, new_n_bombs, new_cur_undos), collision, collected_ender];
+    return [new TurnState(new_grid, new_block.pos, new_collectables, new_turn, new_score, new_sopa, new_multiplier, new_remaining_soups_until_bomb_drop, new_n_bombs, new_cur_undos, new_picked_something), collision, collected_ender];
   }
 
   findSpotWithoutWall(): Vec2 {
@@ -2022,7 +2028,7 @@ function draw(is_loading: boolean) {
           ? TEXTURES.eye.closed
           : turn_state.remaining_sopa == 0
             ? TEXTURES.eye.shiver
-            : prev_turns.length > 1 && shouldConsumeUndo(turn_state, last(prev_turns))
+            : turn_state.picked_something
               ? TEXTURES.eye.closed
               : TEXTURES.eye.open;
       if (cur_block.in_dir.equal(new Vec2(1, 0))) {
