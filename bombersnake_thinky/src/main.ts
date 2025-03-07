@@ -2020,10 +2020,10 @@ function draw(is_loading: boolean) {
         ? TEXTURES.eye.KO
         : game_state === "lost_happy"
           ? TEXTURES.eye.closed
-          : prev_turns.length > 1 && shouldConsumeUndo(turn_state, last(prev_turns))
-            ? TEXTURES.eye.closed
-            : turn_state.remaining_sopa == 0
-              ? TEXTURES.eye.shiver
+          : turn_state.remaining_sopa == 0
+            ? TEXTURES.eye.shiver
+            : prev_turns.length > 1 && shouldConsumeUndo(turn_state, last(prev_turns))
+              ? TEXTURES.eye.closed
               : TEXTURES.eye.open;
       if (cur_block.in_dir.equal(new Vec2(1, 0))) {
         drawFlippedTexture(center, eye_texture, 1 + CONFIG.EYE_BOUNCE * bounce);
