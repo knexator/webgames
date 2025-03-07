@@ -182,6 +182,7 @@ let menu_fake_key: KeyCode | null = null;
 let cross_back_to_normal: number | null = null;
 const dpad = document.querySelector("#dpad") as HTMLImageElement;
 const pause_button = document.querySelector("#pause_button") as HTMLImageElement;
+const undo_button = document.querySelector("#undo_button") as HTMLImageElement;
 if (is_phone) {
   function absorbEvent(e: Event) {
     e = e || window.event;
@@ -215,6 +216,29 @@ if (is_phone) {
         break;
       default:
         break;
+    }
+    return absorbEvent(ev);
+  });
+
+  undo_button.hidden = false;
+  undo_button.style.top = `${TILE_SIZE * (BOARD_SIZE.y + MARGIN * 3 + TOP_OFFSET) - 4}px`;
+  undo_button.addEventListener("pointerdown", ev => {
+    if (game_state === "lost" || game_state === "lost_happy") {
+      if (prev_turns.length > 0) {
+        game_state = "playing";
+        turn_state = prev_turns.pop()!;
+        turn_offset = 1;
+      }
+    } else if (game_state === "playing") {
+      input_queue.push('undo');
+    }
+    else if (game_state === "main_menu") {
+      if (older_prev_turns.length > 0) {
+        prev_turns = older_prev_turns;
+        older_prev_turns = [];
+        turn_state = prev_turns[prev_turns.length - 1];
+        game_state = "playing";
+      }
     }
     return absorbEvent(ev);
   });
@@ -286,6 +310,7 @@ if (is_phone) {
 } else {
   dpad.remove();
   pause_button.remove();
+  undo_button.remove();
 }
 
 let CONFIG = {
