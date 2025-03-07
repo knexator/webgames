@@ -1483,7 +1483,7 @@ function every_frame(cur_timestamp: number) {
         // setTimeout(() => {
         const original_volume = initial_song.volume()
         if (!initial_song.playing()) initial_song.play()
-        initial_song.fade(0, original_volume, 5000);
+        initial_song.fade(0, original_volume, 9000);
         // }, 200);
         // setTimeout(() => SONGS[music_track].play(), 1500);
         // SONGS[music_track].play();
