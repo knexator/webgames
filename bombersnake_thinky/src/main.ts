@@ -599,7 +599,7 @@ class TurnState {
       new_sopa -= 1;
       SOUNDS.menu1.play();
       bounceText('temperature');
-      collected_stuff_particles.push({ center: this.getHead().pos, text: new_sopa.toString()+"...", turn: new_turn, duration: 1, color: COLORS.TURN_PARTICLE_TEXT, go_down: true });
+      collected_stuff_particles.push({ center: this.getHead().pos, text: new_sopa.toString() + "...", turn: new_turn, duration: 1, color: COLORS.TURN_PARTICLE_TEXT, go_down: true });
     }
     new_grid.getV(this.head_pos).out_dir = delta;
 
@@ -1633,15 +1633,17 @@ function every_frame(cur_timestamp: number) {
       if (maybe_next_input === 'undo') {
         bounceText('undos');
         if (waiting_for_second_undo) {
-          waiting_for_second_undo = false;
-          const old_state = turn_state;
-          turn_state = prev_turns.pop()!;
+          if (turn_state.cur_undos > 0) {
+            waiting_for_second_undo = false;
+            const old_state = turn_state;
+            turn_state = prev_turns.pop()!;
 
-          turn_state.cur_undos = old_state.cur_undos - 1;
-          prev_turns.forEach(x => {
-            x.cur_undos -= 1;
-          })
-        } else if (turn_state.cur_undos > 0 && prev_turns.length > 0) {
+            turn_state.cur_undos = old_state.cur_undos - 1;
+            prev_turns.forEach(x => {
+              x.cur_undos -= 1;
+            })
+          }
+        } else if (prev_turns.length > 0) {
           const old_state = turn_state;
           const new_state = last(prev_turns);
 
@@ -1962,11 +1964,11 @@ function draw(is_loading: boolean) {
       let cur_shake_phase = cam_noise(last_timestamp * CONFIG.TIRITAR.SPEED, cur_block.pos.x, cur_block.pos.y) * Math.PI;
       const t = clamp01(remap(last_timestamp - time_of_last_input, 0, 1000, 1, 0));
       block_pos = block_pos.add(
-      // new Vec2(
+        // new Vec2(
         // Math.cos(cur_shake_phase),
         // Math.sin(cur_shake_phase),
-      // ).scale(CONFIG.TIRITAR.SCALE).scale(t));
-      cur_block.in_dir.perp().scale(cur_shake_phase * CONFIG.TIRITAR.SCALE).scale(t));
+        // ).scale(CONFIG.TIRITAR.SCALE).scale(t));
+        cur_block.in_dir.perp().scale(cur_shake_phase * CONFIG.TIRITAR.SCALE).scale(t));
     }
     ctx.fillStyle = COLORS[fill];
     if (cur_block.in_dir.equal(cur_block.out_dir.scale(-1))) {
