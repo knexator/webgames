@@ -1971,7 +1971,8 @@ function draw(is_loading: boolean) {
     if (last_turn_turn !== null && cur_block.t > last_turn_turn) {
       // tiritar
       let cur_shake_phase = cam_noise(last_timestamp * CONFIG.TIRITAR.SPEED, cur_block.pos.x, cur_block.pos.y) * Math.PI;
-      const t = clamp01(remap(last_timestamp - time_of_last_input, 0, 1000, 1, 0));
+      // const t = clamp01(remap(last_timestamp - time_of_last_input, 0, 1000, 1, 0));
+      const t = 1;
       block_pos = block_pos.add(
         // new Vec2(
         // Math.cos(cur_shake_phase),
