@@ -1956,7 +1956,7 @@ function draw(is_loading: boolean) {
       drawIceTile(cur_block.pos);
       return;
     }
-    let fill: keyof typeof COLORS = (cur_block.is_ice ? mod(cur_block.pos.x + cur_block.pos.y, 2) : mod(cur_block.t, 2) == 1) ? "SNAKE_HEAD" : "SNAKE_WALL";
+    let fill: keyof typeof COLORS = (cur_block.is_ice ? mod(cur_block.pos.x + cur_block.pos.y, 2) : mod(cur_block.t, 2) == 0) ? "SNAKE_HEAD" : "SNAKE_WALL";
     const is_scarf = CONFIG.SCARF === "full" && turn - cur_block.t === 1;
     if (is_scarf) {
       fill = "SCARF_IN";
