@@ -1497,7 +1497,7 @@ function every_frame(cur_timestamp: number) {
   const raw_mouse_pos = new Vec2(input.mouse.clientX - rect.left, input.mouse.clientY - rect.top);
   const canvas_mouse_pos = raw_mouse_pos.sub(Vec2.both(MARGIN * TILE_SIZE).addY(TOP_OFFSET * TILE_SIZE));
 
-  undo_overlapped = canvas_mouse_pos.sub(
+  undo_overlapped = game_state != "pause_menu" && canvas_mouse_pos.sub(
     new Vec2(TILE_SIZE * 16.5, -TILE_SIZE * 2.5)).mag() < TILE_SIZE * .7;
 
   if (game_state === "loading_menu") {
@@ -1585,7 +1585,7 @@ function every_frame(cur_timestamp: number) {
       restartGame();
     }
 
-    if (input.keyboard.wasPressed(KeyCode.KeyZ) && prev_turns.length > 0) {
+    if ((input.keyboard.wasPressed(KeyCode.KeyZ) || (undo_overlapped && input.mouse.wasPressed(MouseButton.Left))) && prev_turns.length > 0) {
       game_state = "playing";
       turn_state = prev_turns.pop()!;
       turn_offset = 1;
@@ -1806,7 +1806,7 @@ function doGenericMenu(menu: { focus: number, buttons: MenuButton[] }, canvas_mo
     menu.focus = argmin(menu.buttons.map(button => Math.abs(raw_mouse_pos.y - real_y(button.y_coord))));
   }
 
-  if (input.mouse.wasPressed(MouseButton.Left) && (canvas_mouse_pos.y + TILE_SIZE * TOP_OFFSET) < (BOARD_SIZE.y + MARGIN * 2) * TILE_SIZE) {
+  if (!undo_overlapped && input.mouse.wasPressed(MouseButton.Left) && (canvas_mouse_pos.y + TILE_SIZE * TOP_OFFSET) < (BOARD_SIZE.y + MARGIN * 2) * TILE_SIZE) {
     const dx = canvas_mouse_pos.x / (BOARD_SIZE.x * TILE_SIZE) < 1 / 2 ? -1 : 1;
     user_clicked_something = true;
 
@@ -2233,7 +2233,7 @@ function draw(is_loading: boolean) {
     drawCenteredShadowedText('By knexator & Pinchazumos', (MARGIN + TOP_OFFSET + BOARD_SIZE.y * 1.05) * TILE_SIZE);
   } else if (game_state === "main_menu") {
 
-    if (input.keyboard.wasPressed(KeyCode.KeyZ)) {
+    if (input.keyboard.wasPressed(KeyCode.KeyZ) || (undo_overlapped && input.mouse.wasPressed(MouseButton.Left))) {
       if (older_prev_turns.length > 0) {
         prev_turns = older_prev_turns;
         older_prev_turns = [];
